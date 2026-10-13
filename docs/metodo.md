@@ -28,3 +28,35 @@ Pocos y con función clara. Cada uno revisa el plan y luego el resultado desde s
 4. Construcción, con commits pequeños.
 5. Verificación según el plan + revisión del resultado por los expertos.
 6. Cierre: se marca la fase como completada y se pide autorización para la siguiente.
+
+## Pruebas (dónde viven)
+
+Carpeta `tests/` en la raíz, separada de `src/` y con subcarpetas que reflejan las capas:
+
+| Carpeta | Contenido | Herramienta |
+|---|---|---|
+| `tests/core/` | Pruebas unitarias del dominio y los casos de uso (sin DOM) | Vitest (entorno `node`) |
+| `tests/adapters/` | Adaptadores con falsos (`FakeMIDIAccess`, `FakeClock`) | Vitest |
+| `tests/ui/` | Componentes React | Vitest + jsdom + Testing Library |
+| `tests/integration/` | Sesión completa con entradas falsas | Vitest |
+| `tests/e2e/` | Prueba funcional en navegador real (Edge instalado) con video | Playwright |
+| `tests/fakes/` | Falsos compartidos (reloj, entrada de notas, MIDI) | — |
+
+Comando único de verificación: `npm run check`. Prueba funcional con video: `npm run e2e`.
+
+## Evidencias por fase
+
+Al cerrar cada fase se ejecuta una **prueba funcional en navegador real** y se guarda el resultado:
+
+```
+evidencias/
+  fase-0/
+    video-funcional.webm   # grabación de la prueba funcional
+    capturas/              # capturas clave (claro/oscuro, móvil, error, acierto)
+    informe.md             # qué se probó, resultado, medidas y fecha
+```
+
+- La prueba funcional se escribe en Playwright (`tests/e2e/fase-N.spec.ts`) y se repite al cerrar
+  cada fase siguiente para detectar regresiones.
+- Las pruebas con piano real (Yamaha E263 por USB-MIDI) las valida Kevin aparte; hasta entonces la
+  entrada es el teclado del PC.

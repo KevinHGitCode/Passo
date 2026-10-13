@@ -17,6 +17,8 @@ function attempt(target: number, played: number, reactionMs = 640): Attempt {
     noteNameMode: 'latina',
     level: 1,
     velocity: 96,
+    helpOn: true,
+    targetIndex: 0,
   };
 }
 

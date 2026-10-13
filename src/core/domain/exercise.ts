@@ -37,6 +37,10 @@ export interface Attempt {
   readonly noteNameMode: NotationMode;
   readonly level: number;
   readonly velocity: number;
+  /** La ayuda (tecla iluminada) estaba activada: con ayuda se empareja color, sin ella se lee la nota. */
+  readonly helpOn: boolean;
+  /** Posición de la nota objetivo dentro de la ronda, desde 0. */
+  readonly targetIndex: number;
 }
 
 export interface ExerciseState {
@@ -52,6 +56,7 @@ export interface ExerciseState {
 export interface EvaluateContext {
   readonly rng: Rng;
   readonly notation: NotationMode;
+  readonly help: boolean;
 }
 
 export interface RoundSummary {
@@ -125,6 +130,8 @@ export function evaluate(
     noteNameMode: context.notation,
     level: state.config.level,
     velocity: event.velocity,
+    helpOn: context.help,
+    targetIndex: state.completedTargets,
   };
   const attempts = [...state.attempts, attempt];
 

@@ -10,7 +10,7 @@ import type { ExerciseState, RoundConfig } from '@/core/domain/exercise';
 import type { NoteEvent } from '@/core/domain/note-event';
 import { createSeededRng } from '@/core/domain/rng';
 
-const ctx = { rng: createSeededRng(7), notation: 'latina' as const };
+const ctx = { rng: createSeededRng(7), notation: 'latina' as const, help: true };
 
 function on(note: number, at: number, velocity = 90): NoteEvent {
   return { type: 'on', note, velocity, at, source: 'teclado-pc' };
@@ -81,7 +81,11 @@ describe('evaluate', () => {
 
   it('registra todos los campos del intento con tiempos exactos', () => {
     const state = stateWithTarget(62);
-    const first = evaluate(state, on(60, 1300, 70), { rng: ctx.rng, notation: 'americana' });
+    const first = evaluate(state, on(60, 1300, 70), {
+      rng: ctx.rng,
+      notation: 'americana',
+      help: false,
+    });
     const second = evaluate(first.state, on(62, 1900, 100), ctx);
     expect(first.state.attempts[0]).toEqual({
       targetMidi: 62,
@@ -96,6 +100,8 @@ describe('evaluate', () => {
       noteNameMode: 'americana',
       level: 1,
       velocity: 70,
+      helpOn: false,
+      targetIndex: 0,
     });
     expect(second.state.attempts[1]).toMatchObject({
       isCorrect: true,

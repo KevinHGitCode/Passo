@@ -1,9 +1,12 @@
+import { WebAudioOutput } from '@/adapters/audio/web-audio-output';
+import type { AudioContextLike } from '@/adapters/audio/web-audio-output';
 import { ComputerKeyboardInput } from '@/adapters/keyboard/computer-keyboard-input';
 import type { KeyEventTarget } from '@/adapters/keyboard/computer-keyboard-input';
+import { MidiNoteInput } from '@/adapters/midi/midi-input';
+import type { MidiAccessLike } from '@/adapters/midi/midi-types';
 import { PracticeSession } from '@/core/application/practice-session';
 import { createSeededRng } from '@/core/domain/rng';
 import type { Rng } from '@/core/domain/rng';
-import type { AudioOutput } from '@/core/ports/audio-output';
 import type { Clock } from '@/core/ports/clock';
 
 /** Raíz de composición: el único lugar que conoce las implementaciones concretas. */
@@ -11,9 +14,10 @@ export function composeApp(search: string = window.location.search) {
   const params = new URLSearchParams(search);
   const seed = params.get('seed');
   const rng: Rng = seed === null ? Math.random : createSeededRng(Number(seed));
+  const debug = params.has('debug');
 
   const clock: Clock = { now: () => performance.now() };
-  const silentAudio: AudioOutput = { noteOn: () => undefined, noteOff: () => undefined };
+
   const keyTarget: KeyEventTarget = {
     addEventListener: (type, listener) => window.addEventListener(type, listener as EventListener),
     removeEventListener: (type, listener) =>
@@ -21,8 +25,33 @@ export function composeApp(search: string = window.location.search) {
   };
   const keyboard = new ComputerKeyboardInput(keyTarget);
 
-  const session = new PracticeSession({ inputs: [keyboard], audio: silentAudio, clock, rng });
-  void keyboard.start();
+  const midi = new MidiNoteInput(
+    typeof navigator.requestMIDIAccess === 'function'
+      ? () => navigator.requestMIDIAccess({ sysex: false }) as unknown as Promise<MidiAccessLike>
+      : undefined,
+  );
 
-  return { session, inputs: [keyboard] as const };
+  const audio = new WebAudioOutput(() =>
+    typeof AudioContext === 'undefined'
+      ? undefined
+      : (new AudioContext({ latencyHint: 'interactive' }) as unknown as AudioContextLike),
+  );
+  // Los navegadores solo dejan sonar tras un gesto: el primer clic o tecla activa el sonido.
+  const unlockOnGesture = () => {
+    void audio.unlock().then(() => {
+      if (audio.getStatus() === 'listo') {
+        window.removeEventListener('pointerdown', unlockOnGesture);
+        window.removeEventListener('keydown', unlockOnGesture);
+      }
+    });
+  };
+  window.addEventListener('pointerdown', unlockOnGesture);
+  window.addEventListener('keydown', unlockOnGesture);
+
+  const inputs = [keyboard, midi] as const;
+  const session = new PracticeSession({ inputs, audio, clock, rng });
+  void keyboard.start();
+  void midi.start();
+
+  return { session, inputs, audio, debug };
 }

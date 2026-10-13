@@ -1,4 +1,11 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { defineConfig } from '@playwright/test';
+
+// Si hay un ffmpeg local (`.playwright-cache/`, ver docs/metodo.md) se usa para grabar el video.
+if (existsSync('.playwright-cache/ffmpeg-1013')) {
+  process.env['PLAYWRIGHT_BROWSERS_PATH'] = resolve('.playwright-cache');
+}
 
 const PORT = 5180;
 

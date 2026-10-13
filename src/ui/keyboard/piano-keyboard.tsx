@@ -18,11 +18,11 @@ export interface PianoKeyboardProps {
   /** Primera y última nota dibujadas (deben ser teclas blancas). */
   readonly from: Midi;
   readonly to: Midi;
-  readonly visuals?: ReadonlyMap<Midi, KeyVisual>;
+  readonly visuals?: ReadonlyMap<Midi, KeyVisual> | undefined;
   /** Texto de la tecla (nombre de la nota); `undefined` = sin texto. */
-  readonly labelFor?: (midi: Midi) => string | undefined;
+  readonly labelFor?: ((midi: Midi) => string | undefined) | undefined;
   /** Recorta la vista a una parte del teclado (pantallas estrechas). */
-  readonly viewWindow?: { readonly from: Midi; readonly to: Midi };
+  readonly viewWindow?: { readonly from: Midi; readonly to: Midi } | undefined;
   readonly ariaLabel: string;
 }
 

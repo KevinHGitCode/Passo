@@ -60,3 +60,20 @@ evidencias/
   cada fase siguiente para detectar regresiones.
 - Las pruebas con piano real (Yamaha E263 por USB-MIDI) las valida Kevin aparte; hasta entonces la
   entrada es el teclado del PC.
+
+## Video de la prueba funcional: ffmpeg
+
+Playwright necesita su propio `ffmpeg` para grabar video. Dos opciones:
+
+1. **Recomendada en una máquina nueva:** `npx playwright install ffmpeg` (descarga pequeña desde Playwright).
+2. **Sin descargar nada** (lo que se hizo en este equipo): copiar un `ffmpeg.exe` completo ya instalado a
+   `.playwright-cache/ffmpeg-1013/ffmpeg-win64.exe` (la carpeta está en `.gitignore`). `playwright.config.ts`
+   la usa automáticamente si existe. El nombre de la carpeta (`1013`) cambia con la versión de Playwright: el error
+   «Executable doesn't exist» de `npm run e2e` indica el nombre exacto.
+
+Para ejecutar las pruebas sin grabar video: `E2E_VIDEO=off npm run e2e`.
+
+## Regla de oro de las evidencias
+
+Las capturas y los videos se **regeneran** siempre con `npm run e2e` justo antes de cerrar la fase, para que
+coincidan con el código final. No se editan a mano.

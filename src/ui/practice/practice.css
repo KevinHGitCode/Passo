@@ -69,7 +69,7 @@
 }
 .segmented__option span {
   display: block;
-  padding: 7px 14px;
+  padding: 12px 18px;
   border-radius: 999px;
   font-size: 14px;
   font-weight: 600;
@@ -90,6 +90,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 4px;
+  min-height: 44px;
   border: 0;
   background: none;
   font-size: 14px;
@@ -99,7 +100,7 @@
   width: 40px;
   height: 22px;
   border-radius: 999px;
-  background: var(--border);
+  background: var(--text-muted);
   padding: 3px;
   transition: background 120ms ease;
 }
@@ -122,6 +123,7 @@
 /* ---------- Botones ---------- */
 .button {
   padding: 9px 16px;
+  min-height: 44px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -133,7 +135,7 @@
 .button--ghost {
   background: transparent;
   font-size: 14px;
-  padding: 7px 12px;
+  padding: 7px 14px;
 }
 .button--primary {
   background: var(--accent);
@@ -235,7 +237,7 @@
 
 /* Región 2: escenario libre (hoy feedback; mañana cascada de notas) */
 .stage {
-  min-height: 84px;
+  min-height: 104px;
   display: grid;
   place-items: center;
 }
@@ -485,7 +487,7 @@
 /* ---------- Depuración (?debug) ---------- */
 .debug {
   position: fixed;
-  right: 12px;
+  left: 12px;
   bottom: 12px;
   display: flex;
   flex-direction: column;
@@ -497,4 +499,47 @@
   box-shadow: 0 6px 20px var(--shadow);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Ajustes tras la revisión de la Fase 0 ---------- */
+
+/* La parte superior del tablero tiene altura fija: el teclado no salta al cambiar de pantalla.
+   Es también el lienzo reservado para la cascada de notas (fases siguientes). */
+.board:focus {
+  outline: none;
+}
+.board__top {
+  min-height: 330px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+}
+.welcome__note {
+  margin: 0 0 10px;
+  max-width: 46ch;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Los avisos importantes van después de los chips, sin partirlos en dos filas. */
+.status {
+  order: 1;
+}
+
+/* Objetivo táctil de al menos 44 px también en el botón pequeño de los chips. */
+.chip__action {
+  position: relative;
+  padding: 5px 12px;
+}
+.chip__action::after {
+  content: '';
+  position: absolute;
+  inset: -8px -4px;
+}
+
+@media (max-width: 599px) {
+  .board__top {
+    min-height: 345px;
+  }
 }

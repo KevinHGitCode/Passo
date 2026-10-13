@@ -2,6 +2,7 @@
   display: block;
   width: 100%;
   height: auto;
+  max-height: max(220px, 44vh);
   user-select: none;
   filter: drop-shadow(0 6px 10px var(--shadow));
 }
@@ -93,4 +94,25 @@
   .key__shape {
     transition: none;
   }
+}
+
+/* La tecla pulsada conserva su color de estado (objetivo, acierto, error, correcta). */
+.key.key--target .key__shape,
+.key.key--expected .key__shape {
+  fill: var(--key-target);
+}
+.key.key--correct .key__shape {
+  fill: var(--ok);
+}
+.key.key--wrong .key__shape {
+  fill: var(--err);
+}
+.key--pressed .key__shape {
+  transform: translateY(3px);
+}
+.key--white.key--pressed .key__shape {
+  filter: brightness(0.86);
+}
+.key--black.key--pressed .key__shape {
+  filter: brightness(1.6);
 }

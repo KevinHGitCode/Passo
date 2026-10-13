@@ -1,6 +1,6 @@
 # Fase 0 — Prototipo: "toca esta nota"
 
-Estado: **autorizada por Kevin; en construcción**. Entrada de prueba: teclado del PC (el piano Yamaha E263 lo valida Kevin después).
+Estado: **completada el 2026-10-13 · pendiente de validación con el piano real (Yamaha E263) por Kevin**. Entrada de prueba usada: teclado del PC y piano MIDI simulado.
 
 ## Objetivo
 
@@ -126,3 +126,35 @@ desbloqueo automático de niveles, cuentas, backend, GitHub y CI.
 Música/pedagogía, interfaz/experiencia y backend/infraestructura revisaron el borrador.
 Sus propuestas aceptadas están en la tabla de decisiones. Se **difieren** a la Fase 1: desbloqueo
 automático de niveles, ponderación por historial, niveles con mano izquierda y negras.
+
+## Resultado de la fase
+
+- `npm run check` pasa: lint, reglas de capas, formato, 122 pruebas y build.
+- `npm run e2e` pasa (5 pruebas en Edge) y deja video y capturas en `evidencias/fase-0/` (ver su `informe.md`).
+- Latencia pulsación → pantalla: p50 6,8 ms, p95 16,8 ms (criterio < 50 ms). Audio: ~50 ms estimados por el navegador.
+- Todos los pasos 1–13 del plan se hicieron, con un commit por cambio.
+
+## Hallazgos de los expertos que se corrigieron durante la construcción
+
+| Experto | Hallazgo | Arreglo |
+|---|---|---|
+| UI | La tecla pulsada perdía su color de estado | CSS con mayor especificidad (`piano-keyboard.css`) |
+| UI | Al primer toque el aviso de sonido encogía y el botón **Empezar** se movía (el clic no llegaba) | El sonido se activa al terminar el clic; zona de estado con chips compactos |
+| UI | Saltos de altura del teclado entre pantallas | Parte superior del tablero con altura fija |
+| UI | Objetivos táctiles < 44 px, contraste del interruptor, etiquetas ilegibles en estrecho, foco perdido | CSS, ventana de 9 teclas, foco al tablero |
+| Música | La pausa inflaba el tiempo de reacción | Al reanudar se reinicia `shownAt` |
+| Música | Eco: el piano MIDI sonaba dos veces | La app solo sintetiza el teclado del PC |
+| Música | Feedback en semitonos poco útil | «Una tecla a la derecha», «Es Do, pero una octava más arriba» |
+| Música | Faltaba registrar si la ayuda estaba activa | `helpOn` y `targetIndex` en cada intento |
+| Backend | El feedback desaparecía en la 2.ª ronda | Contador de feedback creciente |
+| Backend | Notas pegadas al desconectar el piano | El adaptador MIDI suelta las notas del puerto |
+| Backend | Pausa frágil, audio que podía romper la evaluación, permisos tardíos | Corregidos con pruebas |
+| Backend | Reglas de arquitectura incompletas | `core` sin APIs del navegador y solo `main.tsx` importa la composición |
+
+## Aplazado a la Fase 1 (decidido con los expertos)
+
+- **Interfaz:** cabecera compacta en móvil (ver objetivo y teclado sin scroll), teclado en pantalla jugable con el dedo, número de dedo 1–5, teclas negras con doble nombre (Fa#/Solb) y niveles con negras y mano izquierda.
+- **Datos:** ids de sesión/ronda, hora de pared en `Attempt` (`performance.now` no sirve entre sesiones), marcar intentos posteriores a una pausa, puerto `Storage` con IndexedDB.
+- **Motor:** selección con «bolsa» barajada y ponderada por historial, `mostMissed` por tasa de error, «nota más lenta» con el tiempo hasta acertar, desbloqueo de niveles por acierto.
+- **Audio:** opción de sonido de la app con MIDI, tope de polifonía con compresor, pedal.
+- **Arquitectura:** extraer `ExerciseMode` con el segundo modo, prueba de integración `MidiNoteInput` + sesión, `no-restricted-globals` para `Date`/`Math.random`/`setTimeout` en `core`, pausar por desconexión sin depender de `lastSource`, evitar re-render de las 37 teclas por evento, `ErrorBoundary`, CSP y `?seed`/`?debug` solo en desarrollo.

@@ -3,7 +3,7 @@
 Aplicación para aprender piano corrigiendo al instante lo que no se te da bien.
 Nombre: **Passo** (paso a paso: no avanzas hasta que lo dominas).
 
-> Estado: planificación. Repositorio **solo local** (sin remoto de GitHub por ahora).
+> Estado: **Fase 0 completada** (prototipo "toca esta nota"). Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
 
 ## 1. Problema
 
@@ -93,7 +93,7 @@ En código, las capas se agrupan en `core/` (dominio, aplicación, puertos), `ad
 | 5 | Motor adaptativo: práctica por tramos, unión progresiva, subida de tempo | 3 semanas |
 | 6 | Pulido: estadísticas, micrófono, cuentas y nube | continuo |
 
-Detalle de cada fase: [docs/fases/](docs/fases/). Método de trabajo: [docs/metodo.md](docs/metodo.md).
+Detalle de cada fase: [docs/fases/](docs/fases/). Método de trabajo: [docs/metodo.md](docs/metodo.md). Convenciones: [docs/convenciones.md](docs/convenciones.md). Validación con piano real: [docs/validacion-piano.md](docs/validacion-piano.md).
 
 ## 8. Factibilidad
 

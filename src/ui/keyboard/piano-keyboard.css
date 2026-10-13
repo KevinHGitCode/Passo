@@ -1,0 +1,96 @@
+.piano {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  filter: drop-shadow(0 6px 10px var(--shadow));
+}
+
+.key__shape {
+  transition:
+    fill 120ms ease,
+    transform 90ms ease;
+}
+
+/* Teclas blancas */
+.key--white .key__shape {
+  fill: var(--key-white);
+  stroke: var(--key-edge);
+  stroke-width: 0.8;
+}
+.key--white .key__label {
+  fill: var(--key-white-text);
+}
+
+/* Teclas negras */
+.key--black .key__shape {
+  fill: var(--key-black);
+  stroke: var(--key-black-edge);
+  stroke-width: 0.6;
+}
+.key--black .key__label {
+  fill: var(--key-black-text);
+}
+
+.key__label {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  pointer-events: none;
+}
+.key__badge {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+/* Estados */
+.key--pressed .key__shape {
+  transform: translateY(2px);
+}
+.key--white.key--pressed .key__shape {
+  fill: var(--key-white-pressed);
+}
+.key--black.key--pressed .key__shape {
+  fill: var(--key-black-pressed);
+}
+
+.key--target .key__shape {
+  fill: var(--key-target);
+  stroke: var(--key-target-edge);
+  stroke-width: 1.4;
+}
+.key--target .key__label {
+  fill: var(--on-accent);
+}
+
+.key--correct .key__shape {
+  fill: var(--ok);
+  stroke: var(--ok-strong);
+  stroke-width: 1.4;
+}
+.key--wrong .key__shape {
+  fill: var(--err);
+  stroke: var(--err-strong);
+  stroke-width: 1.4;
+}
+.key--expected .key__shape {
+  fill: var(--key-target);
+  stroke: var(--key-target-edge);
+  stroke-width: 1.4;
+  stroke-dasharray: 3 2;
+}
+.key--correct .key__label,
+.key--wrong .key__label,
+.key--expected .key__label,
+.key--correct .key__badge,
+.key--wrong .key__badge,
+.key--expected .key__badge {
+  fill: var(--on-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .key__shape {
+    transition: none;
+  }
+}

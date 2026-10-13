@@ -1,0 +1,115 @@
+/*
+ * Tokens de diseño de Passo. Ningún componente usa colores sueltos: todo sale de aquí.
+ * Acierto = verde azulado, error = naranja rojizo, objetivo = azul (distinguibles con daltonismo
+ * y, además, cada estado lleva icono y texto).
+ */
+:root {
+  color-scheme: light;
+
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --surface-2: #eef1f7;
+  --text: #121722;
+  --text-muted: #556070;
+  --border: #d5dbe5;
+  --shadow: rgba(18, 23, 34, 0.18);
+  --focus: #1f3fd1;
+
+  --accent: #3454d1;
+  --accent-strong: #2742b0;
+  --on-accent: #ffffff;
+
+  --ok: #0a7a5c;
+  --ok-strong: #06553f;
+  --ok-soft: #d6f3e9;
+  --err: #b93c0b;
+  --err-strong: #8a2b06;
+  --err-soft: #ffe4d5;
+
+  --key-white: #ffffff;
+  --key-white-pressed: #e4e8f0;
+  --key-white-text: #5b6574;
+  --key-edge: #aeb7c4;
+  --key-black: #1a1f2a;
+  --key-black-pressed: #3a4252;
+  --key-black-edge: #0a0d12;
+  --key-black-text: #cfd6e2;
+  --key-target: #3454d1;
+  --key-target-edge: #1d338f;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --space: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='claro']) {
+    color-scheme: dark;
+    --bg: #0e1218;
+    --surface: #171c25;
+    --surface-2: #1f2530;
+    --text: #eef1f7;
+    --text-muted: #9ca7b8;
+    --border: #2d3543;
+    --shadow: rgba(0, 0, 0, 0.55);
+    --focus: #9db0ff;
+
+    --accent: #8fa4ff;
+    --accent-strong: #b3c0ff;
+    --on-accent: #0b1020;
+
+    --ok: #3fd9a0;
+    --ok-strong: #7ff0c6;
+    --ok-soft: #12362b;
+    --err: #ff9d66;
+    --err-strong: #ffc09b;
+    --err-soft: #3d2415;
+
+    --key-white: #e9edf4;
+    --key-white-pressed: #c4cad6;
+    --key-white-text: #4d5666;
+    --key-edge: #7e8898;
+    --key-black: #0a0c10;
+    --key-black-pressed: #2d3442;
+    --key-black-edge: #000000;
+    --key-black-text: #aeb7c6;
+    --key-target: #8fa4ff;
+    --key-target-edge: #c7d2ff;
+  }
+}
+
+:root[data-theme='oscuro'] {
+  color-scheme: dark;
+  --bg: #0e1218;
+  --surface: #171c25;
+  --surface-2: #1f2530;
+  --text: #eef1f7;
+  --text-muted: #9ca7b8;
+  --border: #2d3543;
+  --shadow: rgba(0, 0, 0, 0.55);
+  --focus: #9db0ff;
+
+  --accent: #8fa4ff;
+  --accent-strong: #b3c0ff;
+  --on-accent: #0b1020;
+
+  --ok: #3fd9a0;
+  --ok-strong: #7ff0c6;
+  --ok-soft: #12362b;
+  --err: #ff9d66;
+  --err-strong: #ffc09b;
+  --err-soft: #3d2415;
+
+  --key-white: #e9edf4;
+  --key-white-pressed: #c4cad6;
+  --key-white-text: #4d5666;
+  --key-edge: #7e8898;
+  --key-black: #0a0c10;
+  --key-black-pressed: #2d3442;
+  --key-black-edge: #000000;
+  --key-black-text: #aeb7c6;
+  --key-target: #8fa4ff;
+  --key-target-edge: #c7d2ff;
+}

@@ -20,4 +20,16 @@ export default tseslint.config(
     files: ['**/*.cjs'],
     languageOptions: { sourceType: 'commonjs', globals: globals.node },
   },
+  {
+    // El núcleo no toca el navegador: el tiempo, el azar y la E/S entran por puertos.
+    files: ['src/core/**/*.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['window', 'document', 'navigator', 'performance', 'localStorage', 'sessionStorage'].map(
+          (name) => ({ name, message: 'El núcleo no usa APIs del navegador: usa un puerto.' }),
+        ),
+      ],
+    },
+  },
 );

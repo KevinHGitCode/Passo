@@ -36,6 +36,13 @@ module.exports = {
       from: { path: '^src/ui' },
       to: { path: '^src/adapters' },
     },
+    {
+      name: 'composicion-solo-desde-main',
+      severity: 'error',
+      comment: 'compose.ts es la raíz de composición: solo main.tsx puede importarla.',
+      from: { path: '^src', pathNot: '^src/main\\.tsx$' },
+      to: { path: '^src/(compose|main)\\.tsx?$' },
+    },
   ],
   options: {
     doNotFollow: { path: 'node_modules' },

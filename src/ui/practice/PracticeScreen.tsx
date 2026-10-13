@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useEffect, useRef } from 'react';
 import type { PracticeSession, SessionSnapshot } from '@/core/application/practice-session';
 import type { RoundSummary } from '@/core/domain/exercise';
 import { noteName, octaveOf, pitchName } from '@/core/domain/note';
@@ -17,6 +17,10 @@ import './practice.css';
 /** Rango del teclado en pantalla: Do3 a Do6 (el nivel 1 usa Do4–Sol4). */
 export const KEYBOARD_FROM = 48;
 export const KEYBOARD_TO = 84;
+
+/** En pantallas estrechas se muestran 9 teclas blancas (de Do a Re de la octava siguiente). */
+const NARROW_SPAN_SEMITONES = 14;
+const NARROW_MAX_WIDTH = 899;
 
 export interface PracticeScreenProps {
   readonly session: PracticeSession;
@@ -36,6 +40,7 @@ function Icon({ tone }: { readonly tone: FeedbackMessage['tone'] }) {
   );
 }
 
+/** Texto para lectores de pantalla. Incluye el nº de errores para que dos errores iguales se anuncien. */
 function liveMessage(snapshot: SessionSnapshot): string {
   const { exercise, feedback, notation } = snapshot;
   if (snapshot.phase === 'pausada') return 'Ronda en pausa';
@@ -44,8 +49,9 @@ function liveMessage(snapshot: SessionSnapshot): string {
   if (!feedback) return `Toca ${target}`;
   const message = feedbackMessage(feedback.outcome, notation);
   if (feedback.outcome.kind === 'acierto') return `${message.title} Ahora toca ${target}`;
-  if (feedback.outcome.kind === 'error')
-    return `${message.title}. ${message.detail}. Intenta de nuevo`;
+  if (feedback.outcome.kind === 'error') {
+    return `${message.title}, error ${snapshot.errors}. ${message.detail}. Intenta de nuevo`;
+  }
   return `${message.title} ${message.detail}`;
 }
 
@@ -113,13 +119,20 @@ export function PracticeScreen({
 }: PracticeScreenProps) {
   const snapshot = useSessionSnapshot(session);
   const recent = useRecentFeedback(snapshot.feedback);
-  const narrow = useIsNarrow();
-  const [help, setHelp] = useState(true);
+  const narrow = useIsNarrow(NARROW_MAX_WIDTH);
+  const boardRef = useRef<HTMLElement>(null);
 
-  const { exercise, notation, phase } = snapshot;
+  const { exercise, notation, phase, help } = snapshot;
   const target = exercise?.target ?? null;
   const roundSize = exercise?.config.roundSize ?? 0;
   const message = recent ? feedbackMessage(recent.outcome, notation) : null;
+
+  // Al cambiar de fase el botón pulsado desaparece y el foco se perdería: lo llevamos al tablero.
+  useEffect(() => {
+    if (document.activeElement === null || document.activeElement === document.body) {
+      boardRef.current?.focus({ preventScroll: true });
+    }
+  }, [phase]);
 
   const visuals = buildKeyVisuals({
     target: phase === 'en-curso' ? target : null,
@@ -127,12 +140,21 @@ export function PracticeScreen({
     pressed: snapshot.pressed,
     feedback: recent,
   });
+  /**
+   * Con ayuda: nombre en cada tecla blanca. Sin ayuda: solo los Do como punto de referencia.
+   * Las teclas negras solo se rotulan cuando son parte de un resultado.
+   */
   const labelFor = (midi: Midi): string | undefined => {
-    const showAll = help && phase !== 'inactiva';
-    if (!showAll && !visuals.get(midi)?.feedback) return undefined;
-    return midi % 12 === 0 ? noteName(midi, notation) : pitchName(midi, notation);
+    const isC = midi % 12 === 0;
+    const hasFeedback = visuals.get(midi)?.feedback !== undefined;
+    const isBlack = [1, 3, 6, 8, 10].includes(midi % 12);
+    if (hasFeedback || (isC && phase !== 'inactiva')) return noteName(midi, notation);
+    if (help && phase !== 'inactiva' && !isBlack) return pitchName(midi, notation);
+    return undefined;
   };
-  const viewWindow = narrow ? windowAround(target ?? 60, KEYBOARD_FROM, KEYBOARD_TO, 2) : undefined;
+  const viewWindow = narrow
+    ? windowAround(target ?? 60, KEYBOARD_FROM, KEYBOARD_TO, NARROW_SPAN_SEMITONES)
+    : undefined;
 
   return (
     <main className="app">
@@ -148,7 +170,7 @@ export function PracticeScreen({
           notation={notation}
           onNotation={(value) => session.setNotation(value)}
           help={help}
-          onHelp={setHelp}
+          onHelp={(value) => session.setHelp(value)}
           theme={theme}
           onCycleTheme={onCycleTheme}
         />
@@ -156,108 +178,102 @@ export function PracticeScreen({
 
       {statusZone}
 
-      <section className="board" aria-label="Práctica: toca esta nota">
-        {phase === 'inactiva' && (
-          <div className="welcome" data-testid="welcome">
-            <h2 className="welcome__title">Toca la nota que aparece</h2>
-            <p className="welcome__text">
-              No avanzas hasta acertar. Nivel 1: de Do4 a Sol4, con la mano derecha.
-            </p>
-            <button
-              type="button"
-              className="button button--primary button--big"
-              onClick={() => session.start()}
-              data-testid="start"
-            >
-              Empezar
-            </button>
-          </div>
-        )}
-
-        {(phase === 'en-curso' || phase === 'pausada') && exercise && target !== null && (
-          <>
-            <div className="target" data-testid="target">
-              <span className="target__label">Toca esta nota</span>
-              <span className="target__name" data-testid="target-note" data-midi={target}>
-                {pitchName(target, notation)}
-                <span className="target__octave">{octaveOf(target)}</span>
-              </span>
-              <span className="target__hint">
-                {help ? 'La tecla azul del teclado' : 'Búscala en el teclado'}
-              </span>
-              <div
-                className="progress"
-                role="progressbar"
-                aria-label="Progreso de la ronda"
-                aria-valuemin={0}
-                aria-valuemax={roundSize}
-                aria-valuenow={snapshot.hits}
+      <section className="board" aria-label="Práctica: toca esta nota" tabIndex={-1} ref={boardRef}>
+        <div className="board__top">
+          {phase === 'inactiva' && (
+            <div className="welcome" data-testid="welcome">
+              <h2 className="welcome__title">Toca la nota que aparece</h2>
+              <p className="welcome__text">
+                No avanzas hasta acertar. Nivel 1: de Do4 a Sol4, con la mano derecha.
+              </p>
+              <p className="welcome__note">
+                Do4 es el Do central. Algunos pianos lo rotulan «C3» o «Do3»: es la misma tecla.
+              </p>
+              <button
+                type="button"
+                className="button button--primary button--big"
+                onClick={() => session.start()}
+                data-testid="start"
               >
-                <div
-                  className="progress__fill"
-                  style={{ width: `${(snapshot.hits / roundSize) * 100}%` }}
-                />
-              </div>
-              <span className="target__count" data-testid="counters">
-                <span>
-                  Notas {snapshot.hits}/{roundSize}
+                Empezar
+              </button>
+            </div>
+          )}
+
+          {(phase === 'en-curso' || phase === 'pausada') && exercise && target !== null && (
+            <>
+              <div className="target" data-testid="target">
+                <span className="target__label">Toca esta nota</span>
+                <span className="target__name" data-testid="target-note" data-midi={target}>
+                  {pitchName(target, notation)}
+                  <span className="target__octave">{octaveOf(target)}</span>
                 </span>
-                <span aria-hidden="true"> · </span>
-                <span>Errores {snapshot.errors}</span>
-              </span>
-            </div>
-
-            <div className="stage" data-testid="stage">
-              {phase === 'pausada' ? (
-                <div className="paused" role="alert">
-                  <strong>Ronda en pausa</strong>
-                  <span>
-                    {snapshot.pauseReason === 'desconexion'
-                      ? 'Se desconectó el piano. Vuelve a conectarlo para seguir.'
-                      : 'Pulsa continuar cuando quieras.'}
-                  </span>
-                  <button type="button" className="button" onClick={() => session.resume()}>
-                    Continuar
-                  </button>
-                </div>
-              ) : message && recent ? (
+                <span className="target__hint">
+                  {help ? 'La tecla resaltada del teclado' : 'Búscala en el teclado'}
+                </span>
                 <div
-                  className={`feedback feedback--${message.tone}`}
-                  key={recent.id}
-                  data-testid="feedback"
-                  data-tone={message.tone}
+                  className="progress"
+                  role="progressbar"
+                  aria-label="Progreso de la ronda"
+                  aria-valuemin={0}
+                  aria-valuemax={roundSize}
+                  aria-valuenow={snapshot.hits}
                 >
-                  <Icon tone={message.tone} />
-                  <div>
-                    <p className="feedback__title">{message.title}</p>
-                    <p className="feedback__detail">{message.detail}</p>
-                  </div>
+                  <div
+                    className="progress__fill"
+                    style={{ width: `${(snapshot.hits / roundSize) * 100}%` }}
+                  />
                 </div>
-              ) : (
-                <p className="stage__idle">Esperando tu nota…</p>
-              )}
-            </div>
-          </>
-        )}
+                <span className="target__count" data-testid="counters">
+                  <span>
+                    Notas {snapshot.hits}/{roundSize}
+                  </span>
+                  <span aria-hidden="true"> · </span>
+                  <span>Errores {snapshot.errors}</span>
+                </span>
+              </div>
 
-        {phase === 'completada' && exercise && (
-          <Summary
-            summary={
-              snapshot.feedback?.outcome.kind === 'ronda-completa'
-                ? snapshot.feedback.outcome.summary
-                : {
-                    totalTargets: 0,
-                    firstTryCorrect: 0,
-                    errors: 0,
-                    accuracy: 0,
-                    slowest: null,
-                    mostMissed: null,
-                  }
-            }
-            notation={notation}
-            onAgain={() => session.start()}
-          />
-        )}
+              <div className="stage" data-testid="stage">
+                {phase === 'pausada' ? (
+                  <div className="paused">
+                    <strong>Ronda en pausa</strong>
+                    <span>
+                      {snapshot.pauseReason === 'desconexion'
+                        ? 'Se desconectó el piano. Vuelve a conectarlo para seguir.'
+                        : 'Pulsa continuar cuando quieras.'}
+                    </span>
+                    <button type="button" className="button" onClick={() => session.resume()}>
+                      Continuar
+                    </button>
+                  </div>
+                ) : message && recent ? (
+                  <div
+                    className={`feedback feedback--${message.tone}`}
+                    key={recent.id}
+                    data-testid="feedback"
+                    data-tone={message.tone}
+                  >
+                    <Icon tone={message.tone} />
+                    <div>
+                      <p className="feedback__title">{message.title}</p>
+                      <p className="feedback__detail">{message.detail}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="stage__idle">Esperando tu nota…</p>
+                )}
+              </div>
+            </>
+          )}
+
+          {phase === 'completada' && exercise && snapshot.summary && (
+            <Summary
+              summary={snapshot.summary}
+              notation={notation}
+              onAgain={() => session.start()}
+            />
+          )}
+        </div>
 
         <div className="keyboard-wrap">
           <PianoKeyboard

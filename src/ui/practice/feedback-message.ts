@@ -1,6 +1,9 @@
 import type { Outcome } from '@/core/domain/exercise';
-import { noteName } from '@/core/domain/note';
+import { isBlackKey, noteName, pitchClass, pitchName, semitoneDistance } from '@/core/domain/note';
 import type { Midi, NotationMode } from '@/core/domain/note';
+
+/** Espacio duro: evita que «2 semitonos» se parta en dos líneas. */
+const NBSP = ' ';
 
 export type FeedbackTone = 'ok' | 'error' | 'done';
 
@@ -18,7 +21,35 @@ export function formatSeconds(ms: number): string {
 export function describeSemitones(semitones: number): string {
   const count = Math.abs(semitones);
   const unit = count === 1 ? 'semitono' : 'semitonos';
-  return `${count} ${unit} más ${semitones > 0 ? 'agudo' : 'grave'}`;
+  return `${count}${NBSP}${unit} más ${semitones > 0 ? 'agudo' : 'grave'}`;
+}
+
+function countWhiteKeysBetween(low: Midi, high: Midi): number {
+  let count = 0;
+  for (let midi = low + 1; midi <= high; midi++) if (!isBlackKey(midi)) count++;
+  return count;
+}
+
+/**
+ * Explica el error de la forma más útil para quien empieza:
+ * - misma nota en otra octava → "Es Do, pero una octava más arriba";
+ * - dos teclas blancas → cuántas teclas a la derecha/izquierda;
+ * - en otro caso (teclas negras) → semitonos.
+ */
+export function describeMistake(target: Midi, played: Midi, notation: NotationMode): string {
+  const semitones = semitoneDistance(target, played);
+  if (pitchClass(target) === pitchClass(played)) {
+    const octaves = Math.abs(semitones) / 12;
+    const amount = octaves === 1 ? 'una octava' : `${octaves} octavas`;
+    return `Es ${pitchName(target, notation)}, pero ${amount} más ${semitones > 0 ? 'arriba' : 'abajo'}`;
+  }
+  if (!isBlackKey(target) && !isBlackKey(played)) {
+    const steps =
+      semitones > 0 ? countWhiteKeysBetween(target, played) : countWhiteKeysBetween(played, target);
+    const amount = steps === 1 ? 'una tecla' : `${steps}${NBSP}teclas`;
+    return `${amount} a la ${semitones > 0 ? 'derecha' : 'izquierda'}`;
+  }
+  return describeSemitones(semitones);
 }
 
 export function feedbackMessage(
@@ -28,16 +59,12 @@ export function feedbackMessage(
   const name = (midi: Midi) => noteName(midi, notation);
   switch (outcome.kind) {
     case 'acierto':
-      return {
-        tone: 'ok',
-        title: '¡Correcto!',
-        detail: `${name(outcome.attempt.targetMidi)} · ${formatSeconds(outcome.attempt.reactionMs)}`,
-      };
+      return { tone: 'ok', title: '¡Correcto!', detail: name(outcome.attempt.targetMidi) };
     case 'error':
       return {
         tone: 'error',
         title: 'Incorrecto',
-        detail: `Era ${name(outcome.attempt.targetMidi)}, tocaste ${name(outcome.attempt.playedMidi)} · ${describeSemitones(outcome.semitones)}`,
+        detail: `Era ${name(outcome.attempt.targetMidi)}, tocaste ${name(outcome.attempt.playedMidi)} · ${describeMistake(outcome.attempt.targetMidi, outcome.attempt.playedMidi, notation)}`,
       };
     case 'ronda-completa':
       return {

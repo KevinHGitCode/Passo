@@ -1,6 +1,11 @@
 import type { Attempt } from '@/core/domain/exercise';
 import type { SessionFeedback } from '@/core/application/practice-session';
-import { describeSemitones, feedbackMessage, formatSeconds } from '@/ui/practice/feedback-message';
+import {
+  describeMistake,
+  describeSemitones,
+  feedbackMessage,
+  formatSeconds,
+} from '@/ui/practice/feedback-message';
 import { buildKeyVisuals } from '@/ui/practice/key-visuals';
 
 function attempt(target: number, played: number, reactionMs = 640): Attempt {
@@ -32,8 +37,8 @@ describe('formatSeconds y describeSemitones', () => {
   it('usa coma decimal y concuerda en singular y plural', () => {
     expect(formatSeconds(640)).toBe('0,6 s');
     expect(formatSeconds(2000)).toBe('2,0 s');
-    expect(describeSemitones(1)).toBe('1 semitono más agudo');
-    expect(describeSemitones(-3)).toBe('3 semitonos más grave');
+    expect(describeSemitones(1)).toBe('1 semitono más agudo');
+    expect(describeSemitones(-3)).toBe('3 semitonos más grave');
   });
 });
 
@@ -42,7 +47,7 @@ describe('feedbackMessage', () => {
     expect(feedbackMessage(right.outcome, 'latina')).toEqual({
       tone: 'ok',
       title: '¡Correcto!',
-      detail: 'Re4 · 0,6 s',
+      detail: 'Re4',
     });
   });
 
@@ -50,7 +55,7 @@ describe('feedbackMessage', () => {
     const message = feedbackMessage(wrong.outcome, 'americana');
     expect(message.tone).toBe('error');
     expect(message.title).toBe('Incorrecto');
-    expect(message.detail).toBe('Era D4, tocaste E4 · 2 semitonos más agudo');
+    expect(message.detail).toBe('Era D4, tocaste E4 · una tecla a la derecha');
   });
 });
 
@@ -76,5 +81,30 @@ describe('buildKeyVisuals', () => {
   it('combina estados en la misma tecla (objetivo + pulsada)', () => {
     const visuals = buildKeyVisuals({ target: 62, help: true, pressed: [62], feedback: null });
     expect(visuals.get(62)).toEqual({ target: true, pressed: true });
+  });
+});
+
+describe('describeMistake', () => {
+  it('misma nota en otra octava: lo dice con palabras', () => {
+    expect(describeMistake(60, 72, 'latina')).toBe('Es Do, pero una octava más arriba');
+    expect(describeMistake(60, 48, 'americana')).toBe('Es C, pero una octava más abajo');
+    expect(describeMistake(60, 84, 'latina')).toBe('Es Do, pero 2 octavas más arriba');
+  });
+
+  it('dos teclas blancas: cuenta teclas a la derecha o a la izquierda', () => {
+    expect(describeMistake(60, 62, 'latina')).toBe('una tecla a la derecha');
+    expect(describeMistake(64, 62, 'latina')).toBe('una tecla a la izquierda');
+    expect(describeMistake(60, 67, 'latina')).toBe('4 teclas a la derecha');
+    expect(describeMistake(67, 60, 'latina')).toBe('4 teclas a la izquierda');
+  });
+
+  it('Mi→Fa (1 semitono) y Do→Re (2 semitonos) son ambos "una tecla"', () => {
+    expect(describeMistake(64, 65, 'latina')).toBe('una tecla a la derecha');
+    expect(describeMistake(60, 62, 'latina')).toBe('una tecla a la derecha');
+  });
+
+  it('si interviene una tecla negra usa semitonos', () => {
+    expect(describeMistake(60, 61, 'latina')).toBe('1 semitono más agudo');
+    expect(describeMistake(62, 61, 'latina')).toBe('1 semitono más grave');
   });
 });

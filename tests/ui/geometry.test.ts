@@ -46,11 +46,12 @@ describe('layoutKeys', () => {
 
 describe('windowAround', () => {
   it('toma la octava de la nota enfocada', () => {
-    expect(windowAround(64, 48, 84, 2)).toEqual({ from: 60, to: 84 });
+    expect(windowAround(64, 48, 84, 24)).toEqual({ from: 60, to: 84 });
+    expect(windowAround(64, 48, 84, 14)).toEqual({ from: 60, to: 74 });
   });
 
   it('no se sale del rango por el final ni por el principio', () => {
-    expect(windowAround(84, 48, 84, 2)).toEqual({ from: 60, to: 84 });
-    expect(windowAround(48, 48, 84, 2)).toEqual({ from: 48, to: 72 });
+    expect(windowAround(84, 48, 84, 24)).toEqual({ from: 60, to: 84 });
+    expect(windowAround(48, 48, 84, 24)).toEqual({ from: 48, to: 72 });
   });
 });

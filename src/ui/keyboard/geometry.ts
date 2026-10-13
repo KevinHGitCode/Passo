@@ -70,16 +70,15 @@ export function layoutKeys(from: Midi, to: Midi): KeyboardLayout {
 }
 
 /**
- * Ventana de `octaves` octavas que contiene la nota `focus`, dentro de [from, to].
+ * Ventana de `span` semitonos que contiene la nota `focus` (empieza en el Do de su octava), dentro de [from, to].
  * Se usa en pantallas estrechas para mostrar solo una parte del teclado.
  */
 export function windowAround(
   focus: Midi,
   from: Midi,
   to: Midi,
-  octaves: number,
+  span: number,
 ): { from: Midi; to: Midi } {
-  const span = octaves * 12;
   const octaveStart = Math.floor(focus / 12) * 12;
   const start = Math.min(Math.max(octaveStart, from), Math.max(from, to - span));
   return { from: start, to: Math.min(start + span, to) };

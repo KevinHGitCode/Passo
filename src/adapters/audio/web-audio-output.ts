@@ -49,6 +49,7 @@ const MASTER_GAIN = 0.35;
 const ATTACK_S = 0.006;
 const RELEASE_S = 0.18;
 const DECAY_S = 2.2;
+const MAX_VOICES = 10;
 
 interface Voice {
   readonly oscillators: readonly OscillatorLike[];
@@ -92,18 +93,21 @@ export class WebAudioOutput implements AudioOutput, AudioControl {
   estimatedLatencyMs(): number | null {
     const context = this.context;
     if (!context) return null;
+    if (context.baseLatency === undefined && context.outputLatency === undefined) return null;
     return ((context.baseLatency ?? 0) + (context.outputLatency ?? 0)) * 1000;
   }
 
   noteOn(note: Midi, velocity: number): void {
     const context = this.ensureContext();
     if (!context || !this.master) return;
-    void context.resume().then(
-      () => this.syncStatus(),
-      () => undefined,
-    );
+    if (context.state !== 'running')
+      void context.resume().then(
+        () => this.syncStatus(),
+        () => undefined,
+      );
 
     this.stopVoice(note, 0.02);
+    this.limitVoices();
     const now = context.currentTime;
     const peak = 0.12 + (0.28 * Math.min(Math.max(velocity, 1), 127)) / 127;
     const gain = context.createGain();
@@ -138,6 +142,15 @@ export class WebAudioOutput implements AudioOutput, AudioControl {
     return oscillator;
   }
 
+  /** Con muchas teclas a la vez se corta la voz más antigua (evita saturar y acumular nodos). */
+  private limitVoices(): void {
+    while (this.voices.size >= MAX_VOICES) {
+      const oldest = this.voices.keys().next();
+      if (oldest.done) return;
+      this.stopVoice(oldest.value, 0.05);
+    }
+  }
+
   private stopVoice(note: Midi, release: number): void {
     const voice = this.voices.get(note);
     const context = this.context;
@@ -158,7 +171,12 @@ export class WebAudioOutput implements AudioOutput, AudioControl {
 
   private ensureContext(): AudioContextLike | undefined {
     if (this.context) return this.context;
-    const context = this.createContext();
+    let context: AudioContextLike | undefined;
+    try {
+      context = this.createContext();
+    } catch {
+      context = undefined;
+    }
     if (!context) {
       this.setStatus('sin-soporte');
       return undefined;

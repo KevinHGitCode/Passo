@@ -14,10 +14,23 @@ function readStored(): ThemeChoice {
   }
 }
 
+function store(choice: ThemeChoice): void {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, choice);
+  } catch {
+    // Sin almacenamiento disponible: el tema solo dura esta visita.
+  }
+}
+
 function apply(choice: ThemeChoice): void {
   const root = document.documentElement;
   if (choice === 'auto') root.removeAttribute('data-theme');
   else root.setAttribute('data-theme', choice);
+}
+
+/** Aplica el tema guardado antes del primer pintado (evita el parpadeo claro → oscuro). */
+export function initTheme(): void {
+  apply(readStored());
 }
 
 /** Tema claro/oscuro/automático, recordado en el navegador (si se puede). */
@@ -29,16 +42,10 @@ export function useTheme(): readonly [ThemeChoice, () => void] {
   }, [choice]);
 
   const cycle = useCallback(() => {
-    setChoice((current) => {
-      const next = CHOICES[(CHOICES.indexOf(current) + 1) % CHOICES.length] ?? 'auto';
-      try {
-        window.localStorage.setItem(STORAGE_KEY, next);
-      } catch {
-        // Sin almacenamiento disponible: el tema solo dura esta visita.
-      }
-      return next;
-    });
-  }, []);
+    const next = CHOICES[(CHOICES.indexOf(choice) + 1) % CHOICES.length] ?? 'auto';
+    store(next);
+    setChoice(next);
+  }, [choice]);
 
   return [choice, cycle];
 }

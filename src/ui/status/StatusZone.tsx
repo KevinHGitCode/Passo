@@ -86,7 +86,7 @@ function AudioStatusItem({ audio }: { readonly audio: AudioControl }) {
 /** Zona de estado fija bajo la cabecera: entradas conectadas y sonido. No es modal. */
 export function StatusZone({ inputs, audio }: StatusZoneProps) {
   return (
-    <div className="status-zone" role="region" aria-label="Estado de conexión" aria-live="polite">
+    <div className="status-zone" role="region" aria-label="Estado de conexión">
       {inputs.map((input) => (
         <InputStatusItem key={input.source} input={input} />
       ))}

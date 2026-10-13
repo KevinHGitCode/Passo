@@ -42,7 +42,7 @@ describe('describeInputStatus', () => {
     expect(describeInputStatus('midi', { kind: 'sin-soporte' }).text).toContain('Chrome o Edge');
     const desconectado = describeInputStatus('midi', { kind: 'desconectado', deviceName: 'X' });
     expect(desconectado.tone).toBe('warn');
-    expect(desconectado.text).toContain('pausa');
+    expect(desconectado.text).toContain('Vuelve a conectarlo');
     const denegado = describeInputStatus('midi', { kind: 'permiso-denegado' });
     expect(denegado.tone).toBe('warn');
     expect(denegado.action).toEqual({ kind: 'retry', label: 'Reintentar' });

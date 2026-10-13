@@ -128,7 +128,10 @@ export function PracticeScreen({
   const message = recent ? feedbackMessage(recent.outcome, notation) : null;
 
   // Al cambiar de fase el botón pulsado desaparece y el foco se perdería: lo llevamos al tablero.
+  const previousPhase = useRef(phase);
   useEffect(() => {
+    if (previousPhase.current === phase) return;
+    previousPhase.current = phase;
     if (document.activeElement === null || document.activeElement === document.body) {
       boardRef.current?.focus({ preventScroll: true });
     }

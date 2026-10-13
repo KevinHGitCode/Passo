@@ -14,7 +14,6 @@ import {
   playCorrect,
   playWrong,
   targetMidi,
-  tapKey,
 } from './helpers';
 
 test.beforeAll(() => ensureEvidenceDirs());
@@ -239,8 +238,12 @@ test('Fase 0 · accesibilidad visual: daltonismo y móvil', async ({ browser }) 
     await beat(desktop, 250);
     await capture(desktop, `16-daltonismo-${type}-error`);
   }
+  await client.send('Emulation.setEmulatedVisionDeficiency', { type: 'deuteranopia' });
+  await playCorrect(desktop);
+  await expect(desktop.getByTestId('feedback')).toHaveAttribute('data-tone', 'ok');
+  await beat(desktop, 300);
+  await capture(desktop, '16-daltonismo-deuteranopia-acierto');
   await client.send('Emulation.setEmulatedVisionDeficiency', { type: 'none' });
-  await tapKey(desktop, 'KeyA');
   await wide.close();
   await context.close();
 });

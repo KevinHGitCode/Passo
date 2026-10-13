@@ -485,21 +485,6 @@
 }
 
 /* ---------- Depuración (?debug) ---------- */
-.debug {
-  position: fixed;
-  left: 12px;
-  bottom: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  box-shadow: 0 6px 20px var(--shadow);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
 
 /* ---------- Ajustes tras la revisión de la Fase 0 ---------- */
 
@@ -531,6 +516,7 @@
 .chip__action {
   position: relative;
   padding: 5px 12px;
+  margin: -5px 0 -5px 2px;
 }
 .chip__action::after {
   content: '';
@@ -542,4 +528,20 @@
   .board__top {
     min-height: 345px;
   }
+}
+
+/* Panel de depuración (?debug): en el flujo normal, bajo el tablero, para no tapar el teclado. */
+.debug {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 18px;
+  max-width: 1040px;
+  margin: 0 auto 24px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border);
+  background: var(--surface);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }

@@ -50,7 +50,7 @@ export function describeInputStatus(source: InputSource, status: InputStatus): S
         tone: 'warn',
         short: `Piano desconectado: ${status.deviceName}`,
         title: `Piano desconectado: ${status.deviceName}`,
-        text: 'La ronda queda en pausa. Vuelve a conectarlo para seguir.',
+        text: 'Vuelve a conectarlo para seguir tocando con él.',
       };
     case 'permiso-denegado':
       return {

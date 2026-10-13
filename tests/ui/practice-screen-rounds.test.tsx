@@ -41,8 +41,17 @@ describe('PracticeScreen · varias rondas y detalles', () => {
     press(targetMidi());
     wait(2000);
     fireEvent.click(screen.getByText('Otra ronda'));
+    // Con el contador reiniciado, la 3.ª pulsación de la ronda 2 reutilizaba el id ya "caducado".
+    press(wrongNote());
+    press(wrongNote());
     press(wrongNote());
     expect(screen.getByTestId('feedback').dataset['tone']).toBe('error');
+    expect(screen.getByRole('status').textContent).toContain('error 3');
+  });
+
+  it('al cargar la página el foco no se mueve al tablero (el primer Tab llega a los ajustes)', () => {
+    setup();
+    expect(document.activeElement).toBe(document.body);
   });
 
   it('el feedback desaparece solo pasado un rato', () => {

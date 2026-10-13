@@ -81,7 +81,7 @@ describe('StatusZone', () => {
   it('el botón "Activar sonido" desbloquea el audio y el aviso pasa a "listo"', () => {
     const audio = new FakeAudioControl();
     render(<StatusZone inputs={[]} audio={audio} />);
-    expect(screen.getByTestId('status-audio').dataset['tone']).toBe('warn');
+    expect(screen.getByTestId('status-audio').dataset['tone']).toBe('info');
     fireEvent.click(screen.getByText('Activar sonido'));
     expect(audio.unlocked).toBe(1);
     expect(screen.getByTestId('status-audio').dataset['tone']).toBe('ok');

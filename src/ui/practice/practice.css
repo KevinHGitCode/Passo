@@ -396,10 +396,47 @@
 /* ---------- Zona de estado ---------- */
 .status-zone {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
 }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.chip--ok {
+  color: var(--text);
+}
+.chip--ok .status__dot {
+  background: var(--ok);
+}
+.chip--info .status__dot {
+  background: var(--text-muted);
+}
+.chip__action {
+  margin-left: 2px;
+  padding: 2px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+.chip__action:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
 .status {
+  flex: 1 1 100%;
   display: flex;
   flex-wrap: wrap;
   align-items: center;

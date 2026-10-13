@@ -36,16 +36,17 @@ export function composeApp(search: string = window.location.search) {
       ? undefined
       : (new AudioContext({ latencyHint: 'interactive' }) as unknown as AudioContextLike),
   );
-  // Los navegadores solo dejan sonar tras un gesto: el primer clic o tecla activa el sonido.
+  // Los navegadores solo dejan sonar tras un gesto: el primer clic (al terminar, para no mover
+  // la pantalla a mitad de un clic) o la primera tecla activa el sonido.
   const unlockOnGesture = () => {
     void audio.unlock().then(() => {
       if (audio.getStatus() === 'listo') {
-        window.removeEventListener('pointerdown', unlockOnGesture);
+        window.removeEventListener('click', unlockOnGesture);
         window.removeEventListener('keydown', unlockOnGesture);
       }
     });
   };
-  window.addEventListener('pointerdown', unlockOnGesture);
+  window.addEventListener('click', unlockOnGesture);
   window.addEventListener('keydown', unlockOnGesture);
 
   const inputs = [keyboard, midi] as const;

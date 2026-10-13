@@ -9,23 +9,45 @@ export interface StatusZoneProps {
   readonly audio: AudioControl;
 }
 
-function StatusRow({
+/**
+ * Los estados normales son "chips" compactos de una línea (no mueven la pantalla);
+ * solo los avisos importantes (desconexión, permiso, sin soporte) se expanden en una fila.
+ */
+function StatusItem({
   view,
   onAction,
   testId,
 }: {
   readonly view: StatusView;
-  readonly onAction?: () => void;
+  readonly onAction: () => void;
   readonly testId: string;
 }) {
+  if (view.tone === 'warn') {
+    return (
+      <div className="status status--warn" data-testid={testId} data-tone="warn" role="alert">
+        <span className="status__dot" aria-hidden="true" />
+        <p className="status__text">
+          <strong>{view.title}</strong> · {view.text}
+        </p>
+        {view.action && (
+          <button type="button" className="button" onClick={onAction}>
+            {view.action.label}
+          </button>
+        )}
+      </div>
+    );
+  }
   return (
-    <div className={`status status--${view.tone}`} data-testid={testId} data-tone={view.tone}>
+    <div
+      className={`chip chip--${view.tone}`}
+      data-testid={testId}
+      data-tone={view.tone}
+      title={view.text}
+    >
       <span className="status__dot" aria-hidden="true" />
-      <p className="status__text">
-        <strong>{view.title}</strong> · {view.text}
-      </p>
-      {view.action && onAction && (
-        <button type="button" className="button" onClick={onAction}>
+      <span>{view.short}</span>
+      {view.action && (
+        <button type="button" className="chip__action" onClick={onAction}>
           {view.action.label}
         </button>
       )}
@@ -33,24 +55,27 @@ function StatusRow({
   );
 }
 
-function InputStatusRow({ input }: { readonly input: NoteInput }) {
+function InputStatusItem({ input }: { readonly input: NoteInput }) {
   const status = useSyncExternalStore(
     (onChange) => input.subscribeStatus(onChange),
     () => input.getStatus(),
   );
-  const view = describeInputStatus(input.source, status);
   return (
-    <StatusRow view={view} testId={`status-${input.source}`} onAction={() => void input.start()} />
+    <StatusItem
+      view={describeInputStatus(input.source, status)}
+      testId={`status-${input.source}`}
+      onAction={() => void input.start()}
+    />
   );
 }
 
-function AudioStatusRow({ audio }: { readonly audio: AudioControl }) {
+function AudioStatusItem({ audio }: { readonly audio: AudioControl }) {
   const status = useSyncExternalStore(
     (onChange) => audio.subscribeStatus(onChange),
     () => audio.getStatus(),
   );
   return (
-    <StatusRow
+    <StatusItem
       view={describeAudioStatus(status)}
       testId="status-audio"
       onAction={() => void audio.unlock()}
@@ -63,9 +88,9 @@ export function StatusZone({ inputs, audio }: StatusZoneProps) {
   return (
     <div className="status-zone" role="region" aria-label="Estado de conexión" aria-live="polite">
       {inputs.map((input) => (
-        <InputStatusRow key={input.source} input={input} />
+        <InputStatusItem key={input.source} input={input} />
       ))}
-      <AudioStatusRow audio={audio} />
+      <AudioStatusItem audio={audio} />
     </div>
   );
 }

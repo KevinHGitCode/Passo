@@ -1,5 +1,5 @@
 import { evaluate, LEVEL_1_CONFIG, startRound } from '../domain/exercise';
-import type { ExerciseState, Outcome, RoundConfig } from '../domain/exercise';
+import type { ExerciseState, Outcome, RoundConfig, RoundSummary } from '../domain/exercise';
 import type { Midi, NotationMode } from '../domain/note';
 import type { InputSource, NoteEvent } from '../domain/note-event';
 import type { Rng } from '../domain/rng';
@@ -28,6 +28,8 @@ export interface SessionSnapshot {
   readonly pressed: readonly Midi[];
   readonly hits: number;
   readonly errors: number;
+  /** Resumen de la ronda terminada (solo en la fase 'completada'). */
+  readonly summary: RoundSummary | null;
 }
 
 export interface PracticeSessionDeps {
@@ -69,6 +71,7 @@ export class PracticeSession {
       pressed: [],
       hits: 0,
       errors: 0,
+      summary: null,
     };
     for (const input of deps.inputs) {
       this.subscriptions.push(input.subscribe((event) => this.handleEvent(event)));
@@ -94,6 +97,7 @@ export class PracticeSession {
       pressed: [],
       hits: 0,
       errors: 0,
+      summary: null,
     });
   }
 
@@ -180,6 +184,7 @@ export class PracticeSession {
       pressed,
       hits: result.state.completedTargets,
       errors: result.state.attempts.filter((attempt) => !attempt.isCorrect).length,
+      summary: result.outcome.kind === 'ronda-completa' ? result.outcome.summary : null,
     });
   }
 

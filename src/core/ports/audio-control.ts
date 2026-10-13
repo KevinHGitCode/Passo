@@ -12,4 +12,6 @@ export interface AudioControl {
   subscribeStatus(handler: (status: AudioStatus) => void): Unsubscribe;
   /** Debe llamarse desde un gesto del usuario (clic, tecla). */
   unlock(): Promise<void>;
+  /** Latencia de salida estimada en ms, si se conoce (para el panel de depuración). */
+  estimatedLatencyMs?(): number | null;
 }

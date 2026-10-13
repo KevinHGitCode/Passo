@@ -1,6 +1,6 @@
 # Fase 0 — Prototipo: "toca esta nota"
 
-Estado: **plan revisado por expertos, pendiente de autorización de Kevin**.
+Estado: **autorizada por Kevin; en construcción**. Entrada de prueba: teclado del PC (el piano Yamaha E263 lo valida Kevin después).
 
 ## Objetivo
 
@@ -80,6 +80,7 @@ desbloqueo automático de niveles, cuentas, backend, GitHub y CI.
 4. Pruebas del núcleo, de `MidiInput` con un `FakeMIDIAccess` y una de integración con `NoteInput` falso.
 5. Medidas de latencia anotadas en este documento.
 6. Convenciones (octava, ortografía, intento, mapa del teclado del PC) documentadas en `docs/`.
+7. Prueba funcional en navegador real con video y capturas en `evidencias/fase-0/` (ver `docs/metodo.md`).
 
 ## Plan de trabajo (un commit por paso)
 
@@ -95,6 +96,7 @@ desbloqueo automático de niveles, cuentas, backend, GitHub y CI.
 10. `MidiInput` con `requestMIDIAccess` inyectada, permisos y desconexión — con `FakeMIDIAccess`.
 11. `WebAudioOutput` y estados de la zona de estado.
 12. Panel de depuración `?debug` con latencia; verificación final y cierre de la fase.
+13. Prueba funcional Playwright (Edge) con video y capturas; informe en `evidencias/fase-0/informe.md`.
 
 ## Verificación
 
@@ -111,6 +113,7 @@ desbloqueo automático de niveles, cuentas, backend, GitHub y CI.
 | Latencia de pantalla | `?debug`: `at` del evento vs. `requestAnimationFrame` | p95 < 50 ms |
 | Latencia de audio | `baseLatency` + `outputLatency`, informado aparte | Medida registrada (sin umbral aún) |
 | Visual | Simulador de daltonismo; capturas a 360 px y 1280 px | El feedback se distingue sin depender del color |
+| Funcional | `npm run e2e` (Playwright con Edge): ronda completa con teclado del PC, error y acierto | Pasa y deja video en `evidencias/fase-0/` |
 
 ## Riesgos
 

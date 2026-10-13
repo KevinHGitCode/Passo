@@ -171,24 +171,25 @@ export class WebAudioOutput implements AudioOutput, AudioControl {
 
   private ensureContext(): AudioContextLike | undefined {
     if (this.context) return this.context;
-    let context: AudioContextLike | undefined;
     try {
-      context = this.createContext();
+      const context = this.createContext();
+      if (!context) {
+        this.setStatus('sin-soporte');
+        return undefined;
+      }
+      const master = context.createGain();
+      master.gain.value = MASTER_GAIN;
+      master.connect(context.destination);
+      context.addEventListener('statechange', () => this.syncStatus());
+      this.context = context;
+      this.master = master;
+      this.syncStatus();
+      return context;
     } catch {
-      context = undefined;
-    }
-    if (!context) {
+      // Cualquier fallo al crear el audio deja la app funcionando sin sonido.
       this.setStatus('sin-soporte');
       return undefined;
     }
-    this.context = context;
-    const master = context.createGain();
-    master.gain.value = MASTER_GAIN;
-    master.connect(context.destination);
-    this.master = master;
-    context.addEventListener('statechange', () => this.syncStatus());
-    this.syncStatus();
-    return context;
   }
 
   private syncStatus(): void {

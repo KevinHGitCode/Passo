@@ -39,12 +39,15 @@ export function composeApp(search: string = window.location.search) {
   // Los navegadores solo dejan sonar tras un gesto: el primer clic (al terminar, para no mover
   // la pantalla a mitad de un clic) o la primera tecla activa el sonido.
   const unlockOnGesture = () => {
-    void audio.unlock().then(() => {
-      if (audio.getStatus() === 'listo') {
-        window.removeEventListener('click', unlockOnGesture);
-        window.removeEventListener('keydown', unlockOnGesture);
-      }
-    });
+    void audio
+      .unlock()
+      .then(() => {
+        if (audio.getStatus() === 'listo') {
+          window.removeEventListener('click', unlockOnGesture);
+          window.removeEventListener('keydown', unlockOnGesture);
+        }
+      })
+      .catch(() => undefined);
   };
   window.addEventListener('click', unlockOnGesture);
   window.addEventListener('keydown', unlockOnGesture);

@@ -19,7 +19,7 @@ export function parseMidiMessage(message: MidiMessageEventLike): NoteEvent | nul
   const status = (data[0] ?? 0) & 0xf0;
   const note = data[1] ?? 0;
   const velocity = data[2] ?? 0;
-  if (!isValidMidi(note)) return null;
+  if (!isValidMidi(note) || velocity > 127) return null;
   if (status === NOTE_ON && velocity > 0) {
     return { type: 'on', note, velocity, at: message.timeStamp, source: 'midi' };
   }

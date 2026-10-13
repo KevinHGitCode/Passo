@@ -79,6 +79,7 @@ Recomendación: **MIDI primero**, micrófono después. Riesgo mayor: reconocer a
 
 Cada modo implementa una interfaz común `ExerciseMode`: añadir un modo es añadir un archivo.
 Gracias a los puertos, el motor se prueba sin piano usando el teclado del computador.
+En código, las capas se agrupan en `core/` (dominio, aplicación, puertos), `adapters/` y `ui/`; la interfaz `ExerciseMode` se extrae en la Fase 1–2, no antes.
 
 ## 7. Fases
 

@@ -24,3 +24,14 @@ notas:     C D E F G A B C D E F      (A = Do4 = MIDI 60)
 ```
 
 El nivel 1 (Do4–Sol4) usa las teclas `A S D F G`. Las combinaciones con Ctrl, Alt o Meta se ignoran para no chocar con atajos del navegador.
+
+## Entrada por micrófono (escucha activa)
+
+- **Un ataque = un intento.** Una nota solo se abre con un ataque (subida clara de energía): la voz, el zumbido o la música de fondo sostenidos no cuentan.
+- Varias teclas a la vez (o lecturas inestables) **no son un intento**; la app pide tocar una tecla a la vez.
+- **Lo dudoso no es un error:** una nota distinta de la pedida detectada con confianza `media` se muestra como «No te oí bien» y no suma errores. Un acierto cuenta con cualquier confianza.
+- Rango fiable: **C3–C6** (131–1047 Hz). Por debajo de C3 el altavoz de un teclado portátil apenas emite la fundamental y puede haber error de octava.
+- El micrófono no da velocidad ni duración fiables: solo cuentan los **ataques**. El tiempo de reacción es **aproximado** (sesgo de 30–80 ms por la latencia de entrada) y no se compara con el de MIDI.
+- La app **no emite sonido** mientras escucha por micrófono, para no oírse a sí misma.
+- Afinación: se toma la nota más cercana (hasta ±50 cents) y se estima la afinación del teclado; si se desvía 20 cents o más de La4 = 440 Hz se avisa. Si hay 3 errores seguidos con la misma diferencia de semitonos, se avisa de que el teclado puede estar transpuesto.
+- Privacidad: el audio se analiza en el navegador; no se graba ni se envía.

@@ -3,7 +3,7 @@
 Aplicación para aprender piano corrigiendo al instante lo que no se te da bien.
 Nombre: **Passo** (paso a paso: no avanzas hasta que lo dominas).
 
-> Estado: **Fase 0 completada** (prototipo "toca esta nota"). Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
+> Estado: **Fase 0 completada**; **Fase 1 (escucha activa por micrófono) en construcción**. Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
 
 ## 1. Problema
 
@@ -58,14 +58,14 @@ La app muestra qué teclas tocar, **escucha** lo que se toca y evalúa. No avanz
 | Capa | Elección |
 |---|---|
 | UI | TypeScript + React + Vite, como PWA |
-| Entrada con piano digital | Web MIDI API (exacta; no funciona en Safari) |
-| Entrada con micrófono | Pitchy / YIN para una nota; Basic Pitch para acordes (más difícil) |
+| Entrada principal: micrófono | Detección de altura McLeod propia (una nota); Basic Pitch u otra técnica para acordes (más difícil) |
+| Entrada opcional: piano MIDI | Web MIDI API (exacta; no funciona en Safari) |
 | Sonido | Web Audio + Tone.js |
 | Partitura | VexFlow u OpenSheetMusicDisplay; importación MusicXML y MIDI |
 | Datos | IndexedDB (Dexie) primero; nube (Supabase) más adelante |
 | Empaquetado | PWA; Tauri o Capacitor si se quiere app nativa |
 
-Recomendación: **MIDI primero**, micrófono después. Riesgo mayor: reconocer acordes por audio.
+Decisión: como el piano de Kevin no tiene USB-MIDI, el **micrófono es la entrada principal** y el MIDI queda como opción. Riesgo mayor: reconocer acordes por audio.
 
 ## 6. Arquitectura (Clean Architecture)
 
@@ -85,13 +85,14 @@ En código, las capas se agrupan en `core/` (dominio, aplicación, puertos), `ad
 
 | Fase | Entrega | Estimado |
 |---|---|---|
-| 0 | Prototipo: teclado en pantalla + MIDI + modo "toca esta nota" | 2 semanas |
-| 1 | Núcleo: modos estricto y espera, feedback, nombres de notas, persistencia | 3–4 semanas |
-| 2 | Modos de entrenamiento: oído, intervalos, acordes | 3 semanas |
-| 3 | Ritmo: metrónomo y calificación de tiempo | 3 semanas |
-| 4 | Canciones: MusicXML/MIDI, dedos, cascada, partitura | 4–6 semanas |
-| 5 | Motor adaptativo: práctica por tramos, unión progresiva, subida de tempo | 3 semanas |
-| 6 | Pulido: estadísticas, micrófono, cuentas y nube | continuo |
+| 0 | Prototipo: teclado en pantalla + MIDI + modo "toca esta nota" (**hecha**) | 2 semanas |
+| 1 | **Escucha activa:** detectar la nota que suena por el micrófono (el Yamaha E263 no tiene USB-MIDI) | 3 semanas |
+| 2 | Núcleo: modos estricto y espera, niveles con negras, persistencia, dedos, móvil, ajustes de entrada | 3–4 semanas |
+| 3 | Modos de entrenamiento: oído, intervalos, acordes (la detección de varias notas a la vez por micrófono se investiga aquí) | 3 semanas |
+| 4 | Ritmo: metrónomo y calificación de tiempo | 3 semanas |
+| 5 | Canciones: MusicXML/MIDI, dedos, cascada, partitura | 4–6 semanas |
+| 6 | Motor adaptativo: práctica por tramos, unión progresiva, subida de tempo | 3 semanas |
+| 7 | Pulido: estadísticas, cuentas y nube | continuo |
 
 Detalle de cada fase: [docs/fases/](docs/fases/). Método de trabajo: [docs/metodo.md](docs/metodo.md). Convenciones: [docs/convenciones.md](docs/convenciones.md). Validación con piano real: [docs/validacion-piano.md](docs/validacion-piano.md).
 

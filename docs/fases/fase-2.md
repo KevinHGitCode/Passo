@@ -1,6 +1,6 @@
 # Fase 2 — Ajustes, terceras y acordes, manos y notas que caen
 
-Estado: **autorizada por Kevin; plan en revisión de expertos**.
+Estado: **autorizada por Kevin; plan revisado por expertos; en construcción**.
 
 ## Qué pidió Kevin
 
@@ -55,3 +55,48 @@ con negras, ritmo, canciones, motor adaptativo.
 4. ¿Cómo diseñar el **panel de ajustes** (accesibilidad, foco, no tapar el teclado, persistencia) y la
    arquitectura de **entradas intercambiables** sin romper las capas?
 5. ¿Cómo generalizar `evaluate`/`PracticeSession` a objetivos de varias notas sin romper lo existente?
+
+## Decisiones tras la revisión de expertos
+
+Se divide en **2a** (entradas exactas: teclado del PC y MIDI, micrófono de una nota, octava, ajustes,
+modos, dedos, cascada y manos) y **2b** (varias notas por micrófono, como **BETA**).
+
+| # | Decisión | Origen |
+|---|---|---|
+| 1 | Corrección de octava en el seguimiento: por fotograma, si hay energía en f/2 (≥ 0,08 de la de f) **y** en 3f/2 (≥ 0,08; tercer parcial de la nota inferior), la altura es f/2; con histéresis (se mantiene mientras ≥ 0,04) y sin subir nunca de octava; no corrige si la nota f/2 sonaba hace < 700 ms (Mi4→Mi5 real) | Música |
+| 2 | El objetivo pasa a ser un **conjunto de notas** (`Target`) con sus dedos y una etiqueta; un objetivo de 1 nota es el caso particular. `evaluate` conserva su firma | Backend/Música |
+| 3 | Agregador sin espera: cada pulsación se evalúa al instante; las que llegan ≤ 120 ms tras la anterior (máx. 300 ms) forman el mismo grupo; éxito cuando lo **sostenido** es exactamente el conjunto | Música |
+| 4 | **Error** = nota de más (clase de nota fuera del conjunto que sigue sostenida ≥ 150 ms al cerrar): 1 error por intento. **Faltan notas NO es error**: mensaje neutro «Falta Sol» | Música/UI |
+| 5 | Contenido: Terceras N1 (Do–Mi, Re–Fa, Mi–Sol), N2 (las 7), N3 mano izquierda; Acordes A1 Do y Sol, A2 +Fa, A3 +La m, A4 +Re m y Mi m, A5 mano izquierda | Música |
+| 6 | Dedos (grave → agudo): terceras MD 1-3, 2-4, 3-5, 1-3, 2-4, 3-5, 1-3; MI espejo (5-3, 4-2, 3-1…); acordes MD 1-3-5, MI 5-3-1. Tablas estáticas validadas por prueba | Música |
+| 7 | `ExerciseMode` con modos notas / terceras / acordes, niveles y mano; la UI no calcula teoría (recibe `hand`, `fingers`, `label`) | Backend/UI |
+| 8 | Preferencias: dominio puro `Preferences` + `parsePreferences` (validación, versión), puerto `PreferencesStore`, adaptador `localStorage`, servicio con `useSyncExternalStore` | Backend |
+| 9 | `InputManager` en `core/application`: entrada **exclusiva** (se apaga una antes de encender otra); el micrófono nunca arranca solo; `?pc`, `?midi`, `?mic=off` quedan como modo de desarrollo | Backend |
+| 10 | Panel ⚙: `aside` de 320 px a la derecha, **encima** del tablero (no lo empuja), sin atajo de letra (Ctrl+,); abrirlo pausa la ronda; en < 900 px es modal. Sustituye a `SettingsBar` y a los chips: la cabecera lleva una pastilla de entrada («● Micrófono ▮▮▯ Oigo: Do4») y el engranaje | UI |
+| 11 | Cascada = **cola** (el objetivo espera sobre la línea del teclado), no línea de tiempo: se mueve por pasos con transiciones CSS (320 ms), sin `requestAnimationFrame` ni re-render por fotograma | Backend/UI |
+| 12 | Cascada, teclado y mano comparten **una sola escala** (`viewBoxOf()`); el objetivo actual sólido y los 2 siguientes punteados; los grupos se unen con un «peine» | UI |
+| 13 | Manos: dígito en el bloque y mano fantasma **debajo** del teclado (5 cápsulas, solo las usadas rellenas); colores por mano seguros para daltonismo más forma (círculo / cuadrado redondeado) | UI |
+| 14 | Mensajes: «Casi: falta Sol» (neutro); «Sobró Re4. Do mayor es Do · Mi · Sol» (error); micrófono dudoso: «No oí bien las 3 notas. No cuenta como error» | UI |
+| 15 | Varias notas por micrófono (**BETA**, apagado por defecto): verificación dirigida con Goertzel por semitono, aumento de energía sobre el instante previo al ataque, cancelación de armónicos de las notas esperadas; extras = «dudoso» (no error) hasta validar con el Yamaha; mano izquierda por micrófono = solo presencia | Música/Backend |
+| 16 | Puerto `ExpectationSink`: la sesión le dice al micrófono qué notas se esperan; el verificador es puro (`chord-verifier.ts`) | Backend |
+| 17 | Alturas: sin fila de chips ni tira `Oigo` aparte; el teclado no se mueve (≤ 1 px) entre estados, con y sin cascada, a 1280×800 y 1366×650 | UI |
+
+## Etapas (cada una cierra con `npm run check`; commits pequeños)
+
+E0 octava «Mi» · E1 dominio multi-nota (modo notas idéntico) · E2 modos, dedos, terceras y acordes (teclado del PC/MIDI) ·
+E3 preferencias · E4 `InputManager` · E5 panel de ajustes · E6 cascada y manos · E7 verificador por micrófono (beta) · E8 evidencias y cierre.
+
+Plan B de E7 si no alcanza los umbrales: arpegio (notas una tras otra) con el seguimiento monofónico.
+
+## Verificación
+
+| Qué | Criterio |
+|---|---|
+| Octava | Matriz Mi4 con fundamental débil, filtros y resonancia: Mi4 confirmado ≥ 95 %; Mi5 real: **0 conversiones falsas** |
+| Dominio multi-nota | El modo notas da exactamente los mismos resultados que antes (371 pruebas verdes tras un renombre mecánico) |
+| Terceras y acordes | Jugables con teclado del PC y MIDI: éxito, nota de más, faltan notas, rodado, notas sostenidas |
+| Ajustes | Se guardan y se validan; entrada exclusiva; foco, Esc, Ctrl+, y accesibilidad |
+| Cascada y manos | Alineación bloque–tecla ≤ 0,5 px; el objetivo espera; teclado ≤ 1 px entre estados |
+| Micrófono (beta) | Banco sintético: ≥ 95 % de acordes buenos, 0 falsos errores en las trampas; e2e con micrófono simulado |
+| e2e + video | Edge real, 3 de 3 corridas |
+| Real | Kevin con el Yamaha (octava del Mi, acordes beta) |

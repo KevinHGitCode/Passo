@@ -786,3 +786,21 @@
     font-size: 48px;
   }
 }
+
+/* Resumen de terceras y acordes: el nombre es largo, el dato va debajo y cabe en una línea. */
+.stat dd.stat__names {
+  font-size: 18px;
+  line-height: 1.25;
+}
+.stat dd.stat__names small {
+  display: block;
+  margin-top: 2px;
+}
+@media (max-height: 700px) and (min-width: 600px) {
+  .welcome__note {
+    display: none;
+  }
+  .board__top {
+    min-height: 244px;
+  }
+}

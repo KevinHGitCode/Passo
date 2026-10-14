@@ -105,6 +105,8 @@ function Summary({
   readonly onAgain: () => void;
 }) {
   const percent = Math.round(summary.accuracy * 100);
+  // En terceras y acordes el nombre del objetivo es largo: el dato va debajo, no a su lado.
+  const separator = mode === 'notas' ? ' · ' : '';
   return (
     <section className="summary" aria-labelledby="summary-title" data-testid="summary">
       <h2 id="summary-title" className="summary__title">
@@ -124,20 +126,28 @@ function Summary({
         </div>
         <div className="stat">
           <dt>{mode === 'notas' ? 'Nota más lenta' : 'Más lento'}</dt>
-          <dd>
+          <dd className={mode === 'notas' ? undefined : 'stat__names'}>
             {summary.slowest ? notesText(summary.slowest.notes, notation) : '—'}
-            {summary.slowest && <small> · {formatSeconds(summary.slowest.reactionMs)}</small>}
+            {summary.slowest && (
+              <small>
+                {separator}
+                {formatSeconds(summary.slowest.reactionMs)}
+              </small>
+            )}
           </dd>
         </div>
         <div className="stat">
           <dt>{mode === 'notas' ? 'Nota más fallada' : 'Más fallado'}</dt>
-          <dd>
-            {summary.mostMissed ? notesText(summary.mostMissed.notes, notation) : 'Ninguno'}
+          <dd className={mode === 'notas' ? undefined : 'stat__names'}>
+            {summary.mostMissed
+              ? notesText(summary.mostMissed.notes, notation)
+              : mode === 'notas'
+                ? 'Ninguna'
+                : 'Ninguno'}
             {summary.mostMissed && (
               <small>
-                {' '}
-                · {summary.mostMissed.errors}{' '}
-                {summary.mostMissed.errors === 1 ? 'error' : 'errores'}
+                {separator}
+                {summary.mostMissed.errors} {summary.mostMissed.errors === 1 ? 'error' : 'errores'}
               </small>
             )}
           </dd>

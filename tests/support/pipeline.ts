@@ -38,3 +38,39 @@ export function runPipeline(
 export function onsOf(result: PipelineResult) {
   return result.events.filter((item) => item.event.type === 'on');
 }
+
+/**
+ * Como `runPipeline`, pero con saltos de tiempo irregulares entre fotogramas (temporizadores retrasados
+ * por carga de CPU). `hops` se repite en ciclo; un salto mayor que la ventana pierde muestras.
+ */
+export function runJitteredPipeline(
+  signal: Float32Array,
+  hops: readonly number[],
+  config: Partial<TrackerConfig> = {},
+  sampleRate = SAMPLE_RATE,
+  windowSize = 2048,
+): PipelineResult {
+  const tracker = new NoteTracker(config);
+  const events: { event: NoteEvent; emittedAt: number }[] = [];
+  const hints: TrackerHint[] = [];
+  let end = 0;
+  let index = 0;
+  while (end < signal.length) {
+    const hop = hops[index % hops.length] as number;
+    index += 1;
+    end += hop;
+    if (end > signal.length) break;
+    const window = new Float32Array(windowSize);
+    const from = end - windowSize;
+    for (let i = 0; i < windowSize; i++) {
+      window[i] = from + i >= 0 ? (signal[from + i] as number) : 0;
+    }
+    const gap = hop > windowSize;
+    const endAt = (end / sampleRate) * 1000;
+    const frame = analyzeFrame(window, Math.min(hop, windowSize), sampleRate, endAt, gap);
+    for (const event of tracker.push(frame)) events.push({ event, emittedAt: endAt });
+    const hint = tracker.getState().hint;
+    if (hint && hints[hints.length - 1] !== hint) hints.push(hint);
+  }
+  return { events, hints, state: tracker.getState(), tracker };
+}

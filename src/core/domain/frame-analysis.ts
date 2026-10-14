@@ -14,13 +14,15 @@ export const BASELINE_WINDOW = 768;
 export interface FrameAnalysis {
   /** Instante (ms, reloj del `Clock`) de la muestra más reciente. */
   readonly endAt: number;
+  /** Se perdieron muestras justo antes de este fotograma (el temporizador se retrasó más que la ventana). */
+  readonly afterGap: boolean;
   /** Duración de la ventana completa analizada, en ms. */
   readonly windowMs: number;
   /** Duración de un bloque en ms. */
   readonly blockMs: number;
   /** RMS de cada bloque nuevo de 256 muestras, del más antiguo al más reciente. */
   readonly blockRms: readonly number[];
-  /** RMS de las 768 muestras anteriores a cada bloque (para decidir si el bloque es un ataque). */
+  /** RMS de las 768 muestras anteriores a cada bloque (para decidir si el bloque es un ataque); -1 si no hay. */
   readonly blockBaseline: readonly number[];
   /** RMS de todas las muestras nuevas. */
   readonly rms: number;
@@ -50,6 +52,7 @@ export function analyzeFrame(
   newSamples: number,
   sampleRate: number,
   endAt: number,
+  afterGap = false,
 ): FrameAnalysis {
   const count = Math.min(Math.max(0, Math.floor(newSamples)), window.length);
   const start = window.length - count;
@@ -64,12 +67,17 @@ export function analyzeFrame(
   for (let b = 0; b < blocks; b++) {
     const end = window.length - (blocks - 1 - b) * BLOCK_SIZE;
     blockRms.push(rms(window, end - BLOCK_SIZE, end));
+    // Sin al menos un bloque de muestras detrás dentro de la ventana no hay línea base fiable (-1):
+    // quien consume usa el nivel que había antes de este fotograma.
+    const baselineFrom = Math.max(0, end - BLOCK_SIZE - BASELINE_WINDOW);
+    const baselineTo = end - BLOCK_SIZE;
     blockBaseline.push(
-      rms(window, Math.max(0, end - BLOCK_SIZE - BASELINE_WINDOW), end - BLOCK_SIZE),
+      baselineTo - baselineFrom >= BLOCK_SIZE ? rms(window, baselineFrom, baselineTo) : -1,
     );
   }
   return {
     endAt,
+    afterGap,
     windowMs: (window.length / sampleRate) * 1000,
     blockMs: (BLOCK_SIZE / sampleRate) * 1000,
     blockRms,

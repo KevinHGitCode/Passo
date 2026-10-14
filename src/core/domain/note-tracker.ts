@@ -36,6 +36,19 @@ export interface TrackerConfig {
   readonly maxMidi: Midi;
   /** Tiempo máximo para confirmar una nota tras un ataque antes de darla por «confusa». */
   readonly confirmTimeoutMs: number;
+  /**
+   * La misma nota detectada de nuevo antes de este tiempo no es un ataque nuevo: suele ser un hueco
+   * de audio o una fluctuación de la propia nota que decae.
+   */
+  readonly sameNoteRetriggerMs: number;
+  /**
+   * Un «ataque» con una línea base por debajo de esta fracción del nivel de los últimos 250 ms, mientras
+   * suena una nota, es la recuperación de un hueco de audio, no una nueva pulsación (en un re-ataque
+   * real la nota anterior sigue sonando justo antes).
+   */
+  readonly dropoutRatio: number;
+  /** Tras ver un hueco de audio dentro de una nota, durante cuántos ms no se aceptan ataques. */
+  readonly dropoutGuardMs: number;
   /** Fotogramas silenciosos seguidos para dar la nota por terminada. */
   readonly releaseFrames: number;
   /** Cuánto dura visible un aviso. */
@@ -59,6 +72,9 @@ export const DEFAULT_TRACKER_CONFIG: TrackerConfig = {
   minMidi: 48,
   maxMidi: 84,
   confirmTimeoutMs: 450,
+  sameNoteRetriggerMs: 300,
+  dropoutRatio: 0.15,
+  dropoutGuardMs: 90,
   releaseFrames: 2,
   hintMs: 2500,
 };
@@ -134,6 +150,12 @@ export class NoteTracker {
   private noiseFloor = 0;
   private gate: number;
   private lastOnsetAt = -Infinity;
+  /** Energía del último bloque procesado (antes de un hueco de muestras). */
+  private lastBlockLevel = 0;
+  /** Niveles de los últimos bloques (para distinguir un hueco de audio de un re-ataque). */
+  private recentBlocks: { at: number; level: number }[] = [];
+  /** Hasta cuándo se ignoran ataques porque se vio un hueco de audio dentro de una nota. */
+  private dropoutGuardUntil = -Infinity;
   private candidate: Candidate | null = null;
   private sounding: Sounding | null = null;
   private lastFrame = { level: 0, peak: 0 };
@@ -190,7 +212,7 @@ export class NoteTracker {
     if (frame.peak >= 0.98) this.raiseHint('saturado', frame.endAt);
 
     const events: NoteEvent[] = [];
-    this.processBlocks(frame, events);
+    this.processBlocks(frame);
     this.processPitch(frame, events);
     this.processSteadyTuning(frame);
     this.processRelease(frame, events);
@@ -230,24 +252,33 @@ export class NoteTracker {
   }
 
   /** Busca ataques (subidas de energía) bloque a bloque. */
-  private processBlocks(frame: FrameAnalysis, events: NoteEvent[]): void {
+  private processBlocks(frame: FrameAnalysis): void {
     const count = frame.blockRms.length;
     for (let index = 0; index < count; index++) {
       const level = frame.blockRms[index] as number;
-      const baseline = frame.blockBaseline[index] as number;
+      let baseline = frame.blockBaseline[index] as number;
+      // Tras un hueco de muestras, el ataque pudo ocurrir en la parte perdida: el primer bloque se
+      // compara con el nivel que había antes del hueco.
+      if (baseline < 0) baseline = this.lastBlockLevel;
+      else if (index === 0 && frame.afterGap) baseline = Math.min(baseline, this.lastBlockLevel);
       const blockEnd = frame.endAt - (count - 1 - index) * frame.blockMs;
       const blockStart = blockEnd - frame.blockMs;
+      const recentMax = this.recentBlocks.reduce(
+        (peak, item) => (blockStart - item.at <= 250 ? Math.max(peak, item.level) : peak),
+        0,
+      );
+      // Un bloque casi mudo dentro de una nota que sonaba fuerte es un hueco de audio, no un silencio real.
+      if (this.sounding && level < this.config.dropoutRatio * recentMax) {
+        this.dropoutGuardUntil = blockEnd + this.config.dropoutGuardMs;
+      }
       const isOnset =
         level >= this.gate &&
         level >= this.config.onsetRatio * Math.max(baseline, 0.9 * this.gate) &&
-        blockStart - this.lastOnsetAt >= this.config.refractoryMs;
+        blockStart - this.lastOnsetAt >= this.config.refractoryMs &&
+        blockStart >= this.dropoutGuardUntil;
       if (isOnset) {
         this.lastOnsetAt = blockStart;
-        if (this.sounding) {
-          this.finishTuning();
-          events.push(this.offEvent(this.sounding.midi, blockStart));
-          this.sounding = null;
-        }
+        // La nota anterior sigue «sonando» hasta que el nuevo ataque se confirme como otra nota.
         this.candidate = { onsetAt: blockStart, peakLevel: level, attackPeak: level, frames: [] };
         this.weakSince = null;
       } else if (this.candidate && blockStart - this.candidate.onsetAt < 120) {
@@ -259,6 +290,14 @@ export class NoteTracker {
             ? Math.max(this.candidate.attackPeak, level)
             : this.candidate.attackPeak,
         };
+      }
+      this.lastBlockLevel = level;
+      this.recentBlocks.push({ at: blockStart, level });
+      while (
+        this.recentBlocks.length > 0 &&
+        blockStart - (this.recentBlocks[0] as { at: number }).at > 400
+      ) {
+        this.recentBlocks.shift();
       }
     }
   }
@@ -320,6 +359,20 @@ export class NoteTracker {
     const midi = (recent[recent.length - 1] as { midi: Midi }).midi;
     const meanCents = cents.reduce((total, value) => total + value, 0) / cents.length;
 
+    const previous = this.sounding;
+    if (
+      previous &&
+      previous.midi === midi &&
+      candidate.onsetAt - previous.onsetAt < this.config.sameNoteRetriggerMs
+    ) {
+      // Hueco de audio o fluctuación: sigue siendo la misma nota, no hay ataque nuevo.
+      this.candidate = null;
+      return;
+    }
+    if (previous) {
+      this.finishTuning();
+      events.push(this.offEvent(previous.midi, candidate.onsetAt));
+    }
     events.push({
       type: 'on',
       note: midi,

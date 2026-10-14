@@ -79,6 +79,25 @@ describe('NoteTracker · notas aisladas', () => {
   });
 });
 
+describe('NoteTracker · huecos de audio y notas seguidas', () => {
+  it('un hueco de 25 ms dentro de una nota (carga de CPU) no produce un segundo ataque', () => {
+    const note = pianoNote(64, { ms: 900 });
+    const hole = Math.round(0.2 * SAMPLE_RATE);
+    note.fill(0, hole, hole + Math.round(0.025 * SAMPLE_RATE));
+    const ons = onsOf(runPipeline(sequence([note], 1200).signal));
+    expect(ons.map((item) => item.event.note)).toEqual([64]);
+  });
+
+  it('una nota distinta 300 ms después sí es una nota nueva (y suelta la anterior)', () => {
+    const first = pianoNote(64, { ms: 300 });
+    const second = pianoNote(67, { ms: 700 });
+    const { signal } = sequence([concat(first, second)], 1500);
+    const result = runPipeline(signal);
+    const sequenceOfEvents = result.events.map((item) => item.event.type + item.event.note);
+    expect(sequenceOfEvents).toEqual(['on64', 'off64', 'on67', 'off67']);
+  });
+});
+
 describe('NoteTracker · la misma nota repetida', () => {
   it.each([1000, 600])('la misma nota cada %i ms da un ataque cada vez', (gap) => {
     const { signal } = sequence(notes(64, 64, 64), gap);

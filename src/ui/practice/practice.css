@@ -663,3 +663,45 @@
     width: 96px;
   }
 }
+
+/* Pantallas de poca altura: el tablero se compacta para que teclado y tira de escucha se vean sin desplazarse. */
+@media (max-height: 860px) and (min-width: 600px) {
+  .board__top {
+    min-height: 296px;
+    gap: 10px;
+  }
+  .target__name {
+    font-size: 96px;
+  }
+  .stage {
+    min-height: 92px;
+  }
+}
+@media (max-height: 780px) and (min-width: 600px) {
+  .board__top {
+    min-height: 280px;
+    gap: 8px;
+  }
+  .target__name {
+    font-size: 84px;
+  }
+  .stage {
+    min-height: 84px;
+  }
+  .board {
+    padding-top: 14px;
+    padding-bottom: 12px;
+    gap: 10px;
+  }
+}
+@media (max-height: 700px) and (min-width: 600px) {
+  .board__top {
+    min-height: 228px;
+  }
+  .target__name {
+    font-size: 64px;
+  }
+  .stage {
+    min-height: 68px;
+  }
+}

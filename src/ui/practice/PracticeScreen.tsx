@@ -323,6 +323,7 @@ export function PracticeScreen({
                     key={recent.id}
                     data-testid="feedback"
                     data-tone={message.tone}
+                    data-id={recent.id}
                   >
                     <Icon tone={message.tone} />
                     <div>
@@ -352,6 +353,10 @@ export function PracticeScreen({
           )}
         </div>
 
+        {microphone && micStatus && (
+          <ListeningStrip status={micStatus} monitor={monitor} notation={notation} />
+        )}
+
         <div className="keyboard-wrap">
           <PianoKeyboard
             from={KEYBOARD_FROM}
@@ -366,11 +371,7 @@ export function PracticeScreen({
             }
           />
         </div>
-        {microphone && micStatus ? (
-          <ListeningStrip status={micStatus} monitor={monitor} notation={notation} />
-        ) : (
-          pcKeysHint && <p className="pc-hint">{pcKeysHint}</p>
-        )}
+        {!microphone && pcKeysHint && <p className="pc-hint">{pcKeysHint}</p>}
       </section>
 
       <div className="sr-only" role="status" aria-live="polite" data-testid="live">

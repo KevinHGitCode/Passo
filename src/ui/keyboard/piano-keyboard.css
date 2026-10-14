@@ -2,7 +2,8 @@
   display: block;
   width: 100%;
   height: auto;
-  max-height: max(220px, 44vh);
+  /* En pantallas de poca altura el teclado se encoge para que quepa con el resto del tablero. */
+  max-height: clamp(190px, calc(100vh - 480px), 330px);
   user-select: none;
   filter: drop-shadow(0 6px 10px var(--shadow));
 }

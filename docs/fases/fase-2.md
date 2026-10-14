@@ -63,10 +63,10 @@ modos, dedos, cascada y manos) y **2b** (varias notas por micrófono, como **BET
 
 | # | Decisión | Origen |
 |---|---|---|
-| 1 | Corrección de octava en el seguimiento: por fotograma, si hay energía en f/2 (≥ 0,08 de la de f) **y** en 3f/2 (≥ 0,08; tercer parcial de la nota inferior), la altura es f/2; con histéresis (se mantiene mientras ≥ 0,04) y sin subir nunca de octava; no corrige si la nota f/2 sonaba hace < 700 ms (Mi4→Mi5 real) | Música |
+| 1 | Corrección de octava en el seguimiento: por fotograma, si hay energía en f/2 (≥ 0,05 de la de f) **y** en 3f/2 (≥ 0,02; tercer parcial de la nota inferior) y ambas sobresalen ≥ 4× del ruido de alrededor, la altura es f/2; con histéresis (se mantiene mientras ≥ 0,03 y ≥ 0,012) y sin subir nunca de octava; no corrige si la nota f/2 sonaba hace < 700 ms (Mi4→Mi5 real). **Umbrales medidos en E0** (los 0,08 del borrador no corregían); validado de Si3 en adelante | Música |
 | 2 | El objetivo pasa a ser un **conjunto de notas** (`Target`) con sus dedos y una etiqueta; un objetivo de 1 nota es el caso particular. `evaluate` conserva su firma | Backend/Música |
-| 3 | Agregador sin espera: cada pulsación se evalúa al instante; las que llegan ≤ 120 ms tras la anterior (máx. 300 ms) forman el mismo grupo; éxito cuando lo **sostenido** es exactamente el conjunto | Música |
-| 4 | **Error** = nota de más (clase de nota fuera del conjunto que sigue sostenida ≥ 150 ms al cerrar): 1 error por intento. **Faltan notas NO es error**: mensaje neutro «Falta Sol» | Música/UI |
+| 3 | Sin espera: cada pulsación se evalúa al instante; cada nota del conjunto es un avance («parcial») y se acierta cuando **todas están pulsadas a la vez** (soltar quita la nota). Las notas equivocadas que llegan ≤ 120 ms tras la anterior (máx. 300 ms desde la primera) cuentan **un solo error** | Música |
+| 4 | **Error** = nota de más, **al instante** (corrección inmediata, igual que en el modo notas). *Ajuste en E1:* el borrador pedía que la nota sobrara ≥ 150 ms; eso exige un temporizador y retrasa el aviso, así que se descarta para entradas exactas (teclado del PC y MIDI) y la tolerancia al roce queda para el micrófono (nota ajena = «dudoso», nunca error). **Faltan notas NO es error**: mensaje neutro «Casi · Falta Sol» | Música/UI |
 | 5 | Contenido: Terceras N1 (Do–Mi, Re–Fa, Mi–Sol), N2 (las 7), N3 mano izquierda; Acordes A1 Do y Sol, A2 +Fa, A3 +La m, A4 +Re m y Mi m, A5 mano izquierda | Música |
 | 6 | Dedos (grave → agudo): terceras MD 1-3, 2-4, 3-5, 1-3, 2-4, 3-5, 1-3; MI espejo (5-3, 4-2, 3-1…); acordes MD 1-3-5, MI 5-3-1. Tablas estáticas validadas por prueba | Música |
 | 7 | `ExerciseMode` con modos notas / terceras / acordes, niveles y mano; la UI no calcula teoría (recibe `hand`, `fingers`, `label`) | Backend/UI |
@@ -83,7 +83,7 @@ modos, dedos, cascada y manos) y **2b** (varias notas por micrófono, como **BET
 
 ## Etapas (cada una cierra con `npm run check`; commits pequeños)
 
-E0 octava «Mi» · E1 dominio multi-nota (modo notas idéntico) · E2 modos, dedos, terceras y acordes (teclado del PC/MIDI) ·
+E0 octava «Mi» ✅ · E1 dominio multi-nota ✅ (modo notas idéntico, 405 pruebas) · E2 modos, dedos, terceras y acordes (teclado del PC/MIDI) ·
 E3 preferencias · E4 `InputManager` · E5 panel de ajustes · E6 cascada y manos · E7 verificador por micrófono (beta) · E8 evidencias y cierre.
 
 Plan B de E7 si no alcanza los umbrales: arpegio (notas una tras otra) con el seguimiento monofónico.

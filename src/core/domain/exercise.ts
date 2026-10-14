@@ -1,6 +1,6 @@
 import type { Midi, NotationMode } from './note';
 import { semitoneDistance } from './note';
-import type { InputSource, NoteEvent } from './note-event';
+import type { InputSource, NoteConfidence, NoteEvent } from './note-event';
 import type { Rng } from './rng';
 
 /** Nivel 1: teclas blancas Do4–Sol4 (posición de cinco dedos, mano derecha). */
@@ -41,6 +41,8 @@ export interface Attempt {
   readonly helpOn: boolean;
   /** Posición de la nota objetivo dentro de la ronda, desde 0. */
   readonly targetIndex: number;
+  /** Seguridad de la detección (solo micrófono); `null` con MIDI o teclado, que son exactos. */
+  readonly detectionConfidence: NoteConfidence | null;
 }
 
 export interface ExerciseState {
@@ -57,6 +59,8 @@ export interface EvaluateContext {
   readonly rng: Rng;
   readonly notation: NotationMode;
   readonly help: boolean;
+  /** Instante (reloj del `Clock`) en que se entrega el evento: cuándo aparece la siguiente nota. Por defecto, la hora del evento. */
+  readonly now?: number | undefined;
 }
 
 export interface RoundSummary {
@@ -71,6 +75,8 @@ export interface RoundSummary {
 
 export type Outcome =
   | { readonly kind: 'ignorado' }
+  /** Nota distinta de la pedida oída con poca seguridad: no cuenta como error ni como intento. */
+  | { readonly kind: 'dudoso'; readonly heardMidi: Midi }
   | { readonly kind: 'acierto'; readonly attempt: Attempt }
   | { readonly kind: 'error'; readonly attempt: Attempt; readonly semitones: number }
   | {
@@ -116,6 +122,9 @@ export function evaluate(
   if (state.finished || !isNoteOn(event)) return { state, outcome: { kind: 'ignorado' } };
 
   const isCorrect = event.note === state.target;
+  if (!isCorrect && event.confidence === 'media') {
+    return { state, outcome: { kind: 'dudoso', heardMidi: event.note } };
+  }
   const attemptIndexForTarget = state.attemptsOnTarget + 1;
   const attempt: Attempt = {
     targetMidi: state.target,
@@ -132,6 +141,7 @@ export function evaluate(
     velocity: event.velocity,
     helpOn: context.help,
     targetIndex: state.completedTargets,
+    detectionConfidence: event.confidence ?? null,
   };
   const attempts = [...state.attempts, attempt];
 
@@ -160,7 +170,7 @@ export function evaluate(
     state: {
       ...state,
       target: pickNote(state.config.pool, state.target, context.rng),
-      shownAt: event.at,
+      shownAt: context.now ?? event.at,
       attemptsOnTarget: 0,
       completedTargets,
       attempts,
@@ -200,4 +210,17 @@ export function summarizeRound(attempts: readonly Attempt[]): RoundSummary {
     slowest,
     mostMissed,
   };
+}
+
+/**
+ * Si los 3 últimos intentos fueron errores con la misma diferencia en semitonos (≠ 0, hasta una octava),
+ * el teclado puede estar transpuesto. Devuelve esa diferencia (positiva = suena más agudo) o `null`.
+ */
+export function detectTransposition(attempts: readonly Attempt[]): number | null {
+  const last = attempts.slice(-3);
+  if (last.length < 3 || last.some((attempt) => attempt.isCorrect)) return null;
+  const deltas = last.map((attempt) => attempt.playedMidi - attempt.targetMidi);
+  const first = deltas[0] as number;
+  if (first === 0 || Math.abs(first) > 12 || deltas.some((delta) => delta !== first)) return null;
+  return first;
 }

@@ -5,7 +5,7 @@ import type { Midi, NotationMode } from '@/core/domain/note';
 /** Espacio duro: evita que «2 semitonos» se parta en dos líneas. */
 const NBSP = ' ';
 
-export type FeedbackTone = 'ok' | 'error' | 'done';
+export type FeedbackTone = 'ok' | 'error' | 'done' | 'neutral';
 
 export interface FeedbackMessage {
   readonly tone: FeedbackTone;
@@ -65,6 +65,12 @@ export function feedbackMessage(
         tone: 'error',
         title: 'Incorrecto',
         detail: `Era ${name(outcome.attempt.targetMidi)}, tocaste ${name(outcome.attempt.playedMidi)} · ${describeMistake(outcome.attempt.targetMidi, outcome.attempt.playedMidi, notation)}`,
+      };
+    case 'dudoso':
+      return {
+        tone: 'neutral',
+        title: 'No te oí bien',
+        detail: `Oí algo como ${name(outcome.heardMidi)}. Toca una sola tecla y déjala sonar.`,
       };
     case 'ronda-completa':
       return {

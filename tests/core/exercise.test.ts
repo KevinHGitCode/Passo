@@ -1,4 +1,5 @@
 import {
+  detectTransposition,
   LEVEL_1_CONFIG,
   LEVEL_1_POOL,
   evaluate,
@@ -6,7 +7,7 @@ import {
   startRound,
   summarizeRound,
 } from '@/core/domain/exercise';
-import type { ExerciseState, RoundConfig } from '@/core/domain/exercise';
+import type { Attempt, ExerciseState, RoundConfig } from '@/core/domain/exercise';
 import type { NoteEvent } from '@/core/domain/note-event';
 import { createSeededRng } from '@/core/domain/rng';
 
@@ -102,6 +103,7 @@ describe('evaluate', () => {
       velocity: 70,
       helpOn: false,
       targetIndex: 0,
+      detectionConfidence: null,
     });
     expect(second.state.attempts[1]).toMatchObject({
       isCorrect: true,
@@ -164,5 +166,62 @@ describe('summarizeRound', () => {
       slowest: null,
       mostMissed: null,
     });
+  });
+});
+
+describe('evaluate · entrada por micrófono', () => {
+  const heard = (note: number, at: number, confidence: 'alta' | 'media'): NoteEvent => ({
+    type: 'on',
+    note,
+    velocity: 80,
+    at,
+    source: 'microfono',
+    confidence,
+  });
+
+  it('una nota distinta de la pedida con confianza media es dudosa: no cuenta como error ni como intento', () => {
+    const state = stateWithTarget(62);
+    const result = evaluate(state, heard(64, 1300, 'media'), ctx);
+    expect(result.outcome).toEqual({ kind: 'dudoso', heardMidi: 64 });
+    expect(result.state).toBe(state);
+  });
+
+  it('con confianza alta, una nota distinta sí es un error', () => {
+    const result = evaluate(stateWithTarget(62), heard(64, 1300, 'alta'), ctx);
+    expect(result.outcome.kind).toBe('error');
+  });
+
+  it('un acierto cuenta con cualquier confianza y registra cuál fue', () => {
+    const result = evaluate(stateWithTarget(62), heard(62, 1400, 'media'), ctx);
+    expect(result.outcome.kind).toBe('acierto');
+    expect(result.state.attempts[0]).toMatchObject({
+      inputSource: 'microfono',
+      detectionConfidence: 'media',
+    });
+  });
+
+  it('la siguiente nota se "muestra" cuando se entrega el evento, no cuando fue el ataque', () => {
+    const result = evaluate(stateWithTarget(62), heard(62, 1400, 'alta'), { ...ctx, now: 1550 });
+    expect(result.state.shownAt).toBe(1550);
+  });
+});
+
+describe('detectTransposition', () => {
+  const miss = (target: number, played: number): Attempt =>
+    ({ targetMidi: target, playedMidi: played, isCorrect: false }) as Attempt;
+  const hit = (target: number): Attempt =>
+    ({ targetMidi: target, playedMidi: target, isCorrect: true }) as Attempt;
+
+  it('3 errores seguidos con la misma diferencia indican transposición', () => {
+    expect(detectTransposition([miss(60, 62), miss(60, 62), miss(64, 66)])).toBe(2);
+    expect(detectTransposition([miss(62, 50), miss(60, 48), miss(64, 52)])).toBe(-12);
+  });
+
+  it('no avisa con diferencias distintas, con menos de 3, con aciertos o con diferencia 0 o mayor a una octava', () => {
+    expect(detectTransposition([miss(60, 62), miss(60, 63), miss(64, 66)])).toBeNull();
+    expect(detectTransposition([miss(60, 62), miss(64, 66)])).toBeNull();
+    expect(detectTransposition([miss(60, 62), hit(62), miss(64, 66)])).toBeNull();
+    expect(detectTransposition([miss(60, 60), miss(60, 60), miss(60, 60)])).toBeNull();
+    expect(detectTransposition([miss(40, 60), miss(41, 61), miss(42, 62)])).toBeNull();
   });
 });

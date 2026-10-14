@@ -23,7 +23,8 @@ export function DebugPanel({
   const samples = useRef<number[]>([]);
   const [shown, setShown] = useState<readonly number[]>([]);
   const feedbackId = snapshot.feedback?.id ?? 0;
-  const playedAt = snapshot.feedback?.outcome.attempt.playedAt;
+  const outcome = snapshot.feedback?.outcome;
+  const playedAt = outcome && outcome.kind !== 'dudoso' ? outcome.attempt.playedAt : undefined;
 
   useEffect(() => {
     if (feedbackId === 0 || playedAt === undefined) return undefined;

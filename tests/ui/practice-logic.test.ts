@@ -24,6 +24,7 @@ function attempt(target: number, played: number, reactionMs = 640): Attempt {
     velocity: 96,
     helpOn: true,
     targetIndex: 0,
+    detectionConfidence: null,
   };
 }
 

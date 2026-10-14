@@ -3,7 +3,7 @@
 Aplicación para aprender piano corrigiendo al instante lo que no se te da bien.
 Nombre: **Passo** (paso a paso: no avanzas hasta que lo dominas).
 
-> Estado: **Fase 0 completada**; **Fase 1 (escucha activa por micrófono) en construcción**. Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
+> Estado: **Fases 0 y 1 completadas** (la Fase 1 es la escucha activa por micrófono; pendiente de validar con el piano real). Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
 
 ## 1. Problema
 
@@ -86,7 +86,7 @@ En código, las capas se agrupan en `core/` (dominio, aplicación, puertos), `ad
 | Fase | Entrega | Estimado |
 |---|---|---|
 | 0 | Prototipo: teclado en pantalla + MIDI + modo "toca esta nota" (**hecha**) | 2 semanas |
-| 1 | **Escucha activa:** detectar la nota que suena por el micrófono (el Yamaha E263 no tiene USB-MIDI) | 3 semanas |
+| 1 | **Escucha activa:** detectar la nota que suena por el micrófono (el Yamaha E263 no tiene USB-MIDI) (**hecha**, falta validar con el piano real) | 3 semanas |
 | 2 | Núcleo: modos estricto y espera, niveles con negras, persistencia, dedos, móvil, ajustes de entrada | 3–4 semanas |
 | 3 | Modos de entrenamiento: oído, intervalos, acordes (la detección de varias notas a la vez por micrófono se investiga aquí) | 3 semanas |
 | 4 | Ritmo: metrónomo y calificación de tiempo | 3 semanas |
@@ -94,7 +94,7 @@ En código, las capas se agrupan en `core/` (dominio, aplicación, puertos), `ad
 | 6 | Motor adaptativo: práctica por tramos, unión progresiva, subida de tempo | 3 semanas |
 | 7 | Pulido: estadísticas, cuentas y nube | continuo |
 
-Detalle de cada fase: [docs/fases/](docs/fases/). Método de trabajo: [docs/metodo.md](docs/metodo.md). Convenciones: [docs/convenciones.md](docs/convenciones.md). Validación con piano real: [docs/validacion-piano.md](docs/validacion-piano.md).
+Detalle de cada fase: [docs/fases/](docs/fases/). Método de trabajo: [docs/metodo.md](docs/metodo.md). Convenciones: [docs/convenciones.md](docs/convenciones.md). Validación con el piano real (micrófono): [docs/validacion-microfono.md](docs/validacion-microfono.md); con un piano MIDI: [docs/validacion-piano.md](docs/validacion-piano.md).
 
 ## 8. Factibilidad
 

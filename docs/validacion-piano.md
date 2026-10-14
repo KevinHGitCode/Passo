@@ -1,7 +1,10 @@
-# Validación con el piano real (Yamaha E263)
+# Validación con un piano MIDI (opcional)
 
-La Fase 0 se probó con el teclado del PC y con un piano MIDI simulado. Esta lista es para que
-Kevin valide con el instrumento. Si algo falla, anota qué mensaje muestra la zona de estado.
+> **El Yamaha E263 de Kevin no tiene USB-MIDI**: para su piano usa [validacion-microfono.md](validacion-microfono.md).
+> Esta lista sirve para quien tenga un teclado con USB-MIDI y abra Passo con `?midi`.
+
+La Fase 0 se probó con el teclado del PC y con un piano MIDI simulado. Esta lista es para validar
+con un instrumento MIDI real. Si algo falla, anota qué mensaje muestra la zona de estado.
 
 ## Antes de empezar
 

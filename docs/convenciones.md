@@ -35,3 +35,11 @@ El nivel 1 (Do4–Sol4) usa las teclas `A S D F G`. Las combinaciones con Ctrl, 
 - La app **no emite sonido** mientras escucha por micrófono, para no oírse a sí misma.
 - Afinación: se toma la nota más cercana (hasta ±50 cents) y se estima la afinación del teclado; si se desvía 20 cents o más de La4 = 440 Hz se avisa. Si hay 3 errores seguidos con la misma diferencia de semitonos, se avisa de que el teclado puede estar transpuesto.
 - Privacidad: el audio se analiza en el navegador; no se graba ni se envía.
+
+### Reglas finales de la escucha activa (tras la revisión de la Fase 1)
+
+- Una nota distinta de la pedida solo es **error** si el micrófono está seguro (confianza `alta`) y es una equivocación creíble: nota vecina a menos de una octava y que no sea la misma nota en otra octava.
+- Son **«No te oí bien» (no cuentan como error ni como intento)**: confianza `media`, la misma nota en otra octava (la detección favorece el periodo más corto y los altavoces pequeños casi no emiten la fundamental), y sonidos a más de una octava de la pedida.
+- El **eco** (la misma nota del intento anterior, acierto o error, dentro de 900 ms) se ignora.
+- El aviso de **teclado transpuesto** necesita ≥ 3 errores de la misma diferencia entre los 6 últimos intentos y ≥ 2 notas pedidas distintas.
+- Si el micrófono entrega silencio digital exacto más de 1,2 s se avisa («No llega sonido del micrófono»).

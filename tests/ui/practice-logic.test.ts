@@ -60,6 +60,27 @@ describe('feedbackMessage', () => {
   });
 });
 
+describe('feedbackMessage · entrada por micrófono', () => {
+  it('dice «oí» en lugar de «tocaste» cuando la nota se infiere del micrófono', () => {
+    const heard: SessionFeedback = {
+      id: 3,
+      outcome: {
+        kind: 'error',
+        attempt: { ...attempt(62, 64), inputSource: 'microfono' },
+        semitones: 2,
+      },
+    };
+    expect(feedbackMessage(heard.outcome, 'latina').detail).toContain('oí Mi4');
+    expect(feedbackMessage(heard.outcome, 'latina').detail).not.toContain('tocaste');
+  });
+
+  it('una nota dudosa es neutra y pide tocar una sola tecla', () => {
+    const message = feedbackMessage({ kind: 'dudoso', heardMidi: 64 }, 'latina');
+    expect(message.tone).toBe('neutral');
+    expect(message.detail).toContain('Mi4');
+  });
+});
+
 describe('buildKeyVisuals', () => {
   it('con ayuda ilumina la nota objetivo; sin ayuda no', () => {
     const base = { target: 62, pressed: [], feedback: null };
@@ -77,6 +98,17 @@ describe('buildKeyVisuals', () => {
     const visuals = buildKeyVisuals({ target: 64, help: true, pressed: [], feedback: right });
     expect(visuals.get(62)).toEqual({ feedback: 'correct' });
     expect(visuals.get(64)).toEqual({ target: true });
+  });
+
+  it('la nota oída del micrófono se marca aparte de «pulsada»', () => {
+    const visuals = buildKeyVisuals({
+      target: 62,
+      help: true,
+      pressed: [],
+      feedback: null,
+      heard: 64,
+    });
+    expect(visuals.get(64)).toEqual({ heard: true });
   });
 
   it('combina estados en la misma tecla (objetivo + pulsada)', () => {

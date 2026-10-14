@@ -20,8 +20,9 @@ import type { NoteInput } from '@/core/ports/note-input';
  * Raíz de composición: el único lugar que conoce las implementaciones concretas.
  *
  * Entrada principal: el micrófono (escucha activa). Opcionales, por la dirección:
- * `?pc` (teclado del PC como piano, para desarrollo), `?midi` (piano MIDI), `?seed=N`
- * (notas reproducibles) y `?debug` (panel de latencia).
+ * `?pc` (teclado del PC como piano, para desarrollo), `?midi` (piano MIDI), `?mic=off` (sin
+ * micrófono, para pruebas de las otras entradas), `?seed=N` (notas reproducibles) y `?debug`
+ * (panel de latencia).
  */
 export function composeApp(search: string = window.location.search) {
   const params = new URLSearchParams(search);
@@ -30,6 +31,7 @@ export function composeApp(search: string = window.location.search) {
   const debug = params.has('debug');
   const usePc = params.has('pc');
   const useMidi = params.has('midi');
+  const useMic = params.get('mic') !== 'off';
 
   const clock: Clock = { now: () => performance.now() };
 
@@ -50,7 +52,7 @@ export function composeApp(search: string = window.location.search) {
   window.addEventListener('pagehide', () => microphone.stop());
   import.meta.hot?.dispose(() => microphone.stop());
 
-  const inputs: NoteInput[] = [microphone];
+  const inputs: NoteInput[] = useMic ? [microphone] : [];
 
   if (usePc) {
     const keyTarget: KeyEventTarget = {
@@ -102,13 +104,13 @@ export function composeApp(search: string = window.location.search) {
     audio,
     clock,
     rng,
-    primarySource: 'microfono',
+    ...(useMic ? { primarySource: 'microfono' as const } : {}),
   });
 
   return {
     session,
     inputs: inputs as readonly NoteInput[],
-    microphone,
+    microphone: useMic ? microphone : undefined,
     audio,
     debug,
     /** El teclado del PC es el único que hace sonar la app: solo entonces se muestra el estado del sonido. */

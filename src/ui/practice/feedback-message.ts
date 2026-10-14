@@ -60,12 +60,15 @@ export function feedbackMessage(
   switch (outcome.kind) {
     case 'acierto':
       return { tone: 'ok', title: '¡Correcto!', detail: name(outcome.attempt.targetMidi) };
-    case 'error':
+    case 'error': {
+      // Por micrófono la app infiere la nota: dice «oí», no «tocaste».
+      const verb = outcome.attempt.inputSource === 'microfono' ? 'oí' : 'tocaste';
       return {
         tone: 'error',
         title: 'Incorrecto',
-        detail: `Era ${name(outcome.attempt.targetMidi)}, tocaste ${name(outcome.attempt.playedMidi)} · ${describeMistake(outcome.attempt.targetMidi, outcome.attempt.playedMidi, notation)}`,
+        detail: `Era ${name(outcome.attempt.targetMidi)}, ${verb} ${name(outcome.attempt.playedMidi)} · ${describeMistake(outcome.attempt.targetMidi, outcome.attempt.playedMidi, notation)}`,
       };
+    }
     case 'dudoso':
       return {
         tone: 'neutral',

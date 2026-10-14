@@ -28,6 +28,8 @@ export default defineConfig({
     colorScheme: 'dark',
     locale: 'es-CO',
     permissions: ['midi'],
+    // El micrófono simulado genera audio en la página sin gesto del usuario.
+    launchOptions: { args: ['--autoplay-policy=no-user-gesture-required'] },
     video:
       process.env['E2E_VIDEO'] === 'off'
         ? 'off'

@@ -22,6 +22,9 @@ function MicIcon() {
 function idleText(status: InputStatus, monitor: MonitorSnapshot): string {
   if (status.kind === 'inactivo') return 'Activa el micrófono para que te oiga.';
   if (status.kind === 'iniciando') return 'Esperando tu permiso…';
+  if (status.kind === 'desconectado') return 'Se perdió el micrófono.';
+  if (status.kind === 'permiso-denegado') return 'Micrófono bloqueado por el navegador.';
+  if (status.kind === 'sin-dispositivo') return 'No encuentro ningún micrófono.';
   if (status.kind !== 'conectado') return 'Micrófono no disponible.';
   if (monitor.phase === 'calibrando') return 'Guarda silencio un momento…';
   if (monitor.phase === 'suspendido') return 'Escucha en pausa: vuelve a esta pestaña.';

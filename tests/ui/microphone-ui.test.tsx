@@ -286,6 +286,17 @@ describe('Revisión de la Fase 1 (interfaz)', () => {
     expect(check.textContent).toContain('tercer Do desde la izquierda');
   });
 
+  it('la tira dice la causa concreta cuando el micrófono no está listo', () => {
+    const { mic } = ready();
+    const idle = () => screen.getByTestId('listen-idle').textContent;
+    act(() => mic.setStatus({ kind: 'desconectado', deviceName: 'Micro' }));
+    expect(idle()).toContain('Se perdió el micrófono');
+    act(() => mic.setStatus({ kind: 'permiso-denegado' }));
+    expect(idle()).toContain('bloqueado');
+    act(() => mic.setStatus({ kind: 'sin-dispositivo' }));
+    expect(idle()).toContain('No encuentro');
+  });
+
   it('el chip del micrófono dice «Midiendo ruido…» y «Escucha en pausa» según la fase', async () => {
     const { StatusZone } = await import('@/ui/status/StatusZone');
     const mic = new FakeMicInput();

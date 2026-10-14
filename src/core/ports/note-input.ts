@@ -3,9 +3,11 @@ import type { InputSource, NoteEvent } from '../domain/note-event';
 export type Unsubscribe = () => void;
 
 export type InputStatus =
+  /** Entrada apagada: espera una acción del usuario (p. ej. «Activar micrófono»). */
+  | { readonly kind: 'inactivo' }
   | { readonly kind: 'iniciando' }
   | { readonly kind: 'conectado'; readonly deviceName: string }
-  | { readonly kind: 'sin-dispositivo' }
+  | { readonly kind: 'sin-dispositivo'; readonly reason?: 'ocupado' | undefined }
   | { readonly kind: 'desconectado'; readonly deviceName: string }
   | { readonly kind: 'permiso-denegado' }
   | { readonly kind: 'sin-soporte' };
@@ -14,7 +16,7 @@ export type InputStatus =
 export interface NoteInput {
   readonly source: InputSource;
   getStatus(): InputStatus;
-  /** Empieza a escuchar. Puede pedir permisos al usuario. Nunca lanza: informa por el estado. */
+  /** Empieza a escuchar. Puede pedir permisos al usuario (solo desde un gesto). Nunca lanza: informa por el estado. */
   start(): Promise<void>;
   stop(): void;
   subscribe(handler: (event: NoteEvent) => void): Unsubscribe;

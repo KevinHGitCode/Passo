@@ -1,4 +1,4 @@
-import { evaluate, LEVEL_1_CONFIG, startRound } from '../domain/exercise';
+import { detectTransposition, evaluate, LEVEL_1_CONFIG, startRound } from '../domain/exercise';
 import type { ExerciseState, Outcome, RoundConfig, RoundSummary } from '../domain/exercise';
 import type { Midi, NotationMode } from '../domain/note';
 import type { InputSource, NoteEvent } from '../domain/note-event';
@@ -19,6 +19,8 @@ export interface SessionFeedback {
 export interface SessionSnapshot {
   readonly phase: SessionPhase;
   readonly pauseReason: 'desconexion' | 'manual' | null;
+  /** Entrada que se perdió cuando la pausa es por desconexión. */
+  readonly pausedSource: InputSource | null;
   readonly notation: NotationMode;
   /** Ayuda activada: la tecla objetivo se ilumina. Se registra en cada intento. */
   readonly help: boolean;
@@ -30,6 +32,8 @@ export interface SessionSnapshot {
   readonly errors: number;
   /** Resumen de la ronda terminada (solo en la fase 'completada'). */
   readonly summary: RoundSummary | null;
+  /** Diferencia en semitonos si hay 3 errores seguidos iguales (¿teclado transpuesto?), o `null`. */
+  readonly transposition: number | null;
 }
 
 export interface PracticeSessionDeps {
@@ -44,6 +48,11 @@ export interface PracticeSessionDeps {
    * ya suena por sí mismo y sintetizarlo también produciría un eco.
    */
   readonly audioSources?: readonly InputSource[];
+  /**
+   * Entrada principal: si se pierde, la ronda se pausa aunque todavía no se haya tocado nada.
+   * Sin ella, solo se vigila la última entrada usada.
+   */
+  readonly primarySource?: InputSource;
 }
 
 /** Caso de uso: orquesta entradas, evaluación pura, sonido y notificación a la interfaz. */
@@ -64,6 +73,7 @@ export class PracticeSession {
     this.snapshot = {
       phase: 'inactiva',
       pauseReason: null,
+      pausedSource: null,
       notation: deps.notation ?? 'latina',
       help: true,
       exercise: null,
@@ -72,6 +82,7 @@ export class PracticeSession {
       hits: 0,
       errors: 0,
       summary: null,
+      transposition: null,
     };
     for (const input of deps.inputs) {
       this.subscriptions.push(input.subscribe((event) => this.handleEvent(event)));
@@ -92,12 +103,14 @@ export class PracticeSession {
     this.update({
       phase: 'en-curso',
       pauseReason: null,
+      pausedSource: null,
       exercise,
       feedback: null,
       pressed: [],
       hits: 0,
       errors: 0,
       summary: null,
+      transposition: null,
     });
   }
 
@@ -130,14 +143,16 @@ export class PracticeSession {
     this.update({
       phase: 'en-curso',
       pauseReason: null,
+      pausedSource: null,
       exercise: exercise ? { ...exercise, shownAt: this.deps.clock.now() } : exercise,
     });
   }
 
   private handleStatus(input: NoteInput, status: InputStatus): void {
-    if (input.source !== this.lastSource) return;
+    const watched = this.lastSource ?? this.deps.primarySource ?? null;
+    if (input.source !== watched) return;
     if (this.snapshot.phase === 'en-curso' && status.kind === 'desconectado') {
-      this.update({ phase: 'pausada', pauseReason: 'desconexion' });
+      this.update({ phase: 'pausada', pauseReason: 'desconexion', pausedSource: input.source });
     } else if (
       this.snapshot.phase === 'pausada' &&
       this.snapshot.pauseReason === 'desconexion' &&
@@ -154,11 +169,15 @@ export class PracticeSession {
     const isOn = event.type === 'on' && event.velocity > 0;
     this.playSound(event, isOn);
 
-    const pressed = isOn
-      ? this.snapshot.pressed.includes(event.note)
-        ? this.snapshot.pressed
-        : [...this.snapshot.pressed, event.note]
-      : this.snapshot.pressed.filter((note) => note !== event.note);
+    // El micrófono infiere notas, no teclas pulsadas: se muestran aparte ("nota oída").
+    const trackPressed = event.source !== 'microfono';
+    const pressed = !trackPressed
+      ? this.snapshot.pressed
+      : isOn
+        ? this.snapshot.pressed.includes(event.note)
+          ? this.snapshot.pressed
+          : [...this.snapshot.pressed, event.note]
+        : this.snapshot.pressed.filter((note) => note !== event.note);
 
     const { exercise, phase } = this.snapshot;
     if (phase !== 'en-curso' || exercise === null || !isOn) {
@@ -170,6 +189,7 @@ export class PracticeSession {
       rng: this.deps.rng,
       notation: this.snapshot.notation,
       help: this.snapshot.help,
+      now: this.deps.clock.now(),
     });
     if (result.outcome.kind === 'ignorado') {
       this.update({ pressed });
@@ -185,18 +205,26 @@ export class PracticeSession {
       hits: result.state.completedTargets,
       errors: result.state.attempts.filter((attempt) => !attempt.isCorrect).length,
       summary: result.outcome.kind === 'ronda-completa' ? result.outcome.summary : null,
+      transposition: detectTransposition(result.state.attempts),
     });
   }
 
   /** Un fallo del audio nunca debe romper la evaluación de la nota. */
   private playSound(event: NoteEvent, isOn: boolean): void {
-    if (!this.audioSources.includes(event.source)) return;
+    if (!this.audioSources.includes(event.source) || this.isListeningByMicrophone()) return;
     try {
       if (isOn) this.deps.audio.noteOn(event.note, event.velocity);
       else this.deps.audio.noteOff(event.note);
     } catch {
       // Sin sonido seguimos practicando.
     }
+  }
+
+  /** Con el micrófono activo la app no suena: se oiría a sí misma. */
+  private isListeningByMicrophone(): boolean {
+    return this.deps.inputs.some(
+      (input) => input.source === 'microfono' && input.getStatus().kind === 'conectado',
+    );
   }
 
   private update(changes: Partial<SessionSnapshot>): void {

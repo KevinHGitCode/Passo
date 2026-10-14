@@ -48,6 +48,11 @@ export class FakeNoteInput implements NoteInput {
     this.emit({ type: 'off', note, velocity: 0, at, source: this.source });
   }
 
+  /** Entrega un evento ya armado (p. ej. con confianza, como el micrófono). */
+  emitEvent(event: NoteEvent): void {
+    this.emit(event);
+  }
+
   private emit(event: NoteEvent): void {
     this.handlers.forEach((handler) => handler(event));
   }

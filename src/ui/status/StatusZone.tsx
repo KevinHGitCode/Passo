@@ -7,6 +7,8 @@ import type { StatusView } from './describe-status';
 export interface StatusZoneProps {
   readonly inputs: readonly NoteInput[];
   readonly audio: AudioControl;
+  /** Muestra el estado del sonido de la app (por defecto sí). */
+  readonly showAudio?: boolean;
 }
 
 /**
@@ -85,13 +87,13 @@ function AudioStatusItem({ audio }: { readonly audio: AudioControl }) {
 }
 
 /** Zona de estado fija bajo la cabecera: entradas conectadas y sonido. No es modal. */
-export function StatusZone({ inputs, audio }: StatusZoneProps) {
+export function StatusZone({ inputs, audio, showAudio = true }: StatusZoneProps) {
   return (
     <div className="status-zone" role="region" aria-label="Estado de conexión">
       {inputs.map((input) => (
         <InputStatusItem key={input.source} input={input} />
       ))}
-      <AudioStatusItem audio={audio} />
+      {showAudio && <AudioStatusItem audio={audio} />}
     </div>
   );
 }

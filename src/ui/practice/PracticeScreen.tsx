@@ -3,13 +3,24 @@ import { useEffect, useRef } from 'react';
 import type { PracticeSession, SessionSnapshot } from '@/core/application/practice-session';
 import type { RoundSummary } from '@/core/domain/exercise';
 import { noteName, octaveOf, pitchName } from '@/core/domain/note';
+import type { InputMonitor } from '@/core/ports/input-monitor';
+import type { NoteInput } from '@/core/ports/note-input';
 import type { Midi, NotationMode } from '@/core/domain/note';
+import { hintText } from '../listen/listen-messages';
+import { ListeningStrip } from '../listen/ListeningStrip';
+import { MicPanel } from '../listen/MicPanel';
 import { windowAround } from '../keyboard/geometry';
 import { PianoKeyboard } from '../keyboard/piano-keyboard';
 import type { ThemeChoice } from '../theme/use-theme';
 import { feedbackMessage, formatSeconds } from './feedback-message';
 import type { FeedbackMessage } from './feedback-message';
-import { useIsNarrow, useRecentFeedback, useSessionSnapshot } from './hooks';
+import {
+  useInputStatus,
+  useIsNarrow,
+  useMonitor,
+  useRecentFeedback,
+  useSessionSnapshot,
+} from './hooks';
 import { buildKeyVisuals } from './key-visuals';
 import { SettingsBar } from './SettingsBar';
 import './practice.css';
@@ -30,12 +41,22 @@ export interface PracticeScreenProps {
   readonly statusZone?: ReactNode | undefined;
   /** Ayuda al teclado del PC para el nivel actual. */
   readonly pcKeysHint?: string | undefined;
+  /** Entrada por micrófono (escucha activa), con su monitor de nivel y nota oída. */
+  readonly microphone?: (NoteInput & InputMonitor) | undefined;
+  /** Hay otra entrada (teclado del PC, MIDI): se puede empezar sin micrófono. */
+  readonly canStartWithoutMic?: boolean | undefined;
 }
 
 function Icon({ tone }: { readonly tone: FeedbackMessage['tone'] }) {
   return (
     <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" className="feedback__icon">
-      {tone === 'error' ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M5 12.5l4.5 4.5L19 7.5" />}
+      {tone === 'error' ? (
+        <path d="M6 6l12 12M18 6L6 18" />
+      ) : tone === 'neutral' ? (
+        <path d="M9.5 9a2.5 2.5 0 1 1 3.6 2.2c-.8.5-1.1 1-1.1 2M12 17v.01" />
+      ) : (
+        <path d="M5 12.5l4.5 4.5L19 7.5" />
+      )}
     </svg>
   );
 }
@@ -49,10 +70,24 @@ function liveMessage(snapshot: SessionSnapshot): string {
   if (!feedback) return `Toca ${target}`;
   const message = feedbackMessage(feedback.outcome, notation);
   if (feedback.outcome.kind === 'acierto') return `${message.title} Ahora toca ${target}`;
+  if (feedback.outcome.kind === 'dudoso') return `${message.title}. ${message.detail}`;
   if (feedback.outcome.kind === 'error') {
     return `${message.title}, error ${snapshot.errors}. ${message.detail}. Intenta de nuevo`;
   }
   return `${message.title} ${message.detail}`;
+}
+
+function pauseText(snapshot: SessionSnapshot): string {
+  if (snapshot.pauseReason !== 'desconexion') return 'Pulsa continuar cuando quieras.';
+  return snapshot.pausedSource === 'microfono'
+    ? 'Se perdió el micrófono. Reactívalo para seguir.'
+    : 'Se desconectó el piano. Vuelve a conectarlo para seguir.';
+}
+
+function transpositionText(semitones: number): string {
+  const count = Math.abs(semitones);
+  const unit = count === 1 ? 'semitono' : 'semitonos';
+  return `Parece que tu teclado está transpuesto ${count} ${unit} (${semitones > 0 ? 'más agudo' : 'más grave'}). Revisa «Transpose» en el piano.`;
 }
 
 function Summary({
@@ -116,11 +151,17 @@ export function PracticeScreen({
   onCycleTheme,
   statusZone,
   pcKeysHint,
+  microphone,
+  canStartWithoutMic = true,
 }: PracticeScreenProps) {
   const snapshot = useSessionSnapshot(session);
   const recent = useRecentFeedback(snapshot.feedback);
   const narrow = useIsNarrow(NARROW_MAX_WIDTH);
   const boardRef = useRef<HTMLElement>(null);
+  const micStatus = useInputStatus(microphone);
+  const monitor = useMonitor(microphone);
+  const micReady = micStatus?.kind === 'conectado' && monitor.phase === 'escuchando';
+  const micConnected = micStatus?.kind === 'conectado';
 
   const { exercise, notation, phase, help } = snapshot;
   const target = exercise?.target ?? null;
@@ -137,8 +178,11 @@ export function PracticeScreen({
     }
   }, [phase]);
 
+  // En la prueba rápida de la bienvenida se resalta el Do central.
+  const onboardingTarget = phase === 'inactiva' && microphone && micReady ? 60 : null;
   const visuals = buildKeyVisuals({
-    target: phase === 'en-curso' ? target : null,
+    target: phase === 'en-curso' ? target : onboardingTarget,
+    heard: micConnected ? (monitor.heard?.midi ?? null) : null,
     help,
     pressed: snapshot.pressed,
     feedback: recent,
@@ -181,9 +225,26 @@ export function PracticeScreen({
 
       {statusZone}
 
-      <section className="board" aria-label="Práctica: toca esta nota" tabIndex={-1} ref={boardRef}>
+      <section
+        className="board"
+        aria-label="Práctica: toca esta nota"
+        tabIndex={-1}
+        ref={boardRef}
+        data-phase={monitor.phase}
+      >
         <div className="board__top">
-          {phase === 'inactiva' && (
+          {phase === 'inactiva' && microphone && micStatus && (
+            <MicPanel
+              status={micStatus}
+              monitor={monitor}
+              notation={notation}
+              onActivate={() => void microphone.start()}
+              onStartRound={() => session.start()}
+              canStartWithoutMic={canStartWithoutMic}
+            />
+          )}
+
+          {phase === 'inactiva' && !microphone && (
             <div className="welcome" data-testid="welcome">
               <h2 className="welcome__title">Toca la nota que aparece</h2>
               <p className="welcome__text">
@@ -240,14 +301,21 @@ export function PracticeScreen({
                 {phase === 'pausada' ? (
                   <div className="paused">
                     <strong>Ronda en pausa</strong>
-                    <span>
-                      {snapshot.pauseReason === 'desconexion'
-                        ? 'Se desconectó el piano. Vuelve a conectarlo para seguir.'
-                        : 'Pulsa continuar cuando quieras.'}
-                    </span>
-                    <button type="button" className="button" onClick={() => session.resume()}>
-                      Continuar
-                    </button>
+                    <span>{pauseText(snapshot)}</span>
+                    {snapshot.pausedSource === 'microfono' && microphone ? (
+                      <button
+                        type="button"
+                        className="button"
+                        onClick={() => void microphone.start()}
+                        data-testid="reactivate-mic"
+                      >
+                        Reactivar
+                      </button>
+                    ) : (
+                      <button type="button" className="button" onClick={() => session.resume()}>
+                        Continuar
+                      </button>
+                    )}
                   </div>
                 ) : message && recent ? (
                   <div
@@ -263,7 +331,13 @@ export function PracticeScreen({
                     </div>
                   </div>
                 ) : (
-                  <p className="stage__idle">Esperando tu nota…</p>
+                  <p className="stage__idle" data-testid="stage-idle">
+                    {snapshot.transposition !== null
+                      ? transpositionText(snapshot.transposition)
+                      : micReady
+                        ? 'Escuchando tu nota…'
+                        : 'Esperando tu nota…'}
+                  </p>
                 )}
               </div>
             </>
@@ -292,11 +366,15 @@ export function PracticeScreen({
             }
           />
         </div>
-        {pcKeysHint && <p className="pc-hint">{pcKeysHint}</p>}
+        {microphone && micStatus ? (
+          <ListeningStrip status={micStatus} monitor={monitor} notation={notation} />
+        ) : (
+          pcKeysHint && <p className="pc-hint">{pcKeysHint}</p>
+        )}
       </section>
 
       <div className="sr-only" role="status" aria-live="polite" data-testid="live">
-        {liveMessage(snapshot)}
+        {monitor.hint ? hintText(monitor.hint) : liveMessage(snapshot)}
       </div>
     </main>
   );

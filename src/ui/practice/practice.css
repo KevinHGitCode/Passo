@@ -553,3 +553,113 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- Escucha activa (micrófono) ---------- */
+.listen {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 14px;
+  overflow: hidden;
+}
+.listen__icon {
+  flex: none;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.listen__idle {
+  color: var(--text-muted);
+}
+.meter {
+  position: relative;
+  flex: none;
+  width: 160px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--meter-track);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.meter__fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  background: var(--meter-fill);
+  transition: transform 60ms linear;
+}
+.meter__fill--clip {
+  background: var(--meter-clip);
+}
+.meter__gate {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--meter-gate);
+}
+.listen__heard {
+  flex: none;
+  min-width: 11ch;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.listen__notice {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mic-panel__text {
+  margin: 0 0 8px;
+  max-width: 50ch;
+  color: var(--text-muted);
+}
+.mic-panel__steps {
+  margin: 0 0 10px;
+  padding-left: 1.3em;
+  max-width: 50ch;
+  text-align: left;
+  color: var(--text-muted);
+}
+.check {
+  margin: 0 0 8px;
+  max-width: 54ch;
+  font-weight: 700;
+}
+.check--espera {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.check--ok {
+  color: var(--ok);
+}
+.check--octava,
+.check--otra {
+  color: var(--text);
+}
+
+/* «No te oí bien»: neutro, nunca como un error. */
+.feedback--neutral {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+.feedback--neutral .feedback__icon {
+  background: var(--text-muted);
+}
+
+@media (max-width: 599px) {
+  .meter {
+    width: 96px;
+  }
+}

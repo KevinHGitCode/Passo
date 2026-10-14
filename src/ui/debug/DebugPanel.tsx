@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PracticeSession } from '@/core/application/practice-session';
 import type { AudioControl } from '@/core/ports/audio-control';
-import { useSessionSnapshot } from '../practice/hooks';
+import type { InputMonitor } from '@/core/ports/input-monitor';
+import { useMonitor, useSessionSnapshot } from '../practice/hooks';
 import { latencyStats } from './latency';
 
 declare global {
@@ -15,11 +16,14 @@ declare global {
 export function DebugPanel({
   session,
   audio,
+  microphone,
 }: {
   readonly session: PracticeSession;
   readonly audio: AudioControl;
+  readonly microphone?: InputMonitor | undefined;
 }) {
   const snapshot = useSessionSnapshot(session);
+  const monitor = useMonitor(microphone);
   const samples = useRef<number[]>([]);
   const [shown, setShown] = useState<readonly number[]>([]);
   const feedbackId = snapshot.feedback?.id ?? 0;
@@ -48,6 +52,15 @@ export function DebugPanel({
       <span>p95 {format(stats.p95)}</span>
       <span>máx {format(stats.max)}</span>
       <span>Audio (salida est.) {format(audioLatency)}</span>
+      {microphone && (
+        <span data-testid="debug-mic">
+          Micrófono: {monitor.phase} · nivel {monitor.level.toFixed(2)}
+          {monitor.heard ? ` · oigo ${monitor.heard.midi} (${monitor.heard.cents} cents)` : ''}
+          {monitor.tuningOffsetCents !== null
+            ? ` · afinación ${monitor.tuningOffsetCents} cents`
+            : ''}
+        </span>
+      )}
     </aside>
   );
 }

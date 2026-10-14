@@ -1,0 +1,6 @@
+{
+  "muestras": 10,
+  "sonido_a_pantalla_p50_ms": 133,
+  "sonido_a_pantalla_p95_ms": 151,
+  "nota": "Medido con un micrófono simulado: incluye detección, confirmación y pintado, pero no la latencia de entrada del micrófono real."
+}

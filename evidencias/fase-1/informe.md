@@ -3,7 +3,7 @@
 - **Fecha:** 2026-10-13
 - **Navegador:** Microsoft Edge (instalado en el equipo), sobre la versión compilada.
 - **Cómo repetirla:** `npm run e2e` (compila, levanta la app y ejecuta las 12 pruebas, de la Fase 0 y la Fase 1, regrabando video y capturas).
-- **Resultado:** 12 de 12 pruebas pasan, y lo hicieron **3 de 3 veces seguidas** antes de esta corrida final. `npm run check` pasa (lint con reglas de privacidad, dependencias entre capas, formato, **365 pruebas** y build).
+- **Resultado:** 12 de 12 pruebas pasan, y lo hicieron **3 de 3 veces seguidas** antes de esta corrida final. `npm run check` pasa (lint con reglas de privacidad, dependencias entre capas, formato, **371 pruebas** y build).
 
 ## Qué es el «micrófono simulado»
 
@@ -28,7 +28,7 @@ altavoz y la sala del instrumento real: eso lo valida Kevin (`docs/validacion-mi
 
 | Medida | Resultado | Criterio |
 |---|---|---|
-| Latencia sonido → pantalla (10 notas, micrófono simulado) | p50 133 ms · p95 151 ms | p50 ≤ 250 ms ✅ |
+| Latencia sonido → pantalla (10 notas, micrófono simulado) | p50 119 ms · p95 136 ms | p50 ≤ 250 ms ✅ |
 | Posición del teclado entre estados | variación ≤ 0,05 px en ambos tamaños | ≤ 1 px ✅ |
 | Detección en el banco sintético (estrés: huecos de audio, temporizadores retrasados, 4 semillas × 60 notas) | ≥ 95 %, **0 notas falsas** | ≥ 95 % y 0 falsas ✅ |
 | Coste del análisis de un fotograma | mediana < 3 ms (la detección de altura < 2 ms) | < 2 ms por detección ✅ |

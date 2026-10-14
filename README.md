@@ -3,7 +3,7 @@
 Aplicación para aprender piano corrigiendo al instante lo que no se te da bien.
 Nombre: **Passo** (paso a paso: no avanzas hasta que lo dominas).
 
-> Estado: **Fases 0 y 1 completadas** (la Fase 1 es la escucha activa por micrófono; pendiente de validar con el piano real). Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
+> Estado: **Fases 0 y 1 completadas** (la Fase 1 es la escucha activa por micrófono; pendiente de validar con el piano real). **Fase 2 en construcción** (ajustes, terceras y acordes, manos y notas que caen). Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
 
 ## 1. Problema
 
@@ -87,12 +87,15 @@ En código, las capas se agrupan en `core/` (dominio, aplicación, puertos), `ad
 |---|---|---|
 | 0 | Prototipo: teclado en pantalla + MIDI + modo "toca esta nota" (**hecha**) | 2 semanas |
 | 1 | **Escucha activa:** detectar la nota que suena por el micrófono (el Yamaha E263 no tiene USB-MIDI) (**hecha**, falta validar con el piano real) | 3 semanas |
-| 2 | Núcleo: modos estricto y espera, niveles con negras, persistencia, dedos, móvil, ajustes de entrada | 3–4 semanas |
-| 3 | Modos de entrenamiento: oído, intervalos, acordes (la detección de varias notas a la vez por micrófono se investiga aquí) | 3 semanas |
-| 4 | Ritmo: metrónomo y calificación de tiempo | 3 semanas |
-| 5 | Canciones: MusicXML/MIDI, dedos, cascada, partitura | 4–6 semanas |
-| 6 | Motor adaptativo: práctica por tramos, unión progresiva, subida de tempo | 3 semanas |
-| 7 | Pulido: estadísticas, cuentas y nube | continuo |
+| 2 | **Ajustes, terceras y acordes:** panel de ajustes (entrada: micrófono / MIDI / teclado del PC), terceras y acordes, manos y dedos, notas que caen | 4–5 semanas |
+| 3 | Núcleo de práctica: modos espera y estricto, niveles con negras, guardar progreso | 3 semanas |
+| 4 | Entrenamiento por oído: nota por oído e intervalos por oído | 3 semanas |
+| 5 | Ritmo: metrónomo y calificación de tiempo | 3 semanas |
+| 6 | Canciones: MusicXML/MIDI, partitura | 4–6 semanas |
+| 7 | Motor adaptativo: práctica por tramos, unión progresiva, subida de tempo | 3 semanas |
+| 8 | Pulido: estadísticas, cuentas y nube | continuo |
+
+Archivado a petición de Kevin (se retoma cuando él lo pida): teclado completo en móvil y selector de micrófono. Ver [docs/archivado.md](docs/archivado.md).
 
 Detalle de cada fase: [docs/fases/](docs/fases/). Método de trabajo: [docs/metodo.md](docs/metodo.md). Convenciones: [docs/convenciones.md](docs/convenciones.md). Validación con el piano real (micrófono): [docs/validacion-microfono.md](docs/validacion-microfono.md); con un piano MIDI: [docs/validacion-piano.md](docs/validacion-piano.md).
 

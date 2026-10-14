@@ -169,3 +169,21 @@ describe('avisos de señal y reinicio', () => {
     expect(Number.isFinite(tracker.getState().gate)).toBe(true);
   });
 });
+
+describe('liberación de una tecla y ataque inmediato (la guardia de huecos no se lo traga)', () => {
+  it.each([90, 120, 160, 220])(
+    'una nota que se suelta (apagador) y otra %i ms después: se oyen las dos',
+    (gapMs) => {
+      const first = pianoNote(64, { ms: 500 }).map((value, index, all) => {
+        const fadeStart = all.length - Math.round(0.03 * SAMPLE_RATE);
+        return index < fadeStart
+          ? value
+          : (value * (all.length - index)) / (all.length - fadeStart);
+      });
+      const second = pianoNote(67, { ms: 600 });
+      const signal = sequence([concat(first, silence(gapMs), second)], 1600);
+      const notes = onsOf(runPipeline(signal)).map((item) => item.event.note);
+      expect(notes).toEqual([64, 67]);
+    },
+  );
+});

@@ -49,8 +49,10 @@ export interface TrackerConfig {
    * real la nota anterior sigue sonando justo antes).
    */
   readonly dropoutRatio: number;
-  /** Tras ver un hueco de audio dentro de una nota, durante cuántos ms no se aceptan ataques. */
+  /** Tras recuperarse de un hueco de audio dentro de una nota, durante cuántos ms no se aceptan ataques. */
   readonly dropoutGuardMs: number;
+  /** Un tramo casi mudo más corto que esto (ms) es un hueco de audio; más largo es una liberación real. */
+  readonly dropoutMaxMs: number;
   /** Fotogramas silenciosos seguidos para dar la nota por terminada. */
   readonly releaseFrames: number;
   /** Cuánto dura visible un aviso. */
@@ -78,6 +80,7 @@ export const DEFAULT_TRACKER_CONFIG: TrackerConfig = {
   sameNoteRetriggerMs: 300,
   dropoutRatio: 0.15,
   dropoutGuardMs: 90,
+  dropoutMaxMs: 60,
   releaseFrames: 2,
   hintMs: 2500,
 };
@@ -165,6 +168,10 @@ export class NoteTracker {
   private recentBlocks: { at: number; level: number }[] = [];
   /** Hasta cuándo se ignoran ataques porque se vio un hueco de audio dentro de una nota. */
   private dropoutGuardUntil = -Infinity;
+  /** Desde cuándo el nivel está casi mudo dentro de una nota que sonaba (posible hueco o liberación). */
+  private lowSince: number | null = null;
+  /** Cuándo terminó la última racha de nivel casi mudo y cuánto duró. */
+  private lastLow: { endedAt: number; duration: number } | null = null;
   private candidate: Candidate | null = null;
   private sounding: Sounding | null = null;
   private lastFrame = { level: 0, peak: 0 };
@@ -210,6 +217,8 @@ export class NoteTracker {
     // Tras un hueco largo no se puede fiar del nivel anterior: el primer bloque no puede ser un ataque.
     this.lastBlockLevel = Number.POSITIVE_INFINITY;
     this.recentBlocks = [];
+    this.lowSince = null;
+    this.lastLow = null;
     this.dropoutGuardUntil = at + 100;
     return events;
   }
@@ -298,8 +307,25 @@ export class NoteTracker {
         (peak, item) => (blockStart - item.at <= 250 ? Math.max(peak, item.level) : peak),
         0,
       );
-      // Un bloque casi mudo dentro de una nota que sonaba fuerte es un hueco de audio, no un silencio real.
-      if (this.sounding && level < this.config.dropoutRatio * recentMax) {
+      // Un tramo casi mudo y corto dentro de una nota es un hueco de audio; si dura más, es que se soltó la tecla.
+      const isLow = this.sounding !== null && level < this.config.dropoutRatio * recentMax;
+      if (isLow) {
+        this.lowSince ??= blockStart;
+      } else if (this.lowSince !== null) {
+        this.lastLow = { endedAt: blockStart, duration: blockStart - this.lowSince };
+        this.lowSince = null;
+      }
+      const lowRun =
+        this.lowSince !== null
+          ? { endedAt: blockStart, duration: blockStart - this.lowSince }
+          : this.lastLow;
+      if (
+        this.sounding &&
+        !isLow &&
+        lowRun !== null &&
+        lowRun.duration <= this.config.dropoutMaxMs &&
+        blockStart - lowRun.endedAt <= 40
+      ) {
         this.dropoutGuardUntil = blockEnd + this.config.dropoutGuardMs;
       }
       const isOnset =
@@ -470,7 +496,6 @@ export class NoteTracker {
     }
   }
 
-  /** En silencio: refina el ruido ambiente y avisa si suena algo demasiado flojo. */
   /** Silencio digital exacto durante más de 1,2 s: el micrófono está silenciado o no llega audio. */
   private checkSignal(frame: FrameAnalysis): void {
     if (frame.peak >= 1e-5) {
@@ -481,6 +506,7 @@ export class NoteTracker {
     if (frame.endAt - this.silentSince >= 1200) this.raiseHint('sin-senal', frame.endAt);
   }
 
+  /** En silencio: refina el ruido ambiente y avisa si suena algo demasiado flojo. */
   private processQuiet(frame: FrameAnalysis): void {
     if (this.sounding || this.candidate) {
       this.weakSince = null;

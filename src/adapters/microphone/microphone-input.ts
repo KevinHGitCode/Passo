@@ -34,6 +34,8 @@ const TICK_MS = 10;
 const MONITOR_MIN_INTERVAL_MS = 66;
 const HEARD_RETENTION_MS = 1500;
 const LEVEL_STEPS = 64;
+/** Hueco máximo (segundos) que se tolera sin reiniciar el seguimiento; menores solo marcan «tras un hueco». */
+const MAX_GAP_SAMPLES_FACTOR = 0.5;
 
 const CONSTRAINTS = {
   audio: {
@@ -252,8 +254,8 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
     if (available < HOP) return;
 
     const at = this.deps.clock.now();
-    if (available > WINDOW) {
-      // Hueco mayor que la ventana (temporizador frenado): se pierden muestras, se reinicia el seguimiento.
+    if (available > MAX_GAP_SAMPLES_FACTOR * sampleRate) {
+      // Hueco de más de medio segundo (pestaña ahogada): no se puede fiar del seguimiento, se reinicia.
       this.emitAll(this.tracker.reset(at));
     }
     capture.analyser.getFloatTimeDomainData(capture.buffer);
@@ -261,7 +263,7 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
     const consumed = Math.min(available, WINDOW);
     capture.consumedTime = now;
 
-    const analysis = analyzeFrame(window, consumed, sampleRate, at);
+    const analysis = analyzeFrame(window, consumed, sampleRate, at, available > WINDOW);
     this.emitAll(this.tracker.push(analysis));
     this.publish(false);
   }

@@ -179,14 +179,14 @@ describe('MicrophoneInput · escucha', () => {
     expect(h.context.analyser.reads).toBeGreaterThan(30);
   });
 
-  it('un hueco de tiempo mayor que la ventana reinicia el seguimiento y suelta la nota', async () => {
+  it('un hueco de más de medio segundo (pestaña ahogada) reinicia el seguimiento y suelta la nota', async () => {
     const { h, events } = await started();
     h.context.analyser.signal = concat(silence(1300), pianoNote(64, { ms: 4000 }));
     h.advance(2000);
     expect(events.filter((event) => event.type === 'on')).toHaveLength(1);
     // El temporizador se congela medio segundo (pestaña ahogada) y el audio sigue avanzando.
-    h.context.currentTime += 0.5;
-    h.clock.advance(500);
+    h.context.currentTime += 0.6;
+    h.clock.advance(600);
     h.timers.tick();
     expect(events.at(-1)).toMatchObject({ type: 'off', note: 64 });
   });

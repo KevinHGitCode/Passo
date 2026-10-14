@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
 import type { PracticeSession, SessionSnapshot } from '@/core/application/practice-session';
+import { findLevel } from '@/core/domain/curriculum';
+import type { ExerciseMode } from '@/core/domain/curriculum';
 import type { RoundSummary } from '@/core/domain/exercise';
 import { noteName, octaveOf, pitchName } from '@/core/domain/note';
 import type { InputMonitor } from '@/core/ports/input-monitor';
@@ -22,6 +24,7 @@ import {
   useSessionSnapshot,
 } from './hooks';
 import { buildKeyVisuals } from './key-visuals';
+import { countLabel, notesText, promptText, targetDetail } from './target-text';
 import { SettingsBar } from './SettingsBar';
 import './practice.css';
 
@@ -66,7 +69,7 @@ function liveMessage(snapshot: SessionSnapshot): string {
   const { exercise, feedback, notation } = snapshot;
   if (snapshot.phase === 'pausada') return `Ronda en pausa. ${pauseText(snapshot)}`;
   if (!exercise) return '';
-  const target = noteName(exercise.target.notes[0], notation);
+  const target = notesText(exercise.target.notes, notation);
   if (!feedback) return `Toca ${target}`;
   const message = feedbackMessage(feedback.outcome, notation);
   if (feedback.outcome.kind === 'acierto') return `${message.title} Ahora toca ${target}`;
@@ -93,10 +96,12 @@ function transpositionText(semitones: number): string {
 function Summary({
   summary,
   notation,
+  mode,
   onAgain,
 }: {
   readonly summary: RoundSummary;
   readonly notation: NotationMode;
+  readonly mode: ExerciseMode;
   readonly onAgain: () => void;
 }) {
   const percent = Math.round(summary.accuracy * 100);
@@ -118,16 +123,16 @@ function Summary({
           <dd>{summary.errors}</dd>
         </div>
         <div className="stat">
-          <dt>Nota más lenta</dt>
+          <dt>{mode === 'notas' ? 'Nota más lenta' : 'Más lento'}</dt>
           <dd>
-            {summary.slowest ? noteName(summary.slowest.midi, notation) : '—'}
+            {summary.slowest ? notesText(summary.slowest.notes, notation) : '—'}
             {summary.slowest && <small> · {formatSeconds(summary.slowest.reactionMs)}</small>}
           </dd>
         </div>
         <div className="stat">
-          <dt>Nota más fallada</dt>
+          <dt>{mode === 'notas' ? 'Nota más fallada' : 'Más fallado'}</dt>
           <dd>
-            {summary.mostMissed ? noteName(summary.mostMissed.midi, notation) : 'Ninguna'}
+            {summary.mostMissed ? notesText(summary.mostMissed.notes, notation) : 'Ninguno'}
             {summary.mostMissed && (
               <small>
                 {' '}
@@ -143,6 +148,26 @@ function Summary({
       </button>
     </section>
   );
+}
+
+function welcomeTitle(mode: ExerciseMode): string {
+  if (mode === 'terceras') return 'Toca la tercera que aparece';
+  if (mode === 'acordes') return 'Toca el acorde que aparece';
+  return 'Toca la nota que aparece';
+}
+
+function welcomeText(mode: ExerciseMode, level: number): string {
+  if (mode === 'terceras') {
+    return `Dos teclas a la vez, sin saltarte ninguna. Nivel ${level}: ${levelTitle(mode, level)}.`;
+  }
+  if (mode === 'acordes') {
+    return `Tres teclas a la vez. Nivel ${level}: ${levelTitle(mode, level)}.`;
+  }
+  return 'No avanzas hasta acertar. Nivel 1: de Do4 a Sol4, con la mano derecha.';
+}
+
+function levelTitle(mode: ExerciseMode, level: number): string {
+  return findLevel(mode, level)?.title ?? '';
 }
 
 export function PracticeScreen({
@@ -164,7 +189,8 @@ export function PracticeScreen({
   const micConnected = micStatus?.kind === 'conectado';
 
   const { exercise, notation, phase, help } = snapshot;
-  const target = exercise?.target.notes[0] ?? null;
+  const targetNotes = exercise?.target.notes ?? null;
+  const mode = exercise?.config.mode ?? snapshot.mode;
   const roundSize = exercise?.config.roundSize ?? 0;
   const message = recent ? feedbackMessage(recent.outcome, notation) : null;
 
@@ -179,9 +205,9 @@ export function PracticeScreen({
   }, [phase]);
 
   // En la prueba rápida de la bienvenida se resalta el Do central.
-  const onboardingTarget = phase === 'inactiva' && microphone && micReady ? 60 : null;
+  const onboardingTarget = phase === 'inactiva' && microphone && micReady ? [60] : [];
   const visuals = buildKeyVisuals({
-    target: phase === 'en-curso' ? target : onboardingTarget,
+    targets: phase === 'en-curso' ? (targetNotes ?? []) : onboardingTarget,
     heard: micConnected ? (monitor.heard?.midi ?? null) : null,
     help,
     pressed: snapshot.pressed,
@@ -200,7 +226,13 @@ export function PracticeScreen({
     return undefined;
   };
   const viewWindow = narrow
-    ? windowAround(target ?? 60, KEYBOARD_FROM, KEYBOARD_TO, NARROW_SPAN_SEMITONES)
+    ? windowAround(
+        targetNotes?.[0] ?? 60,
+        KEYBOARD_FROM,
+        KEYBOARD_TO,
+        NARROW_SPAN_SEMITONES,
+        targetNotes?.[targetNotes.length - 1],
+      )
     : undefined;
 
   return (
@@ -246,10 +278,8 @@ export function PracticeScreen({
 
           {phase === 'inactiva' && !microphone && (
             <div className="welcome" data-testid="welcome">
-              <h2 className="welcome__title">Toca la nota que aparece</h2>
-              <p className="welcome__text">
-                No avanzas hasta acertar. Nivel 1: de Do4 a Sol4, con la mano derecha.
-              </p>
+              <h2 className="welcome__title">{welcomeTitle(snapshot.mode)}</h2>
+              <p className="welcome__text">{welcomeText(snapshot.mode, snapshot.level)}</p>
               <p className="welcome__note">
                 Do4 es el Do central. Algunos pianos lo rotulan «C3» o «Do3»: es la misma tecla.
               </p>
@@ -264,16 +294,51 @@ export function PracticeScreen({
             </div>
           )}
 
-          {(phase === 'en-curso' || phase === 'pausada') && exercise && target !== null && (
+          {(phase === 'en-curso' || phase === 'pausada') && exercise && targetNotes !== null && (
             <>
               <div className="target" data-testid="target">
-                <span className="target__label">Toca esta nota</span>
-                <span className="target__name" data-testid="target-note" data-midi={target}>
-                  {pitchName(target, notation)}
-                  <span className="target__octave">{octaveOf(target)}</span>
-                </span>
-                <span className="target__hint">
-                  {help ? 'La tecla resaltada del teclado' : 'Búscala en el teclado'}
+                <span className="target__label">{promptText(mode)}</span>
+                {targetNotes.length === 1 ? (
+                  <span
+                    className="target__name"
+                    data-testid="target-note"
+                    data-midi={targetNotes[0]}
+                    data-midis={targetNotes[0]}
+                  >
+                    {pitchName(targetNotes[0], notation)}
+                    <span className="target__octave">{octaveOf(targetNotes[0])}</span>
+                  </span>
+                ) : (
+                  <span
+                    className="target__name target__name--group"
+                    data-testid="target-note"
+                    data-midi={targetNotes[0]}
+                    data-midis={targetNotes.join(',')}
+                  >
+                    {targetNotes.map((note) => (
+                      <span
+                        key={note}
+                        className="target__chip"
+                        data-held={exercise.held.includes(note)}
+                      >
+                        {pitchName(note, notation)}
+                        <span className="target__octave">{octaveOf(note)}</span>
+                        {exercise.held.includes(note) && <span className="sr-only"> (tocada)</span>}
+                      </span>
+                    ))}
+                  </span>
+                )}
+                <span
+                  className={
+                    targetNotes.length === 1 ? 'target__hint' : 'target__hint target__hint--keep'
+                  }
+                  data-testid="target-detail"
+                >
+                  {targetNotes.length === 1
+                    ? help
+                      ? 'La tecla resaltada del teclado'
+                      : 'Búscala en el teclado'
+                    : targetDetail(exercise.target, notation)}
                 </span>
                 <div
                   className="progress"
@@ -290,7 +355,7 @@ export function PracticeScreen({
                 </div>
                 <span className="target__count" data-testid="counters">
                   <span>
-                    Notas {snapshot.hits}/{roundSize}
+                    {countLabel(mode)} {snapshot.hits}/{roundSize}
                   </span>
                   <span aria-hidden="true"> · </span>
                   <span>Errores {snapshot.errors}</span>
@@ -348,6 +413,7 @@ export function PracticeScreen({
             <Summary
               summary={snapshot.summary}
               notation={notation}
+              mode={mode}
               onAgain={() => session.start()}
             />
           )}
@@ -365,8 +431,8 @@ export function PracticeScreen({
             labelFor={labelFor}
             viewWindow={viewWindow}
             ariaLabel={
-              target !== null && phase === 'en-curso'
-                ? `Teclado de piano de ${noteName(KEYBOARD_FROM, notation)} a ${noteName(KEYBOARD_TO, notation)}. Nota a tocar: ${noteName(target, notation)}`
+              targetNotes !== null && phase === 'en-curso'
+                ? `Teclado de piano de ${noteName(KEYBOARD_FROM, notation)} a ${noteName(KEYBOARD_TO, notation)}. ${targetNotes.length === 1 ? 'Nota' : 'Notas'} a tocar: ${notesText(targetNotes, notation)}`
                 : `Teclado de piano de ${noteName(KEYBOARD_FROM, notation)} a ${noteName(KEYBOARD_TO, notation)}`
             }
           />

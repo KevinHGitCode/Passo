@@ -21,6 +21,7 @@ function attempt(target: number, played: number, reactionMs = 640): Attempt {
     firstTryCorrect: target === played,
     inputSource: 'teclado-pc',
     noteNameMode: 'latina',
+    mode: 'notas',
     level: 1,
     velocity: 96,
     helpOn: true,
@@ -106,26 +107,26 @@ describe('feedbackMessage · entrada por micrófono', () => {
 
 describe('buildKeyVisuals', () => {
   it('con ayuda ilumina la nota objetivo; sin ayuda no', () => {
-    const base = { target: 62, pressed: [], feedback: null };
+    const base = { targets: [62], pressed: [], feedback: null };
     expect(buildKeyVisuals({ ...base, help: true }).get(62)).toEqual({ target: true });
     expect(buildKeyVisuals({ ...base, help: false }).size).toBe(0);
   });
 
   it('en un error marca la tocada como errónea y revela la correcta, aunque no haya ayuda', () => {
-    const visuals = buildKeyVisuals({ target: 62, help: false, pressed: [64], feedback: wrong });
+    const visuals = buildKeyVisuals({ targets: [62], help: false, pressed: [64], feedback: wrong });
     expect(visuals.get(64)).toEqual({ feedback: 'wrong', pressed: true });
     expect(visuals.get(62)).toEqual({ feedback: 'expected' });
   });
 
   it('en un acierto marca la tecla como correcta', () => {
-    const visuals = buildKeyVisuals({ target: 64, help: true, pressed: [], feedback: right });
+    const visuals = buildKeyVisuals({ targets: [64], help: true, pressed: [], feedback: right });
     expect(visuals.get(62)).toEqual({ feedback: 'correct' });
     expect(visuals.get(64)).toEqual({ target: true });
   });
 
   it('la nota oída del micrófono se marca aparte de «pulsada»', () => {
     const visuals = buildKeyVisuals({
-      target: 62,
+      targets: [62],
       help: true,
       pressed: [],
       feedback: null,
@@ -135,7 +136,7 @@ describe('buildKeyVisuals', () => {
   });
 
   it('combina estados en la misma tecla (objetivo + pulsada)', () => {
-    const visuals = buildKeyVisuals({ target: 62, help: true, pressed: [62], feedback: null });
+    const visuals = buildKeyVisuals({ targets: [62], help: true, pressed: [62], feedback: null });
     expect(visuals.get(62)).toEqual({ target: true, pressed: true });
   });
 });

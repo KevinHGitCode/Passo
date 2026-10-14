@@ -745,3 +745,44 @@
     -webkit-box-orient: vertical;
   }
 }
+
+/* ---------- Terceras y acordes: varias notas en la tarjeta del objetivo ---------- */
+.target__name--group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 0.4em;
+  font-size: clamp(44px, 11vw, 84px);
+}
+.target__chip {
+  display: inline-flex;
+  align-items: baseline;
+}
+.target__chip[data-held='true'] {
+  color: var(--ok);
+}
+.target__chip[data-held='true']::after {
+  content: '✓';
+  align-self: flex-start;
+  margin-left: 4px;
+  font-size: 0.32em;
+}
+/* La mano y los dedos son parte de la lección: se ven siempre (aunque la pantalla sea baja). */
+.target__hint.target__hint--keep {
+  display: block;
+}
+@media (max-height: 860px) and (min-width: 600px) {
+  .target__name--group {
+    font-size: 72px;
+  }
+}
+@media (max-height: 780px) and (min-width: 600px) {
+  .target__name--group {
+    font-size: 60px;
+  }
+}
+@media (max-height: 700px) and (min-width: 600px) {
+  .target__name--group {
+    font-size: 48px;
+  }
+}

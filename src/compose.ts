@@ -11,6 +11,8 @@ import type {
 import { MidiNoteInput } from '@/adapters/midi/midi-input';
 import type { MidiAccessLike } from '@/adapters/midi/midi-types';
 import { PracticeSession } from '@/core/application/practice-session';
+import { isExerciseMode } from '@/core/domain/curriculum';
+import { roundConfigFor } from '@/core/domain/exercise';
 import { createSeededRng } from '@/core/domain/rng';
 import type { Rng } from '@/core/domain/rng';
 import type { Clock } from '@/core/ports/clock';
@@ -21,8 +23,8 @@ import type { NoteInput } from '@/core/ports/note-input';
  *
  * Entrada principal: el micrófono (escucha activa). Opcionales, por la dirección:
  * `?pc` (teclado del PC como piano, para desarrollo), `?midi` (piano MIDI), `?mic=off` (sin
- * micrófono, para pruebas de las otras entradas), `?seed=N` (notas reproducibles) y `?debug`
- * (panel de latencia).
+ * micrófono, para pruebas de las otras entradas), `?seed=N` (notas reproducibles), `?debug`
+ * (panel de latencia) y `?modo=notas|terceras|acordes&nivel=N` (ejercicio inicial).
  */
 export function composeApp(search: string = window.location.search) {
   const params = new URLSearchParams(search);
@@ -32,6 +34,10 @@ export function composeApp(search: string = window.location.search) {
   const usePc = params.has('pc');
   const useMidi = params.has('midi');
   const useMic = params.get('mic') !== 'off';
+  const modeParam = params.get('modo');
+  const config = isExerciseMode(modeParam)
+    ? (roundConfigFor(modeParam, Number(params.get('nivel') ?? 1)) ?? undefined)
+    : undefined;
 
   const clock: Clock = { now: () => performance.now() };
 
@@ -104,6 +110,7 @@ export function composeApp(search: string = window.location.search) {
     audio,
     clock,
     rng,
+    ...(config ? { config } : {}),
     ...(useMic ? { primarySource: 'microfono' as const } : {}),
   });
 
@@ -115,6 +122,10 @@ export function composeApp(search: string = window.location.search) {
     debug,
     /** El teclado del PC es el único que hace sonar la app: solo entonces se muestra el estado del sonido. */
     showSound: usePc,
-    pcKeysHint: usePc ? 'Teclado del PC: A S D F G = Do Re Mi Fa Sol' : undefined,
+    pcKeysHint: usePc
+      ? config?.pool[0]?.hand === 'izquierda'
+        ? 'Teclado del PC: Z X C V B N M = Do3 Re3 Mi3 Fa3 Sol3 La3 Si3 · A S D F = Do4 Re4 Mi4 Fa4'
+        : 'Teclado del PC: A S D F G H J K L ; = Do4 Re4 Mi4 Fa4 Sol4 La4 Si4 Do5 Re5 Mi5'
+      : undefined,
   };
 }

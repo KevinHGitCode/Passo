@@ -1,5 +1,5 @@
 import { PracticeSession } from '@/core/application/practice-session';
-import { LEVEL_1_CONFIG } from '@/core/domain/exercise';
+import { LEVEL_1_CONFIG, roundConfigFor } from '@/core/domain/exercise';
 import type { RoundConfig } from '@/core/domain/exercise';
 import type { NoteConfidence, NoteEvent } from '@/core/domain/note-event';
 import { createSeededRng } from '@/core/domain/rng';
@@ -11,6 +11,7 @@ import { FakeNoteInput } from '../fakes/fake-note-input';
 const silentAudio: AudioOutput = { noteOn: () => undefined, noteOff: () => undefined };
 
 const THIRDS: RoundConfig = {
+  mode: 'terceras',
   level: 2,
   pool: [targetOf([60, 64])],
   roundSize: 2,
@@ -129,5 +130,59 @@ describe('PracticeSession · el micrófono y los eventos de soltar', () => {
     expect(outcome()?.kind).toBe('dudoso');
     expect(session.getSnapshot().errors).toBe(0);
     expect(session.getSnapshot().listenStats.dudoso).toBe(1);
+  });
+});
+
+describe('PracticeSession · configure (modo y nivel)', () => {
+  const chords = roundConfigFor('acordes', 2) as RoundConfig;
+  const thirds = roundConfigFor('terceras', 1) as RoundConfig;
+
+  it('antes de empezar solo recuerda el ejercicio y lo muestra en la foto', () => {
+    const session = new PracticeSession({
+      inputs: [new FakeNoteInput()],
+      audio: silentAudio,
+      clock: new FakeClock(0),
+      rng: createSeededRng(1),
+    });
+    expect(session.getSnapshot()).toMatchObject({ mode: 'notas', level: 1, phase: 'inactiva' });
+    session.configure(chords);
+    expect(session.getSnapshot()).toMatchObject({ mode: 'acordes', level: 2, phase: 'inactiva' });
+    session.start();
+    expect(session.getSnapshot().exercise?.target.notes).toHaveLength(3);
+    expect(session.getSnapshot().exercise?.config).toBe(chords);
+  });
+
+  it('con una ronda en curso empieza otra con el contenido nuevo', () => {
+    const { session, input } = setup(thirds);
+    input.press(60, 1100);
+    session.configure(chords);
+    const snapshot = session.getSnapshot();
+    expect(snapshot.phase).toBe('en-curso');
+    expect(snapshot).toMatchObject({ mode: 'acordes', level: 2, hits: 0, errors: 0 });
+    expect(snapshot.exercise?.target.notes).toHaveLength(3);
+    expect(snapshot.exercise?.held).toEqual([]);
+    expect(snapshot.feedback).toBeNull();
+  });
+
+  it('tras terminar la ronda, la siguiente usa el nuevo ejercicio', () => {
+    const { session, input } = setup({ ...THIRDS, roundSize: 1 });
+    input.press(60, 1100);
+    input.press(64, 1110);
+    expect(session.getSnapshot().phase).toBe('completada');
+    session.configure(chords);
+    expect(session.getSnapshot().phase).toBe('completada');
+    session.start();
+    expect(session.getSnapshot().exercise?.target.notes).toHaveLength(3);
+  });
+
+  it('el intento guarda el modo y todas las notas del objetivo', () => {
+    const { session, input } = setup();
+    input.press(60, 1100);
+    input.press(64, 1110);
+    expect(session.getSnapshot().exercise?.attempts[0]).toMatchObject({
+      mode: 'terceras',
+      level: 2,
+      targetNotes: [60, 64],
+    });
   });
 });

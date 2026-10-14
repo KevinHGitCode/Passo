@@ -114,6 +114,7 @@ describe('evaluate', () => {
       firstTryCorrect: false,
       inputSource: 'teclado-pc',
       noteNameMode: 'americana',
+      mode: 'notas',
       level: 1,
       velocity: 70,
       helpOn: false,
@@ -168,8 +169,8 @@ describe('summarizeRound', () => {
     expect(summary.firstTryCorrect).toBe(2);
     expect(summary.errors).toBe(2);
     expect(summary.accuracy).toBeCloseTo(2 / 3);
-    expect(summary.slowest).toEqual({ midi: 65, reactionMs: 2000 });
-    expect(summary.mostMissed).toEqual({ midi: 62, errors: 2 });
+    expect(summary.slowest).toEqual({ notes: [65], reactionMs: 2000 });
+    expect(summary.mostMissed).toEqual({ notes: [62], errors: 2 });
   });
 
   it('sin intentos no inventa datos', () => {

@@ -1,6 +1,7 @@
 import type { Outcome } from '@/core/domain/exercise';
 import { isBlackKey, noteName, pitchClass, pitchName, semitoneDistance } from '@/core/domain/note';
 import type { Midi, NotationMode } from '@/core/domain/note';
+import { pitchesText } from './target-text';
 
 /** Espacio duro: evita que «2 semitonos» se parta en dos líneas. */
 const NBSP = ' ';
@@ -69,6 +70,13 @@ export function feedbackMessage(
     case 'error': {
       // Por micrófono la app infiere la nota: dice «oí», no «tocaste».
       const verb = outcome.attempt.inputSource === 'microfono' ? 'oí' : 'tocaste';
+      if (outcome.attempt.targetNotes.length > 1) {
+        return {
+          tone: 'error',
+          title: 'Incorrecto',
+          detail: `Sobró ${name(outcome.attempt.playedMidi)}. Toca ${pitchesText(outcome.attempt.targetNotes, notation)}`,
+        };
+      }
       return {
         tone: 'error',
         title: 'Incorrecto',

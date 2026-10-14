@@ -3,8 +3,9 @@ import type { Midi } from '@/core/domain/note';
 import type { KeyVisual } from '../keyboard/piano-keyboard';
 
 export interface KeyVisualInput {
-  readonly target: Midi | null;
-  /** Con la ayuda activada la tecla objetivo está siempre iluminada. */
+  /** Notas del objetivo (una, o varias en terceras y acordes). */
+  readonly targets: readonly Midi[];
+  /** Con la ayuda activada las teclas objetivo están siempre iluminadas. */
   readonly help: boolean;
   readonly pressed: readonly Midi[];
   /** Resultado reciente que todavía debe verse en el teclado. */
@@ -19,7 +20,7 @@ export function buildKeyVisuals(input: KeyVisualInput): Map<Midi, KeyVisual> {
   const add = (midi: Midi, patch: KeyVisual) =>
     visuals.set(midi, { ...visuals.get(midi), ...patch });
 
-  if (input.help && input.target !== null) add(input.target, { target: true });
+  if (input.help) for (const target of input.targets) add(target, { target: true });
 
   const outcome = input.feedback?.outcome;
   if (outcome && outcome.kind !== 'dudoso' && outcome.kind !== 'parcial') {

@@ -1,4 +1,5 @@
 import { detectTransposition, evaluate, LEVEL_1_CONFIG, startRound } from '../domain/exercise';
+import type { ExerciseMode } from '../domain/curriculum';
 import type { ExerciseState, Outcome, RoundConfig, RoundSummary } from '../domain/exercise';
 import type { Midi, NotationMode } from '../domain/note';
 import type { InputSource, NoteEvent } from '../domain/note-event';
@@ -22,6 +23,9 @@ export interface SessionSnapshot {
   /** Entrada que se perdió cuando la pausa es por desconexión. */
   readonly pausedSource: InputSource | null;
   readonly notation: NotationMode;
+  /** Modo y nivel del ejercicio (de la configuración de la ronda). */
+  readonly mode: ExerciseMode;
+  readonly level: number;
   /** Ayuda activada: la tecla objetivo se ilumina. Se registra en cada intento. */
   readonly help: boolean;
   readonly exercise: ExerciseState | null;
@@ -69,7 +73,7 @@ export interface PracticeSessionDeps {
 /** Caso de uso: orquesta entradas, evaluación pura, sonido y notificación a la interfaz. */
 export class PracticeSession {
   private readonly deps: PracticeSessionDeps;
-  private readonly config: RoundConfig;
+  private config: RoundConfig;
   private readonly audioSources: readonly InputSource[];
   private readonly listeners = new Set<() => void>();
   private readonly subscriptions: Unsubscribe[] = [];
@@ -86,6 +90,8 @@ export class PracticeSession {
       pauseReason: null,
       pausedSource: null,
       notation: deps.notation ?? 'latina',
+      mode: this.config.mode,
+      level: this.config.level,
       help: true,
       exercise: null,
       feedback: null,
@@ -113,6 +119,8 @@ export class PracticeSession {
   start(): void {
     const exercise = startRound(this.config, this.deps.rng, this.deps.clock.now());
     this.update({
+      mode: this.config.mode,
+      level: this.config.level,
       phase: 'en-curso',
       pauseReason: null,
       pausedSource: null,
@@ -125,6 +133,19 @@ export class PracticeSession {
       transposition: null,
       listenStats: NO_LISTEN_STATS,
     });
+  }
+
+  /**
+   * Cambia el modo y nivel de los ejercicios. Con una ronda en curso (o en pausa) empieza otra con
+   * el contenido nuevo; si no, se aplica en la próxima.
+   */
+  configure(config: RoundConfig): void {
+    this.config = config;
+    if (this.snapshot.phase === 'en-curso' || this.snapshot.phase === 'pausada') {
+      this.start();
+    } else {
+      this.update({ mode: config.mode, level: config.level });
+    }
   }
 
   pause(): void {

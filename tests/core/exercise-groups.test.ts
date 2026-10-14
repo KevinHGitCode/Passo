@@ -203,8 +203,8 @@ describe('evaluate · objetivo de varias notas', () => {
     ]);
     expect(outcome.kind).toBe('ronda-completa');
     if (outcome.kind !== 'ronda-completa') return;
-    expect(outcome.summary.mostMissed).toEqual({ midi: 60, errors: 1 });
-    expect(outcome.summary.slowest?.midi).toBe(60);
+    expect(outcome.summary.mostMissed).toEqual({ notes: [60, 64], errors: 1 });
+    expect(outcome.summary.slowest?.notes).toEqual([60, 64]);
   });
 
   it('el nuevo objetivo empieza sin notas pulsadas', () => {

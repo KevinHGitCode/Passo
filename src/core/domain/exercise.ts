@@ -1,14 +1,15 @@
+import { findLevel } from './curriculum';
+import type { ExerciseMode } from './curriculum';
 import type { Midi, NotationMode } from './note';
 import { pitchClass, semitoneDistance } from './note';
 import type { InputSource, NoteConfidence, NoteEvent } from './note-event';
 import type { Rng } from './rng';
-import { closestTargetNote, sameTarget, single } from './target';
+import { closestTargetNote, sameTarget } from './target';
 import type { Target } from './target';
 
-/** Nivel 1: teclas blancas Do4–Sol4 (posición de cinco dedos, mano derecha). */
-export const LEVEL_1_POOL: readonly Target[] = [60, 62, 64, 65, 67].map(single);
-
 export const DEFAULT_ROUND_SIZE = 20;
+/** Una tercera o un acorde cuesta más que una nota: rondas más cortas. */
+export const GROUP_ROUND_SIZE = 12;
 
 /**
  * Por micrófono, la nota que acaba de acertarse puede «reaparecer» (eco, hueco de audio, cola de la
@@ -24,16 +25,29 @@ export const WRONG_GROUP_GAP_MS = 120;
 export const WRONG_GROUP_MAX_MS = 300;
 
 export interface RoundConfig {
+  readonly mode: ExerciseMode;
   readonly level: number;
   readonly pool: readonly Target[];
   readonly roundSize: number;
 }
 
-export const LEVEL_1_CONFIG: RoundConfig = {
-  level: 1,
-  pool: LEVEL_1_POOL,
-  roundSize: DEFAULT_ROUND_SIZE,
-};
+/** Configuración de una ronda para un modo y nivel, o `null` si ese nivel no existe. */
+export function roundConfigFor(mode: ExerciseMode, level: number): RoundConfig | null {
+  const def = findLevel(mode, level);
+  if (def === null) return null;
+  return {
+    mode,
+    level,
+    pool: def.pool,
+    roundSize: mode === 'notas' ? DEFAULT_ROUND_SIZE : GROUP_ROUND_SIZE,
+  };
+}
+
+const LEVEL_1 = roundConfigFor('notas', 1);
+if (LEVEL_1 === null) throw new Error('Falta el nivel 1 del modo notas');
+/** Nivel 1: teclas blancas Do4–Sol4 (posición de cinco dedos, mano derecha). */
+export const LEVEL_1_CONFIG: RoundConfig = LEVEL_1;
+export const LEVEL_1_POOL: readonly Target[] = LEVEL_1.pool;
 
 /** Registro de una pulsación evaluada. Son los datos que usará el motor adaptativo (Fase 5). */
 export interface Attempt {
@@ -53,6 +67,7 @@ export interface Attempt {
   readonly firstTryCorrect: boolean;
   readonly inputSource: InputSource;
   readonly noteNameMode: NotationMode;
+  readonly mode: ExerciseMode;
   readonly level: number;
   readonly velocity: number;
   /** La ayuda (tecla iluminada) estaba activada: con ayuda se empareja color, sin ella se lee la nota. */
@@ -91,8 +106,8 @@ export interface RoundSummary {
   readonly errors: number;
   /** Aciertos a la primera sobre el total de notas, de 0 a 1. */
   readonly accuracy: number;
-  readonly slowest: { readonly midi: Midi; readonly reactionMs: number } | null;
-  readonly mostMissed: { readonly midi: Midi; readonly errors: number } | null;
+  readonly slowest: { readonly notes: Target['notes']; readonly reactionMs: number } | null;
+  readonly mostMissed: { readonly notes: Target['notes']; readonly errors: number } | null;
 }
 
 export type Outcome =
@@ -202,6 +217,7 @@ function buildAttempt(
     firstTryCorrect: isCorrect && attemptIndexForTarget === 1,
     inputSource: event.source,
     noteNameMode: context.notation,
+    mode: state.config.mode,
     level: state.config.level,
     velocity: event.velocity,
     helpOn: context.help,
@@ -310,24 +326,24 @@ export function evaluate(
 
 export function summarizeRound(attempts: readonly Attempt[]): RoundSummary {
   const firstAttempts = attempts.filter((attempt) => attempt.attemptIndexForTarget === 1);
-  const errorsByNote = new Map<Midi, number>();
+  const errorsByTarget = new Map<string, { notes: Target['notes']; errors: number }>();
   for (const attempt of attempts) {
-    if (!attempt.isCorrect) {
-      const key = attempt.targetNotes[0];
-      errorsByNote.set(key, (errorsByNote.get(key) ?? 0) + 1);
-    }
+    if (attempt.isCorrect) continue;
+    const key = attempt.targetNotes.join('-');
+    const entry = errorsByTarget.get(key) ?? { notes: attempt.targetNotes, errors: 0 };
+    errorsByTarget.set(key, { notes: entry.notes, errors: entry.errors + 1 });
   }
 
   let slowest: RoundSummary['slowest'] = null;
   for (const attempt of firstAttempts) {
     if (slowest === null || attempt.reactionMs > slowest.reactionMs) {
-      slowest = { midi: attempt.targetNotes[0], reactionMs: attempt.reactionMs };
+      slowest = { notes: attempt.targetNotes, reactionMs: attempt.reactionMs };
     }
   }
 
   let mostMissed: RoundSummary['mostMissed'] = null;
-  for (const [midi, errors] of errorsByNote) {
-    if (mostMissed === null || errors > mostMissed.errors) mostMissed = { midi, errors };
+  for (const entry of errorsByTarget.values()) {
+    if (mostMissed === null || entry.errors > mostMissed.errors) mostMissed = entry;
   }
 
   const totalTargets = firstAttempts.length;

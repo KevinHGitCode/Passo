@@ -41,31 +41,31 @@ function setup(roundSize = 3) {
 describe('PracticeSession · robustez', () => {
   it('el feedback tiene ids crecientes también al empezar otra ronda', () => {
     const { pc, session, exercise } = setup(1);
-    pc.press(exercise().target, 1100);
+    pc.press(exercise().target.notes[0], 1100);
     const first = session.getSnapshot().feedback?.id ?? 0;
     session.start();
-    pc.press(exercise().target, 1300);
+    pc.press(exercise().target.notes[0], 1300);
     expect(session.getSnapshot().feedback?.id).toBeGreaterThan(first);
   });
 
   it('un piano MIDI no genera sonido en la app (ya suena por sí mismo); el teclado del PC sí', () => {
     const { pc, midi, audio, exercise } = setup();
-    midi.press(exercise().target, 1100);
+    midi.press(exercise().target.notes[0], 1100);
     expect(audio.calls).toEqual([]);
-    pc.press(exercise().target, 1200);
+    pc.press(exercise().target.notes[0], 1200);
     expect(audio.calls).toHaveLength(1);
   });
 
   it('si el audio lanza un error, la nota se evalúa igual', () => {
     const { pc, audio, session, exercise } = setup();
     audio.failing = true;
-    expect(() => pc.press(exercise().target, 1100)).not.toThrow();
+    expect(() => pc.press(exercise().target.notes[0], 1100)).not.toThrow();
     expect(session.getSnapshot().hits).toBe(1);
   });
 
   it('el tiempo en pausa no cuenta como tiempo de reacción', () => {
     const { clock, midi, session, exercise } = setup();
-    midi.press(exercise().target, 1100);
+    midi.press(exercise().target.notes[0], 1100);
     midi.setStatus({ kind: 'desconectado', deviceName: 'Piano' });
     expect(session.getSnapshot().phase).toBe('pausada');
 
@@ -73,13 +73,13 @@ describe('PracticeSession · robustez', () => {
     midi.setStatus({ kind: 'conectado', deviceName: 'Piano' });
     expect(exercise().shownAt).toBe(61_000);
 
-    midi.press(exercise().target, 61_400);
+    midi.press(exercise().target.notes[0], 61_400);
     expect(exercise().attempts.at(-1)?.reactionMs).toBe(400);
   });
 
   it('una tecla suelta del PC durante la pausa no impide reanudar al volver el piano', () => {
     const { pc, midi, session, exercise } = setup();
-    midi.press(exercise().target, 1100);
+    midi.press(exercise().target.notes[0], 1100);
     midi.setStatus({ kind: 'desconectado', deviceName: 'Piano' });
     pc.press(60, 1200);
     expect(session.getSnapshot().phase).toBe('pausada');
@@ -91,7 +91,7 @@ describe('PracticeSession · robustez', () => {
     const { pc, session, exercise } = setup();
     session.pause();
     expect(session.getSnapshot().pauseReason).toBe('manual');
-    pc.press(exercise().target, 1100);
+    pc.press(exercise().target.notes[0], 1100);
     expect(session.getSnapshot().hits).toBe(0);
     session.resume();
     expect(session.getSnapshot().phase).toBe('en-curso');
@@ -99,9 +99,9 @@ describe('PracticeSession · robustez', () => {
 
   it('registra si la ayuda estaba activada en cada intento y la posición de la nota', () => {
     const { pc, session, exercise } = setup();
-    pc.press(exercise().target, 1100);
+    pc.press(exercise().target.notes[0], 1100);
     session.setHelp(false);
-    pc.press(exercise().target, 1300);
+    pc.press(exercise().target.notes[0], 1300);
     const attempts = exercise().attempts;
     expect(attempts.map((attempt) => attempt.helpOn)).toEqual([true, false]);
     expect(attempts.map((attempt) => attempt.targetIndex)).toEqual([0, 1]);
@@ -109,7 +109,7 @@ describe('PracticeSession · robustez', () => {
 
   it('dispose() deja de escuchar las entradas', () => {
     const { pc, session, exercise } = setup();
-    const target = exercise().target;
+    const target = exercise().target.notes[0];
     session.dispose();
     pc.press(target, 1100);
     expect(session.getSnapshot().hits).toBe(0);

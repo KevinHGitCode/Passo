@@ -66,7 +66,7 @@ function liveMessage(snapshot: SessionSnapshot): string {
   const { exercise, feedback, notation } = snapshot;
   if (snapshot.phase === 'pausada') return `Ronda en pausa. ${pauseText(snapshot)}`;
   if (!exercise) return '';
-  const target = noteName(exercise.target, notation);
+  const target = noteName(exercise.target.notes[0], notation);
   if (!feedback) return `Toca ${target}`;
   const message = feedbackMessage(feedback.outcome, notation);
   if (feedback.outcome.kind === 'acierto') return `${message.title} Ahora toca ${target}`;
@@ -164,7 +164,7 @@ export function PracticeScreen({
   const micConnected = micStatus?.kind === 'conectado';
 
   const { exercise, notation, phase, help } = snapshot;
-  const target = exercise?.target ?? null;
+  const target = exercise?.target.notes[0] ?? null;
   const roundSize = exercise?.config.roundSize ?? 0;
   const message = recent ? feedbackMessage(recent.outcome, notation) : null;
 

@@ -33,7 +33,7 @@ function setup(roundSize = 3) {
     config: { ...LEVEL_1_CONFIG, roundSize },
   });
   session.start();
-  const target = () => exerciseOf(session).target;
+  const target = () => exerciseOf(session).target.notes[0];
   return { clock, input, audio, session, target };
 }
 
@@ -53,7 +53,7 @@ describe('PracticeSession (integración con entrada falsa)', () => {
     const wrong = first === 60 ? 62 : 60;
 
     input.press(wrong, 1300);
-    expect(exerciseOf(session).target).toBe(first);
+    expect(exerciseOf(session).target.notes).toEqual([first]);
     expect(session.getSnapshot().errors).toBe(1);
     expect(session.getSnapshot().feedback?.outcome.kind).toBe('error');
 

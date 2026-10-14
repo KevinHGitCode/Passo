@@ -336,7 +336,7 @@ describe('panel ?debug', () => {
       config: { ...LEVEL_1_CONFIG, roundSize: 5 },
     });
     session.start();
-    const target = session.getSnapshot().exercise?.target ?? 60;
+    const target = session.getSnapshot().exercise?.target.notes[0] ?? 60;
     render(
       <DebugPanel
         session={session}

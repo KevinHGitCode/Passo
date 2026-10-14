@@ -37,7 +37,7 @@ describe('PracticeScreen', () => {
   it('al empezar muestra una nota del nivel 1 con su nombre y octava', () => {
     const { start, targetMidi } = setup();
     start();
-    expect(LEVEL_1_CONFIG.pool).toContain(targetMidi());
+    expect(LEVEL_1_CONFIG.pool.map((target) => target.notes[0])).toContain(targetMidi());
     expect(screen.getByTestId('target-note').textContent).toMatch(/^(Do|Re|Mi|Fa|Sol)4$/);
   });
 

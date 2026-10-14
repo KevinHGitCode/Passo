@@ -2,9 +2,11 @@ import type { Midi, NotationMode } from './note';
 import { pitchClass, semitoneDistance } from './note';
 import type { InputSource, NoteConfidence, NoteEvent } from './note-event';
 import type { Rng } from './rng';
+import { sameTarget, single } from './target';
+import type { Target } from './target';
 
 /** Nivel 1: teclas blancas Do4–Sol4 (posición de cinco dedos, mano derecha). */
-export const LEVEL_1_POOL: readonly Midi[] = [60, 62, 64, 65, 67];
+export const LEVEL_1_POOL: readonly Target[] = [60, 62, 64, 65, 67].map(single);
 
 export const DEFAULT_ROUND_SIZE = 20;
 
@@ -16,7 +18,7 @@ export const ECHO_WINDOW_MS = 900;
 
 export interface RoundConfig {
   readonly level: number;
-  readonly pool: readonly Midi[];
+  readonly pool: readonly Target[];
   readonly roundSize: number;
 }
 
@@ -53,7 +55,7 @@ export interface Attempt {
 
 export interface ExerciseState {
   readonly config: RoundConfig;
-  readonly target: Midi;
+  readonly target: Target;
   readonly shownAt: number;
   readonly attemptsOnTarget: number;
   readonly completedTargets: number;
@@ -97,18 +99,21 @@ export type Outcome =
       readonly summary: RoundSummary;
     };
 
-/** Elige una nota del conjunto distinta de la anterior (si el conjunto tiene más de una). */
-export function pickNote(pool: readonly Midi[], previous: Midi | null, rng: Rng): Midi {
-  if (pool.length === 0) throw new RangeError('El conjunto de notas está vacío');
-  const candidates = pool.length > 1 ? pool.filter((note) => note !== previous) : pool;
+/** Elige un objetivo del conjunto distinto del anterior (si el conjunto tiene más de uno). */
+export function pickTarget(pool: readonly Target[], previous: Target | null, rng: Rng): Target {
+  if (pool.length === 0) throw new RangeError('El conjunto de objetivos está vacío');
+  const candidates =
+    pool.length > 1
+      ? pool.filter((target) => previous === null || !sameTarget(target, previous))
+      : pool;
   const index = Math.min(Math.floor(rng() * candidates.length), candidates.length - 1);
-  return candidates[index] as Midi;
+  return candidates[index] as Target;
 }
 
 export function startRound(config: RoundConfig, rng: Rng, now: number): ExerciseState {
   return {
     config,
-    target: pickNote(config.pool, null, rng),
+    target: pickTarget(config.pool, null, rng),
     shownAt: now,
     attemptsOnTarget: 0,
     completedTargets: 0,
@@ -128,18 +133,19 @@ export function startRound(config: RoundConfig, rng: Rng, now: number): Exercise
 function microphoneDoubt(
   state: ExerciseState,
   event: NoteEvent,
+  targetNote: Midi,
 ): 'eco' | 'octava' | 'lejana' | 'poca-confianza' | null {
   const previous = state.attempts[state.attempts.length - 1];
   if (
     previous &&
     previous.playedMidi === event.note &&
     event.at - previous.playedAt < ECHO_WINDOW_MS &&
-    (previous.isCorrect ? state.attemptsOnTarget === 0 : previous.targetMidi === state.target)
+    (previous.isCorrect ? state.attemptsOnTarget === 0 : previous.targetMidi === targetNote)
   ) {
     return 'eco';
   }
-  if (pitchClass(event.note) === pitchClass(state.target)) return 'octava';
-  if (Math.abs(event.note - state.target) > 12) return 'lejana';
+  if (pitchClass(event.note) === pitchClass(targetNote)) return 'octava';
+  if (Math.abs(event.note - targetNote) > 12) return 'lejana';
   if (event.confidence === 'media') return 'poca-confianza';
   return null;
 }
@@ -160,20 +166,21 @@ export function evaluate(
 ): { state: ExerciseState; outcome: Outcome } {
   if (state.finished || !isNoteOn(event)) return { state, outcome: { kind: 'ignorado' } };
 
-  const isCorrect = event.note === state.target;
+  const targetNote = state.target.notes[0];
+  const isCorrect = event.note === targetNote;
   if (!isCorrect && event.source === 'microfono') {
-    const doubt = microphoneDoubt(state, event);
+    const doubt = microphoneDoubt(state, event, targetNote);
     if (doubt === 'eco') return { state, outcome: { kind: 'ignorado' } };
     if (doubt !== null) {
       return {
         state,
-        outcome: { kind: 'dudoso', heardMidi: event.note, targetMidi: state.target, reason: doubt },
+        outcome: { kind: 'dudoso', heardMidi: event.note, targetMidi: targetNote, reason: doubt },
       };
     }
   }
   const attemptIndexForTarget = state.attemptsOnTarget + 1;
   const attempt: Attempt = {
-    targetMidi: state.target,
+    targetMidi: targetNote,
     playedMidi: event.note,
     isCorrect,
     shownAt: state.shownAt,
@@ -194,7 +201,7 @@ export function evaluate(
   if (!isCorrect) {
     return {
       state: { ...state, attemptsOnTarget: attemptIndexForTarget, attempts },
-      outcome: { kind: 'error', attempt, semitones: semitoneDistance(state.target, event.note) },
+      outcome: { kind: 'error', attempt, semitones: semitoneDistance(targetNote, event.note) },
     };
   }
 
@@ -215,7 +222,7 @@ export function evaluate(
   return {
     state: {
       ...state,
-      target: pickNote(state.config.pool, state.target, context.rng),
+      target: pickTarget(state.config.pool, state.target, context.rng),
       shownAt: context.now ?? event.at,
       attemptsOnTarget: 0,
       completedTargets,

@@ -3,13 +3,15 @@ import {
   LEVEL_1_CONFIG,
   LEVEL_1_POOL,
   evaluate,
-  pickNote,
+  pickTarget,
   startRound,
   summarizeRound,
 } from '@/core/domain/exercise';
 import type { Attempt, ExerciseState, RoundConfig } from '@/core/domain/exercise';
 import type { NoteEvent } from '@/core/domain/note-event';
 import { createSeededRng } from '@/core/domain/rng';
+import { single } from '@/core/domain/target';
+import type { Target } from '@/core/domain/target';
 
 const ctx = { rng: createSeededRng(7), notation: 'latina' as const, help: true };
 
@@ -18,36 +20,48 @@ function on(note: number, at: number, velocity = 90): NoteEvent {
 }
 
 function stateWithTarget(target: number, overrides: Partial<ExerciseState> = {}): ExerciseState {
-  return { ...startRound(LEVEL_1_CONFIG, createSeededRng(1), 1000), target, ...overrides };
+  return {
+    ...startRound(LEVEL_1_CONFIG, createSeededRng(1), 1000),
+    target: single(target),
+    ...overrides,
+  };
 }
 
-describe('pickNote', () => {
-  it('nunca repite la nota anterior, con cualquier semilla', () => {
+describe('pickTarget', () => {
+  it('nunca repite el objetivo anterior, con cualquier semilla', () => {
     for (let seed = 0; seed < 200; seed++) {
       const rng = createSeededRng(seed);
-      let previous: number | null = null;
+      let previous: Target | null = null;
       for (let i = 0; i < 50; i++) {
-        const note = pickNote(LEVEL_1_POOL, previous, rng);
-        expect(LEVEL_1_POOL).toContain(note);
-        expect(note).not.toBe(previous);
-        previous = note;
+        const target: Target = pickTarget(LEVEL_1_POOL, previous, rng);
+        expect(LEVEL_1_POOL).toContain(target);
+        expect(target).not.toBe(previous);
+        previous = target;
       }
     }
   });
 
+  it('compara por notas, no por identidad: un objetivo igual al anterior tampoco sale', () => {
+    for (let seed = 0; seed < 50; seed++) {
+      const rng = createSeededRng(seed);
+      expect(pickTarget(LEVEL_1_POOL, single(62), rng).notes[0]).not.toBe(62);
+    }
+  });
+
   it('con un solo elemento lo devuelve siempre', () => {
-    expect(pickNote([60], 60, createSeededRng(1))).toBe(60);
+    const only = single(60);
+    expect(pickTarget([only], only, createSeededRng(1))).toBe(only);
   });
 
   it('con rng en el límite superior no se sale del conjunto', () => {
-    expect(pickNote(LEVEL_1_POOL, null, () => 0.999999)).toBe(67);
+    expect(pickTarget(LEVEL_1_POOL, null, () => 0.999999).notes).toEqual([67]);
   });
 
   it('es determinista con la misma semilla y falla con un conjunto vacío', () => {
-    const a = pickNote(LEVEL_1_POOL, null, createSeededRng(42));
-    const b = pickNote(LEVEL_1_POOL, null, createSeededRng(42));
+    const a = pickTarget(LEVEL_1_POOL, null, createSeededRng(42));
+    const b = pickTarget(LEVEL_1_POOL, null, createSeededRng(42));
     expect(a).toBe(b);
-    expect(() => pickNote([], null, createSeededRng(1))).toThrow(RangeError);
+    expect(() => pickTarget([], null, createSeededRng(1))).toThrow(RangeError);
   });
 });
 
@@ -65,7 +79,7 @@ describe('evaluate', () => {
     const { state: next, outcome } = evaluate(state, on(62, 1450), ctx);
     expect(outcome.kind).toBe('acierto');
     expect(next.completedTargets).toBe(1);
-    expect(next.target).not.toBe(62);
+    expect(next.target.notes).not.toEqual([62]);
     expect(next.shownAt).toBe(1450);
     expect(next.attemptsOnTarget).toBe(0);
   });
@@ -74,7 +88,7 @@ describe('evaluate', () => {
     const state = stateWithTarget(62);
     const { state: next, outcome } = evaluate(state, on(64, 1300), ctx);
     expect(outcome).toMatchObject({ kind: 'error', semitones: 2 });
-    expect(next.target).toBe(62);
+    expect(next.target.notes).toEqual([62]);
     expect(next.completedTargets).toBe(0);
     expect(next.attempts).toHaveLength(1);
     expect(next.attempts[0]).toMatchObject({ isCorrect: false, playedMidi: 64, targetMidi: 62 });
@@ -129,8 +143,8 @@ describe('evaluate', () => {
   it('completa la ronda y entrega el resumen; después ignora todo', () => {
     const config: RoundConfig = { ...LEVEL_1_CONFIG, roundSize: 2 };
     let state = startRound(config, createSeededRng(3), 0);
-    state = evaluate(state, on(state.target, 500), ctx).state;
-    const last = evaluate(state, on(state.target, 1500), ctx);
+    state = evaluate(state, on(state.target.notes[0], 500), ctx).state;
+    const last = evaluate(state, on(state.target.notes[0], 1500), ctx);
     expect(last.outcome.kind).toBe('ronda-completa');
     expect(last.state.finished).toBe(true);
     expect(evaluate(last.state, on(60, 1600), ctx).outcome.kind).toBe('ignorado');
@@ -140,13 +154,13 @@ describe('evaluate', () => {
 describe('summarizeRound', () => {
   it('encuentra la nota más lenta y la más fallada', () => {
     const config: RoundConfig = { ...LEVEL_1_CONFIG, roundSize: 3 };
-    let state: ExerciseState = { ...startRound(config, createSeededRng(1), 0), target: 62 };
+    let state: ExerciseState = { ...startRound(config, createSeededRng(1), 0), target: single(62) };
     state = evaluate(state, on(60, 400), ctx).state;
     state = evaluate(state, on(64, 800), ctx).state;
     state = evaluate(state, on(62, 1000), ctx).state; // 62: dos errores, acierto al 3.er intento
-    state = { ...state, target: 64, shownAt: 1000 };
+    state = { ...state, target: single(64), shownAt: 1000 };
     state = evaluate(state, on(64, 1300), ctx).state; // 64: 300 ms a la primera
-    state = { ...state, target: 65, shownAt: 1300 };
+    state = { ...state, target: single(65), shownAt: 1300 };
     const done = evaluate(state, on(65, 3300), ctx); // 65: 2000 ms a la primera
     const { summary } = done.outcome as Extract<typeof done.outcome, { kind: 'ronda-completa' }>;
     expect(summary.totalTargets).toBe(3);
@@ -260,7 +274,7 @@ describe('evaluate · eco de la nota recién acertada (micrófono)', () => {
     const state = stateWithTarget(62);
     const hit = evaluate(state, heard(62, 1400), ctx);
     // Ahora el objetivo es otro; la nota anterior (62) reaparece.
-    return { state: { ...hit.state, target: 65 }, previousAt: 1400 };
+    return { state: { ...hit.state, target: single(65) }, previousAt: 1400 };
   }
 
   it('la nota anterior oída de nuevo dentro de 900 ms se ignora (no es error)', () => {

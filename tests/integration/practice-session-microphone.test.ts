@@ -33,7 +33,7 @@ function setup(options: { primary?: boolean; roundSize?: number } = {}) {
   const target = () => {
     const exercise = session.getSnapshot().exercise;
     if (!exercise) throw new Error('sin ejercicio');
-    return exercise.target;
+    return exercise.target.notes[0];
   };
   /** Emite una nota por micrófono como lo haría el adaptador. */
   const hear = (note: number, at: number, confidence: NoteConfidence = 'alta') => {

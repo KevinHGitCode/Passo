@@ -1,9 +1,12 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import type {
   PracticeSession,
   SessionFeedback,
   SessionSnapshot,
 } from '@/core/application/practice-session';
+import { SILENT_MONITOR } from '@/core/ports/input-monitor';
+import type { InputMonitor, MonitorSnapshot } from '@/core/ports/input-monitor';
+import type { InputStatus, NoteInput } from '@/core/ports/note-input';
 
 /** La interfaz solo se suscribe al estado que vive en `core`. */
 export function useSessionSnapshot(session: PracticeSession): SessionSnapshot {
@@ -39,5 +42,28 @@ export function useIsNarrow(maxWidth = 599): boolean {
   };
   const getSnapshot = () =>
     typeof window.matchMedia === 'function' ? window.matchMedia(query).matches : false;
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+
+/** Estado del monitor de escucha (nivel, nota oída, avisos); `SILENT_MONITOR` si no hay micrófono. */
+export function useMonitor(monitor: InputMonitor | undefined): MonitorSnapshot {
+  const subscribe = useCallback(
+    (onChange: () => void) => (monitor ? monitor.subscribeMonitor(onChange) : () => undefined),
+    [monitor],
+  );
+  const getSnapshot = useCallback(
+    () => (monitor ? monitor.getMonitor() : SILENT_MONITOR),
+    [monitor],
+  );
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+
+/** Estado de una entrada, o `null` si no existe. */
+export function useInputStatus(input: NoteInput | undefined): InputStatus | null {
+  const subscribe = useCallback(
+    (onChange: () => void) => (input ? input.subscribeStatus(onChange) : () => undefined),
+    [input],
+  );
+  const getSnapshot = useCallback(() => (input ? input.getStatus() : null), [input]);
   return useSyncExternalStore(subscribe, getSnapshot);
 }

@@ -26,9 +26,66 @@ export default tseslint.config(
     rules: {
       'no-restricted-globals': [
         'error',
-        ...['window', 'document', 'navigator', 'performance', 'localStorage', 'sessionStorage'].map(
-          (name) => ({ name, message: 'El núcleo no usa APIs del navegador: usa un puerto.' }),
+        ...[
+          'window',
+          'document',
+          'navigator',
+          'performance',
+          'localStorage',
+          'sessionStorage',
+          'AudioContext',
+          'MediaStream',
+          'setInterval',
+          'setTimeout',
+          'clearInterval',
+          'clearTimeout',
+          'requestAnimationFrame',
+          'fetch',
+          'WebSocket',
+          'MediaRecorder',
+        ].map((name) => ({ name, message: 'El núcleo no usa APIs del navegador: usa un puerto.' })),
+      ],
+      'no-restricted-properties': [
+        'error',
+        { object: 'Math', property: 'random', message: 'El azar entra inyectado (Rng).' },
+        { object: 'Date', property: 'now', message: 'El tiempo entra por el puerto Clock.' },
+      ],
+    },
+  },
+  {
+    // Privacidad: el audio nunca sale del navegador. Ningún adaptador ni pantalla puede grabarlo ni enviarlo.
+    files: ['src/adapters/**/*.ts', 'src/ui/**/*.{ts,tsx}', 'src/compose.ts', 'src/main.tsx'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...[
+          'fetch',
+          'XMLHttpRequest',
+          'WebSocket',
+          'EventSource',
+          'MediaRecorder',
+          'RTCPeerConnection',
+          'BroadcastChannel',
+        ].map((name) => ({
+          name,
+          message: 'Passo no graba ni envía audio: no se permiten red ni grabación.',
+        })),
+      ],
+      'no-restricted-properties': [
+        'error',
+        ...['fetch', 'WebSocket', 'XMLHttpRequest', 'EventSource', 'MediaRecorder'].flatMap(
+          (property) =>
+            ['window', 'globalThis', 'self'].map((object) => ({
+              object,
+              property,
+              message: 'Passo no graba ni envía audio: no se permiten red ni grabación.',
+            })),
         ),
+        {
+          object: 'navigator',
+          property: 'sendBeacon',
+          message: 'Passo no graba ni envía audio: no se permiten red ni grabación.',
+        },
       ],
     },
   },

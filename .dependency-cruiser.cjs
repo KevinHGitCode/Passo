@@ -37,6 +37,14 @@ module.exports = {
       to: { path: '^src/adapters' },
     },
     {
+      name: 'adapters-aislados-entre-si',
+      severity: 'error',
+      comment:
+        'Cada adaptador (micrófono, MIDI, teclado, audio) es independiente: no se importan entre sí.',
+      from: { path: '^src/adapters/([^/]+)/' },
+      to: { path: '^src/adapters/', pathNot: '^src/adapters/$1/' },
+    },
+    {
       name: 'composicion-solo-desde-main',
       severity: 'error',
       comment: 'compose.ts es la raíz de composición: solo main.tsx puede importarla.',

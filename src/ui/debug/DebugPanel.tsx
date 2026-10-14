@@ -9,6 +9,8 @@ declare global {
   interface Window {
     /** Muestras de latencia (ms) evento → siguiente fotograma; solo con `?debug`. */
     __passoLatency?: number[];
+    /** Intentos de la ronda (nota pedida, nota oída, confianza…); solo con `?debug`. */
+    __passoAttempts?: unknown[];
   }
 }
 
@@ -26,6 +28,18 @@ export function DebugPanel({
   const monitor = useMonitor(microphone);
   const samples = useRef<number[]>([]);
   const [shown, setShown] = useState<readonly number[]>([]);
+  const attempts = snapshot.exercise?.attempts;
+  useEffect(() => {
+    window.__passoAttempts = (attempts ?? []).map((attempt) => ({
+      objetivo: attempt.targetMidi,
+      oido: attempt.playedMidi,
+      acierto: attempt.isCorrect,
+      confianza: attempt.detectionConfidence,
+      reaccionMs: Math.round(attempt.reactionMs),
+      en: Math.round(attempt.playedAt),
+    }));
+  }, [attempts]);
+
   const feedbackId = snapshot.feedback?.id ?? 0;
   const outcome = snapshot.feedback?.outcome;
   const playedAt = outcome && outcome.kind !== 'dudoso' ? outcome.attempt.playedAt : undefined;

@@ -20,6 +20,15 @@ import {
 
 test.beforeAll(() => ensureMicEvidenceDirs());
 
+/** Si una prueba falla, imprime los intentos que vio la app para poder diagnosticar. */
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status === 'passed' || page.isClosed()) return;
+  const attempts = await page.evaluate(
+    () => (window as unknown as { __passoAttempts?: unknown[] }).__passoAttempts ?? [],
+  );
+  console.log('INTENTOS:', JSON.stringify(attempts));
+});
+
 async function saveVideo(page: Page, fileName: string): Promise<void> {
   const video = page.video();
   await page.close();

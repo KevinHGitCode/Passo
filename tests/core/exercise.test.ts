@@ -182,7 +182,12 @@ describe('evaluate · entrada por micrófono', () => {
   it('una nota distinta de la pedida con confianza media es dudosa: no cuenta como error ni como intento', () => {
     const state = stateWithTarget(62);
     const result = evaluate(state, heard(64, 1300, 'media'), ctx);
-    expect(result.outcome).toEqual({ kind: 'dudoso', heardMidi: 64 });
+    expect(result.outcome).toEqual({
+      kind: 'dudoso',
+      heardMidi: 64,
+      targetMidi: 62,
+      reason: 'poca-confianza',
+    });
     expect(result.state).toBe(state);
   });
 
@@ -212,17 +217,28 @@ describe('detectTransposition', () => {
   const hit = (target: number): Attempt =>
     ({ targetMidi: target, playedMidi: target, isCorrect: true }) as Attempt;
 
-  it('3 errores seguidos con la misma diferencia indican transposición', () => {
-    expect(detectTransposition([miss(60, 62), miss(60, 62), miss(64, 66)])).toBe(2);
+  it('3 errores con la misma diferencia sobre notas pedidas distintas indican transposición', () => {
+    expect(detectTransposition([miss(60, 62), hit(60), miss(64, 66), hit(64), miss(65, 67)])).toBe(
+      2,
+    );
     expect(detectTransposition([miss(62, 50), miss(60, 48), miss(64, 52)])).toBe(-12);
   });
 
-  it('no avisa con diferencias distintas, con menos de 3, con aciertos o con diferencia 0 o mayor a una octava', () => {
-    expect(detectTransposition([miss(60, 62), miss(60, 63), miss(64, 66)])).toBeNull();
+  it('quien insiste en la misma tecla vecina de la misma nota pedida NO dispara el aviso', () => {
+    expect(detectTransposition([miss(60, 62), miss(60, 62), miss(60, 62)])).toBeNull();
+  });
+
+  it('no avisa con diferencias distintas, con menos de 3 errores, con diferencia 0 o mayor a una octava', () => {
+    expect(detectTransposition([miss(60, 62), miss(62, 65), miss(64, 66)])).toBeNull();
     expect(detectTransposition([miss(60, 62), miss(64, 66)])).toBeNull();
-    expect(detectTransposition([miss(60, 62), hit(62), miss(64, 66)])).toBeNull();
-    expect(detectTransposition([miss(60, 60), miss(60, 60), miss(60, 60)])).toBeNull();
+    expect(detectTransposition([miss(60, 60), miss(62, 62), miss(64, 64)])).toBeNull();
     expect(detectTransposition([miss(40, 60), miss(41, 61), miss(42, 62)])).toBeNull();
+  });
+
+  it('solo mira los 6 últimos intentos', () => {
+    const old = [miss(60, 62), miss(62, 64), miss(64, 66)];
+    const recent = [hit(60), hit(62), hit(64), hit(65), hit(67), hit(60)];
+    expect(detectTransposition([...old, ...recent])).toBeNull();
   });
 });
 
@@ -265,5 +281,49 @@ describe('evaluate · eco de la nota recién acertada (micrófono)', () => {
     expect(evaluate(state, heard(62, previousAt + 200, 'teclado-pc'), ctx).outcome.kind).toBe(
       'error',
     );
+  });
+});
+
+describe('evaluate · dudas del micrófono (octava, lejana, eco de un error)', () => {
+  const heard = (note: number, at: number, confidence: 'alta' | 'media' = 'alta'): NoteEvent => ({
+    type: 'on',
+    note,
+    velocity: 80,
+    at,
+    source: 'microfono',
+    confidence,
+  });
+
+  it('la misma nota en otra octava, aunque la detección esté segura, es dudosa (no error)', () => {
+    const state = stateWithTarget(62);
+    const up = evaluate(state, heard(74, 1300), ctx);
+    expect(up.outcome).toMatchObject({ kind: 'dudoso', reason: 'octava', heardMidi: 74 });
+    const down = evaluate(state, heard(50, 1300), ctx);
+    expect(down.outcome).toMatchObject({ kind: 'dudoso', reason: 'octava' });
+    expect(up.state).toBe(state);
+  });
+
+  it('con teclado del PC o MIDI, otra octava sí es un error (esas entradas son exactas)', () => {
+    const event: NoteEvent = { type: 'on', note: 74, velocity: 80, at: 1300, source: 'teclado-pc' };
+    expect(evaluate(stateWithTarget(62), event, ctx).outcome.kind).toBe('error');
+  });
+
+  it('una nota a más de una octava de la pedida es dudosa («lejana»)', () => {
+    const result = evaluate(stateWithTarget(62), heard(40 + 3, 1300), ctx);
+    expect(result.outcome).toMatchObject({ kind: 'dudoso', reason: 'lejana' });
+  });
+
+  it('una nota vecina (≤ 12 semitonos, no octava) con confianza alta sigue siendo un error', () => {
+    expect(evaluate(stateWithTarget(62), heard(67, 1300), ctx).outcome.kind).toBe('error');
+    expect(evaluate(stateWithTarget(62), heard(55, 1300), ctx).outcome.kind).toBe('error');
+  });
+
+  it('la repetición fantasma de un ERROR (misma nota errónea < 900 ms) también se ignora', () => {
+    const first = evaluate(stateWithTarget(62), heard(65, 1300), ctx);
+    expect(first.outcome.kind).toBe('error');
+    const again = evaluate(first.state, heard(65, 1700), ctx);
+    expect(again.outcome.kind).toBe('ignorado');
+    const later = evaluate(first.state, heard(65, 2400), ctx);
+    expect(later.outcome.kind).toBe('error');
   });
 });

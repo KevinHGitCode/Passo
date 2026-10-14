@@ -4,7 +4,7 @@ import type { NoteConfidence, NoteEvent } from './note-event';
 import { nearestNote } from './pitch';
 
 /** Avisos que el seguimiento puede dar para que la interfaz explique por qué «no se oye». */
-export type TrackerHint = 'saturado' | 'debil' | 'confuso' | 'ruidoso';
+export type TrackerHint = 'saturado' | 'debil' | 'confuso' | 'ruidoso' | 'sin-senal';
 
 export interface TrackerConfig {
   /** Tiempo inicial de silencio para medir el ruido ambiente. */
@@ -29,6 +29,8 @@ export interface TrackerConfig {
   readonly maxCentsSpread: number;
   /** Dispersión máxima para dar confianza `alta`. */
   readonly strongCentsSpread: number;
+  /** Si la energía en f0/2 o f0/3 supera esta fracción de la de f0, la nota puede estar una octava más abajo: confianza `media`. */
+  readonly maxSubharmonicRatio: number;
   /** Presencia mínima de la fundamental (descarta «fundamentales virtuales»). */
   readonly minFundamentalRatio: number;
   /** Rango fiable de notas (Do3–Do6). */
@@ -68,6 +70,7 @@ export const DEFAULT_TRACKER_CONFIG: TrackerConfig = {
   strongClarity: 0.9,
   maxCentsSpread: 20,
   strongCentsSpread: 10,
+  maxSubharmonicRatio: 0.15,
   minFundamentalRatio: 0.03,
   minMidi: 48,
   maxMidi: 84,
@@ -101,7 +104,13 @@ interface Candidate {
   readonly peakLevel: number;
   /** Mayor energía de bloque en los primeros 40 ms: un ataque de piano llega a su máximo ahí. */
   readonly attackPeak: number;
-  frames: { midi: Midi; rawCents: number; cents: number; clarity: number }[];
+  frames: {
+    midi: Midi;
+    rawCents: number;
+    cents: number;
+    clarity: number;
+    subharmonic: number;
+  }[];
 }
 
 interface Sounding {
@@ -164,6 +173,7 @@ export class NoteTracker {
   private hint: { value: TrackerHint; until: number; since: number } | null = null;
   private lastHintAt: Partial<Record<TrackerHint, number>> = {};
   private weakSince: number | null = null;
+  private silentSince: number | null = null;
   private lastEndAt = 0;
 
   constructor(config: Partial<TrackerConfig> = {}) {
@@ -197,6 +207,26 @@ export class NoteTracker {
     this.sounding = null;
     this.candidate = null;
     this.weakSince = null;
+    // Tras un hueco largo no se puede fiar del nivel anterior: el primer bloque no puede ser un ataque.
+    this.lastBlockLevel = Number.POSITIVE_INFINITY;
+    this.recentBlocks = [];
+    this.dropoutGuardUntil = at + 100;
+    return events;
+  }
+
+  /**
+   * Vuelve a medir el ruido ambiente (p. ej. al volver a la pestaña) conservando lo aprendido sobre
+   * la afinación del teclado. Suelta la nota en curso.
+   */
+  restart(at: number): NoteEvent[] {
+    const events = this.reset(at);
+    this.phase = 'calibrando';
+    this.calibrationStartedAt = null;
+    this.calibrationLevels = [];
+    this.noiseFloor = 0;
+    this.gate = this.config.minGate;
+    this.hint = null;
+    this.silentSince = null;
     return events;
   }
 
@@ -217,6 +247,7 @@ export class NoteTracker {
     this.processSteadyTuning(frame);
     this.processRelease(frame, events);
     this.processQuiet(frame);
+    this.checkSignal(frame);
     return events;
   }
 
@@ -228,7 +259,7 @@ export class NoteTracker {
 
   private calibrate(frame: FrameAnalysis): void {
     this.calibrationStartedAt ??= frame.endAt;
-    this.calibrationLevels.push(frame.rms);
+    if (Number.isFinite(frame.rms)) this.calibrationLevels.push(frame.rms);
     if (frame.endAt - this.calibrationStartedAt < this.config.calibrationMs) return;
     this.noiseFloor = percentile(this.calibrationLevels, 20);
     this.updateGate();
@@ -341,6 +372,7 @@ export class NoteTracker {
       rawCents: raw.cents,
       cents: corrected.cents,
       clarity: pitch.clarity,
+      subharmonic: pitch.subharmonicRatio,
     });
 
     if (candidate.frames.length < this.config.confirmFrames) return;
@@ -352,8 +384,11 @@ export class NoteTracker {
       return;
     }
     const averageClarity = recent.reduce((total, item) => total + item.clarity, 0) / recent.length;
+    const subharmonic = Math.max(...recent.map((item) => item.subharmonic));
     const confidence: NoteConfidence =
-      averageClarity >= this.config.strongClarity && spread < this.config.strongCentsSpread
+      averageClarity >= this.config.strongClarity &&
+      spread < this.config.strongCentsSpread &&
+      subharmonic < this.config.maxSubharmonicRatio
         ? 'alta'
         : 'media';
     const midi = (recent[recent.length - 1] as { midi: Midi }).midi;
@@ -400,7 +435,9 @@ export class NoteTracker {
     if (pitch.clarity < this.config.strongClarity) return;
     const corrected = nearestNote(pitch.frequency, this.tuningOffset ?? 0);
     if (corrected.midi !== sounding.midi) return;
-    sounding.steadyCents.push(nearestNote(pitch.frequency, 0).cents);
+    if (sounding.steadyCents.length < 64) {
+      sounding.steadyCents.push(nearestNote(pitch.frequency, 0).cents);
+    }
   }
 
   private finishTuning(): void {
@@ -434,6 +471,16 @@ export class NoteTracker {
   }
 
   /** En silencio: refina el ruido ambiente y avisa si suena algo demasiado flojo. */
+  /** Silencio digital exacto durante más de 1,2 s: el micrófono está silenciado o no llega audio. */
+  private checkSignal(frame: FrameAnalysis): void {
+    if (frame.peak >= 1e-5) {
+      this.silentSince = null;
+      return;
+    }
+    this.silentSince ??= frame.endAt;
+    if (frame.endAt - this.silentSince >= 1200) this.raiseHint('sin-senal', frame.endAt);
+  }
+
   private processQuiet(frame: FrameAnalysis): void {
     if (this.sounding || this.candidate) {
       this.weakSince = null;

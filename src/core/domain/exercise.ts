@@ -1,5 +1,5 @@
 import type { Midi, NotationMode } from './note';
-import { semitoneDistance } from './note';
+import { pitchClass, semitoneDistance } from './note';
 import type { InputSource, NoteConfidence, NoteEvent } from './note-event';
 import type { Rng } from './rng';
 
@@ -82,7 +82,13 @@ export interface RoundSummary {
 export type Outcome =
   | { readonly kind: 'ignorado' }
   /** Nota distinta de la pedida oída con poca seguridad: no cuenta como error ni como intento. */
-  | { readonly kind: 'dudoso'; readonly heardMidi: Midi }
+  | {
+      readonly kind: 'dudoso';
+      readonly heardMidi: Midi;
+      readonly targetMidi: Midi;
+      /** poca-confianza: la detección dudó · octava: misma nota en otra octava · lejana: demasiado lejos para ser un fallo creíble. */
+      readonly reason: 'poca-confianza' | 'octava' | 'lejana';
+    }
   | { readonly kind: 'acierto'; readonly attempt: Attempt }
   | { readonly kind: 'error'; readonly attempt: Attempt; readonly semitones: number }
   | {
@@ -111,6 +117,33 @@ export function startRound(config: RoundConfig, rng: Rng, now: number): Exercise
   };
 }
 
+/**
+ * Por micrófono la app infiere la nota, así que una nota distinta de la pedida solo es un error
+ * cuando está clara y es una equivocación creíble. Devuelve por qué se duda, o `null` si es un error.
+ * - eco: la misma nota del intento anterior reaparece (cola, hueco de audio, fluctuación);
+ * - octava: misma nota en otra octava (la detección favorece el periodo más corto);
+ * - lejana: más de una octava de distancia (ruido o voz, no un fallo de tecla);
+ * - poca-confianza: la detección dudó.
+ */
+function microphoneDoubt(
+  state: ExerciseState,
+  event: NoteEvent,
+): 'eco' | 'octava' | 'lejana' | 'poca-confianza' | null {
+  const previous = state.attempts[state.attempts.length - 1];
+  if (
+    previous &&
+    previous.playedMidi === event.note &&
+    event.at - previous.playedAt < ECHO_WINDOW_MS &&
+    (previous.isCorrect ? state.attemptsOnTarget === 0 : previous.targetMidi === state.target)
+  ) {
+    return 'eco';
+  }
+  if (pitchClass(event.note) === pitchClass(state.target)) return 'octava';
+  if (Math.abs(event.note - state.target) > 12) return 'lejana';
+  if (event.confidence === 'media') return 'poca-confianza';
+  return null;
+}
+
 /** Un `on` con velocidad 0 es un `off` en MIDI; los `off` nunca cuentan como intento. */
 function isNoteOn(event: NoteEvent): boolean {
   return event.type === 'on' && event.velocity > 0;
@@ -128,19 +161,15 @@ export function evaluate(
   if (state.finished || !isNoteOn(event)) return { state, outcome: { kind: 'ignorado' } };
 
   const isCorrect = event.note === state.target;
-  const previous = state.attempts[state.attempts.length - 1];
-  if (
-    !isCorrect &&
-    event.source === 'microfono' &&
-    state.attemptsOnTarget === 0 &&
-    previous?.isCorrect === true &&
-    previous.playedMidi === event.note &&
-    event.at - previous.playedAt < ECHO_WINDOW_MS
-  ) {
-    return { state, outcome: { kind: 'ignorado' } };
-  }
-  if (!isCorrect && event.confidence === 'media') {
-    return { state, outcome: { kind: 'dudoso', heardMidi: event.note } };
+  if (!isCorrect && event.source === 'microfono') {
+    const doubt = microphoneDoubt(state, event);
+    if (doubt === 'eco') return { state, outcome: { kind: 'ignorado' } };
+    if (doubt !== null) {
+      return {
+        state,
+        outcome: { kind: 'dudoso', heardMidi: event.note, targetMidi: state.target, reason: doubt },
+      };
+    }
   }
   const attemptIndexForTarget = state.attemptsOnTarget + 1;
   const attempt: Attempt = {
@@ -230,14 +259,25 @@ export function summarizeRound(attempts: readonly Attempt[]): RoundSummary {
 }
 
 /**
- * Si los 3 últimos intentos fueron errores con la misma diferencia en semitonos (≠ 0, hasta una octava),
- * el teclado puede estar transpuesto. Devuelve esa diferencia (positiva = suena más agudo) o `null`.
+ * Si entre los 6 últimos intentos hay al menos 3 errores con la misma diferencia en semitonos
+ * (≠ 0, hasta una octava) sobre al menos 2 notas pedidas distintas, el teclado puede estar
+ * transpuesto. Devuelve esa diferencia (positiva = suena más agudo) o `null`.
+ * Exigir notas pedidas distintas evita avisar a quien insiste en la tecla vecina.
  */
 export function detectTransposition(attempts: readonly Attempt[]): number | null {
-  const last = attempts.slice(-3);
-  if (last.length < 3 || last.some((attempt) => attempt.isCorrect)) return null;
-  const deltas = last.map((attempt) => attempt.playedMidi - attempt.targetMidi);
-  const first = deltas[0] as number;
-  if (first === 0 || Math.abs(first) > 12 || deltas.some((delta) => delta !== first)) return null;
-  return first;
+  const errors = attempts.slice(-6).filter((attempt) => !attempt.isCorrect);
+  const groups = new Map<number, Set<number>>();
+  const counts = new Map<number, number>();
+  for (const attempt of errors) {
+    const delta = attempt.playedMidi - attempt.targetMidi;
+    if (delta === 0 || Math.abs(delta) > 12) continue;
+    counts.set(delta, (counts.get(delta) ?? 0) + 1);
+    const targets = groups.get(delta) ?? new Set<number>();
+    targets.add(attempt.targetMidi);
+    groups.set(delta, targets);
+  }
+  for (const [delta, count] of counts) {
+    if (count >= 3 && (groups.get(delta)?.size ?? 0) >= 2) return delta;
+  }
+  return null;
 }

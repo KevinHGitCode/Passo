@@ -193,3 +193,16 @@ describe('detectPitch · coste', () => {
     expect(times[Math.floor(times.length / 2)]).toBeLessThan(2);
   });
 });
+
+describe('detectPitch · entradas anómalas', () => {
+  it('muestras NaN o infinitas no cuelgan la detección: no hay altura', () => {
+    expect(detectPitch(new Float32Array(2048).fill(Number.NaN), SAMPLE_RATE)).toBeNull();
+    const infinite = sine(262, 100, 0.3).slice(0, 2048);
+    infinite[100] = Number.POSITIVE_INFINITY;
+    expect(detectPitch(infinite, SAMPLE_RATE)).toBeNull();
+  });
+
+  it('un fragmento demasiado corto no tiene altura', () => {
+    expect(detectPitch(new Float32Array(100), SAMPLE_RATE)).toBeNull();
+  });
+});

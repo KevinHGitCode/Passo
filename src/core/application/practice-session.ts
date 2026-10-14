@@ -32,9 +32,20 @@ export interface SessionSnapshot {
   readonly errors: number;
   /** Resumen de la ronda terminada (solo en la fase 'completada'). */
   readonly summary: RoundSummary | null;
-  /** Diferencia en semitonos si hay 3 errores seguidos iguales (¿teclado transpuesto?), o `null`. */
+  /** Diferencia en semitonos si hay errores repetidos con la misma diferencia (¿teclado transpuesto?), o `null`. */
   readonly transposition: number | null;
+  /** Recuento de lo que oyó el micrófono en esta ronda (para ajustar los umbrales con un piano real). */
+  readonly listenStats: ListenStats;
 }
+
+export interface ListenStats {
+  readonly alta: number;
+  readonly media: number;
+  readonly dudoso: number;
+  readonly eco: number;
+}
+
+const NO_LISTEN_STATS: ListenStats = { alta: 0, media: 0, dudoso: 0, eco: 0 };
 
 export interface PracticeSessionDeps {
   readonly inputs: readonly NoteInput[];
@@ -83,6 +94,7 @@ export class PracticeSession {
       errors: 0,
       summary: null,
       transposition: null,
+      listenStats: NO_LISTEN_STATS,
     };
     for (const input of deps.inputs) {
       this.subscriptions.push(input.subscribe((event) => this.handleEvent(event)));
@@ -111,6 +123,7 @@ export class PracticeSession {
       errors: 0,
       summary: null,
       transposition: null,
+      listenStats: NO_LISTEN_STATS,
     });
   }
 
@@ -191,8 +204,9 @@ export class PracticeSession {
       help: this.snapshot.help,
       now: this.deps.clock.now(),
     });
+    const listenStats = this.countListening(event, result.outcome.kind);
     if (result.outcome.kind === 'ignorado') {
-      this.update({ pressed });
+      this.update({ pressed, listenStats });
       return;
     }
 
@@ -206,7 +220,20 @@ export class PracticeSession {
       errors: result.state.attempts.filter((attempt) => !attempt.isCorrect).length,
       summary: result.outcome.kind === 'ronda-completa' ? result.outcome.summary : null,
       transposition: detectTransposition(result.state.attempts),
+      listenStats,
     });
+  }
+
+  private countListening(event: NoteEvent, outcome: Outcome['kind']): ListenStats {
+    const stats = this.snapshot.listenStats;
+    if (event.source !== 'microfono') return stats;
+    const confidence = event.confidence;
+    return {
+      alta: stats.alta + (confidence === 'alta' ? 1 : 0),
+      media: stats.media + (confidence === 'media' ? 1 : 0),
+      dudoso: stats.dudoso + (outcome === 'dudoso' ? 1 : 0),
+      eco: stats.eco + (outcome === 'ignorado' ? 1 : 0),
+    };
   }
 
   /** Un fallo del audio nunca debe romper la evaluación de la nota. */

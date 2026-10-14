@@ -109,14 +109,43 @@ describe('PracticeSession · entrada por micrófono', () => {
     expect(session.getSnapshot().exercise?.shownAt).toBe(1400);
   });
 
-  it('tres errores seguidos con la misma diferencia avisan de un posible teclado transpuesto', () => {
-    const { session, target, hear } = setup();
-    hear(target() + 2, 1100);
-    hear(target() + 2, 1200);
+  it('errores con la misma diferencia sobre notas pedidas distintas avisan de un posible teclado transpuesto', () => {
+    const { session, target, hear } = setup({ roundSize: 10 });
+    let at = 1000;
+    const next = () => (at += 2000);
+    hear(target() + 2, next());
+    hear(target(), next());
+    hear(target() + 2, next());
     expect(session.getSnapshot().transposition).toBeNull();
-    hear(target() + 2, 1300);
+    hear(target(), next());
+    hear(target() + 2, next());
     expect(session.getSnapshot().transposition).toBe(2);
-    hear(target(), 1400);
+  });
+
+  it('quien insiste en la misma tecla equivocada de una misma nota no recibe el aviso', () => {
+    const { session, target, hear } = setup();
+    hear(target() + 2, 1000);
+    hear(target() + 2, 3000);
+    hear(target() + 2, 5000);
     expect(session.getSnapshot().transposition).toBeNull();
+  });
+
+  it('otra octava oída con confianza alta no cuenta como error y se explica', () => {
+    const { session, target, hear } = setup();
+    hear(target() + 12, 1300, 'alta');
+    expect(session.getSnapshot().errors).toBe(0);
+    const outcome = session.getSnapshot().feedback?.outcome;
+    expect(outcome).toMatchObject({ kind: 'dudoso', reason: 'octava' });
+  });
+
+  it('lleva la cuenta de lo oído (alta, media, dudosas y ecos) para ajustar umbrales con un piano real', () => {
+    const { session, target, hear } = setup({ roundSize: 10 });
+    hear(target(), 1000, 'alta'); // acierto
+    const previous = session.getSnapshot().exercise?.attempts[0]?.playedMidi ?? 60;
+    hear(previous, 1300, 'alta'); // eco de la nota anterior
+    hear(target() === 60 ? 62 : 60, 5000, 'media'); // dudoso
+    expect(session.getSnapshot().listenStats).toEqual({ alta: 2, media: 1, dudoso: 1, eco: 1 });
+    session.start();
+    expect(session.getSnapshot().listenStats).toEqual({ alta: 0, media: 0, dudoso: 0, eco: 0 });
   });
 });

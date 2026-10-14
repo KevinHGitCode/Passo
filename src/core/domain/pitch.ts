@@ -42,6 +42,11 @@ export interface PitchEstimate {
    * (0–1). Un valor casi 0 indica una «fundamental virtual» (p. ej. dos teclas a la vez).
    */
   readonly fundamentalRatio: number;
+  /**
+   * Energía en f0/2 y f0/3 respecto a la de f0 (0–1+). Si es alta, la nota real puede estar una octava
+   * (o una quinta + octava) por debajo: la detección favorece el periodo más corto.
+   */
+  readonly subharmonicRatio: number;
 }
 
 export interface PitchOptions {
@@ -104,28 +109,51 @@ function parabolicOffset(left: number, center: number, right: number): number {
 }
 
 /** Magnitud de Goertzel de `samples` (con ventana de Hann) en `frequency`. */
+const hannCache = new Map<number, Float32Array>();
+
+/** Ventana de Hann para un tamaño dado (se calcula una vez por tamaño). */
+function hann(n: number): Float32Array {
+  let window = hannCache.get(n);
+  if (!window) {
+    window = new Float32Array(n);
+    for (let i = 0; i < n; i++) window[i] = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (n - 1));
+    hannCache.set(n, window);
+  }
+  return window;
+}
+
 function goertzelMagnitude(samples: Float32Array, sampleRate: number, frequency: number): number {
   const n = samples.length;
   const omega = (2 * Math.PI * frequency) / sampleRate;
   const coefficient = 2 * Math.cos(omega);
+  const window = hann(n);
   let s1 = 0;
   let s2 = 0;
   for (let i = 0; i < n; i++) {
-    const window = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (n - 1));
-    const s0 = (samples[i] as number) * window + coefficient * s1 - s2;
+    const s0 = (samples[i] as number) * (window[i] as number) + coefficient * s1 - s2;
     s2 = s1;
     s1 = s0;
   }
   return Math.sqrt(Math.max(0, s1 * s1 + s2 * s2 - coefficient * s1 * s2));
 }
 
-function fundamentalRatio(samples: Float32Array, sampleRate: number, f0: number): number {
+function harmonicRatios(
+  samples: Float32Array,
+  sampleRate: number,
+  f0: number,
+): { fundamentalRatio: number; subharmonicRatio: number } {
   const nyquist = sampleRate / 2;
   const m1 = goertzelMagnitude(samples, sampleRate, f0);
   const m2 = 2 * f0 < nyquist ? goertzelMagnitude(samples, sampleRate, 2 * f0) : 0;
   const m3 = 3 * f0 < nyquist ? goertzelMagnitude(samples, sampleRate, 3 * f0) : 0;
   const strongest = Math.max(m1, m2, m3);
-  return strongest === 0 ? 0 : m1 / strongest;
+  // Subarmónicos: solo se miran si caben por encima de ~40 Hz.
+  const half = f0 / 2 >= 40 ? goertzelMagnitude(samples, sampleRate, f0 / 2) : 0;
+  const third = f0 / 3 >= 40 ? goertzelMagnitude(samples, sampleRate, f0 / 3) : 0;
+  return {
+    fundamentalRatio: strongest === 0 ? 0 : m1 / strongest,
+    subharmonicRatio: m1 === 0 ? 0 : Math.max(half, third) / m1,
+  };
 }
 
 /**
@@ -141,6 +169,10 @@ export function detectPitch(
   const { minHz, maxHz, peakThreshold, coarseRate } = { ...DEFAULTS, ...options };
   if (samples.length < 256) return null;
 
+  // Muestras no finitas (NaN, ±Infinity) no son audio: sin esta guarda la búsqueda de picos no termina.
+  let total = 0;
+  for (let i = 0; i < samples.length; i++) total += samples[i] as number;
+  if (!Number.isFinite(total)) return null;
   const clean = removeDc(samples);
   const factor = Math.max(1, Math.round(sampleRate / coarseRate));
   const coarse = decimate(clean, factor);
@@ -210,6 +242,6 @@ export function detectPitch(
   return {
     frequency,
     clarity: Math.min(1, clarity),
-    fundamentalRatio: fundamentalRatio(clean, sampleRate, frequency),
+    ...harmonicRatios(clean, sampleRate, frequency),
   };
 }

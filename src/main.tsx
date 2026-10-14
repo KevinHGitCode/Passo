@@ -10,7 +10,7 @@ const root = document.getElementById('root');
 if (!root) throw new Error('Falta el elemento #root');
 
 initTheme();
-const { session, inputs, audio, debug } = composeApp();
+const { session, inputs, audio, microphone, debug, showSound, pcKeysHint } = composeApp();
 
 createRoot(root).render(
   <StrictMode>
@@ -18,8 +18,10 @@ createRoot(root).render(
       session={session}
       inputs={inputs}
       audio={audio}
+      microphone={microphone}
       debug={debug}
-      pcKeysHint="Teclado del PC: A S D F G = Do Re Mi Fa Sol"
+      showSound={showSound}
+      pcKeysHint={pcKeysHint}
     />
   </StrictMode>,
 );

@@ -25,7 +25,10 @@ export function buildKeyVisuals(input: KeyVisualInput): Map<Midi, KeyVisual> {
   const outcome = input.feedback?.outcome;
   if (outcome && outcome.kind !== 'dudoso' && outcome.kind !== 'parcial') {
     if (outcome.kind === 'error') {
-      add(outcome.attempt.targetMidi, { feedback: 'expected' });
+      // En terceras y acordes todas las teclas del objetivo ya están iluminadas: no se señala una sola.
+      if (outcome.attempt.targetNotes.length === 1) {
+        add(outcome.attempt.targetMidi, { feedback: 'expected' });
+      }
       add(outcome.attempt.playedMidi, { feedback: 'wrong' });
     } else {
       add(outcome.attempt.playedMidi, { feedback: 'correct' });

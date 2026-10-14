@@ -106,6 +106,26 @@ describe('feedbackMessage · entrada por micrófono', () => {
 });
 
 describe('buildKeyVisuals', () => {
+  it('un error en un acorde marca la nota de más, sin señalar una sola nota «esperada»', () => {
+    const groupError: SessionFeedback = {
+      id: 3,
+      outcome: {
+        kind: 'error',
+        attempt: { ...attempt(60, 62), targetNotes: [60, 64, 67] },
+        semitones: 2,
+      },
+    };
+    const visuals = buildKeyVisuals({
+      targets: [60, 64, 67],
+      help: true,
+      pressed: [60, 62],
+      feedback: groupError,
+    });
+    expect(visuals.get(62)).toMatchObject({ feedback: 'wrong' });
+    expect(visuals.get(60)?.feedback).toBeUndefined();
+    expect([60, 64, 67].every((note) => visuals.get(note)?.target === true)).toBe(true);
+  });
+
   it('con ayuda ilumina la nota objetivo; sin ayuda no', () => {
     const base = { targets: [62], pressed: [], feedback: null };
     expect(buildKeyVisuals({ ...base, help: true }).get(62)).toEqual({ target: true });

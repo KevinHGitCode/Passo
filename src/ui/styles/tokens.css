@@ -38,6 +38,11 @@
   --key-black-text: #cfd6e2;
   --key-target: #3454d1;
   --key-target-edge: #1d338f;
+  --key-heard: #7c3aed;
+  --meter-track: var(--surface-2);
+  --meter-fill: var(--accent);
+  --meter-gate: var(--text-muted);
+  --meter-clip: var(--err);
 
   --radius: 14px;
   --radius-sm: 9px;
@@ -77,6 +82,7 @@
     --key-black-text: #aeb7c6;
     --key-target: #8fa4ff;
     --key-target-edge: #c7d2ff;
+    --key-heard: #7c3aed;
   }
 }
 
@@ -112,4 +118,5 @@
   --key-black-text: #aeb7c6;
   --key-target: #8fa4ff;
   --key-target-edge: #c7d2ff;
+  --key-heard: #7c3aed;
 }

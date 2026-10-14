@@ -10,6 +10,8 @@ export interface KeyVisual {
   readonly target?: boolean;
   /** La tecla está pulsada ahora mismo. */
   readonly pressed?: boolean;
+  /** Es la nota que el micrófono oye (una inferencia, no una pulsación). */
+  readonly heard?: boolean;
   /** Resultado de la última pulsación: acierto, error, o la tecla que era la correcta. */
   readonly feedback?: 'correct' | 'wrong' | 'expected';
 }
@@ -47,6 +49,7 @@ function classNames(key: KeyLayout, visual: KeyVisual | undefined): string {
   const classes = ['key', key.isBlack ? 'key--black' : 'key--white'];
   if (visual?.target) classes.push('key--target');
   if (visual?.pressed) classes.push('key--pressed');
+  if (visual?.heard) classes.push('key--heard');
   if (visual?.feedback) classes.push(`key--${visual.feedback}`);
   return classes.join(' ');
 }
@@ -101,6 +104,14 @@ export function PianoKeyboard({
             aria-hidden="true"
           >
             <path d={keyPath(key.x, key.width, key.height)} className="key__shape" />
+            {visual?.heard && (
+              <circle
+                cx={centerX}
+                cy={key.isBlack ? BLACK_HEIGHT - 42 : WHITE_HEIGHT - 28}
+                r={4.5}
+                className="key__heard-dot"
+              />
+            )}
             {badge && (
               <text
                 x={centerX}

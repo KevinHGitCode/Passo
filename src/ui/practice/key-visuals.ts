@@ -9,6 +9,8 @@ export interface KeyVisualInput {
   readonly pressed: readonly Midi[];
   /** Resultado reciente que todavía debe verse en el teclado. */
   readonly feedback: SessionFeedback | null;
+  /** Nota que oye el micrófono ahora mismo. */
+  readonly heard?: Midi | null | undefined;
 }
 
 /** Traduce el estado de la sesión a un mapa nota → estado visual del teclado. */
@@ -29,6 +31,7 @@ export function buildKeyVisuals(input: KeyVisualInput): Map<Midi, KeyVisual> {
     }
   }
 
+  if (input.heard !== null && input.heard !== undefined) add(input.heard, { heard: true });
   for (const midi of input.pressed) add(midi, { pressed: true });
   return visuals;
 }

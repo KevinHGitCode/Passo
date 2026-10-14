@@ -116,3 +116,14 @@
 .key--black.key--pressed .key__shape {
   filter: brightness(1.6);
 }
+
+/* Nota oída por el micrófono: anillo y punto (no cambia el relleno, convive con objetivo/acierto/error). */
+.key--heard .key__shape {
+  stroke: var(--key-heard);
+  stroke-width: 3;
+}
+.key__heard-dot {
+  fill: var(--key-heard);
+  stroke: #ffffff;
+  stroke-width: 1;
+}

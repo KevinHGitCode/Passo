@@ -1,4 +1,4 @@
-import { analyzeFrame } from '@/core/domain/frame-analysis';
+import { analyzeFrame, BLOCK_SIZE } from '@/core/domain/frame-analysis';
 import type { NoteEvent } from '@/core/domain/note-event';
 import { NoteTracker } from '@/core/domain/note-tracker';
 import type { Clock } from '@/core/ports/clock';
@@ -111,6 +111,8 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
   private lastPublishAt = -Infinity;
   private lastHeard: { midi: number; cents: number; until: number } | null = null;
   private lastDeviceName = 'Micrófono';
+  /** Contexto creado en el gesto mientras se espera el permiso: hay que cerrarlo si se apaga antes. */
+  private pendingContext: MicAudioContextLike | null = null;
 
   constructor(deps: MicrophoneDeps) {
     this.deps = deps;
@@ -162,12 +164,14 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
       this.setStatus({ kind: 'sin-soporte' });
       return;
     }
+    this.pendingContext = context;
 
     let stream: MicStreamLike;
     try {
       stream = await this.requestStream(mediaDevices);
     } catch (error) {
       void context.close().catch(() => undefined);
+      if (this.pendingContext === context) this.pendingContext = null;
       if (token === this.startToken) this.setStatus(statusForError(error));
       return;
     }
@@ -177,6 +181,7 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
       void context.close().catch(() => undefined);
       return;
     }
+    this.pendingContext = null;
     this.begin(context, stream);
   }
 
@@ -197,6 +202,18 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
   }
 
   private begin(context: MicAudioContextLike, stream: MicStreamLike): void {
+    try {
+      this.setUp(context, stream);
+    } catch {
+      // Un flujo sin pistas o un contexto que falla: se suelta todo y se informa, sin dejar la luz del micrófono encendida.
+      stream.getAudioTracks().forEach((track) => track.stop());
+      void context.close().catch(() => undefined);
+      this.capture = null;
+      this.setStatus({ kind: 'sin-soporte' });
+    }
+  }
+
+  private setUp(context: MicAudioContextLike, stream: MicStreamLike): void {
     const tracks = stream.getAudioTracks();
     const track = tracks[0];
     const settings = track?.getSettings?.();
@@ -258,18 +275,35 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
       // Hueco de más de medio segundo (pestaña ahogada): no se puede fiar del seguimiento, se reinicia.
       this.emitAll(this.tracker.reset(at));
     }
+    const gap = available > WINDOW;
+    // Se consumen bloques completos: el resto (las muestras más recientes) queda para el siguiente fotograma.
+    const consumed = gap ? WINDOW : Math.floor(available / BLOCK_SIZE) * BLOCK_SIZE;
+    const lag = gap ? 0 : available - consumed;
     capture.analyser.getFloatTimeDomainData(capture.buffer);
-    const window = capture.buffer.subarray(FFT_SIZE - WINDOW);
-    const consumed = Math.min(available, WINDOW);
-    capture.consumedTime = now;
+    const windowEnd = FFT_SIZE - lag;
+    const window = capture.buffer.subarray(windowEnd - WINDOW, windowEnd);
+    capture.consumedTime = gap ? now : capture.consumedTime + consumed / sampleRate;
 
-    const analysis = analyzeFrame(window, consumed, sampleRate, at, available > WINDOW);
-    this.emitAll(this.tracker.push(analysis));
+    try {
+      const endAt = at - (lag / sampleRate) * 1000;
+      const analysis = analyzeFrame(window, consumed, sampleRate, endAt, gap);
+      this.emitAll(this.tracker.push(analysis));
+    } catch {
+      // Un fallo en un fotograma (o en un oyente) no debe detener la escucha.
+    }
     this.publish(false);
   }
 
   private emitAll(events: readonly NoteEvent[]): void {
-    for (const event of events) this.handlers.forEach((handler) => handler(event));
+    for (const event of events) {
+      for (const handler of this.handlers) {
+        try {
+          handler(event);
+        } catch {
+          // Un oyente que falla no debe impedir que los demás reciban la nota.
+        }
+      }
+    }
   }
 
   private readonly onVisibility = (): void => {
@@ -279,8 +313,8 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
     if (hidden) {
       this.emitAll(this.tracker.reset(this.deps.clock.now()));
     } else {
-      // Al volver se mide el ruido de nuevo: el entorno puede haber cambiado.
-      this.tracker = new NoteTracker();
+      // Al volver se mide el ruido de nuevo (el entorno puede haber cambiado) conservando la afinación.
+      this.emitAll(this.tracker.restart(this.deps.clock.now()));
     }
     this.publish(true);
   };
@@ -291,7 +325,7 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
     if (capture.context.state !== 'running') {
       this.emitAll(this.tracker.reset(this.deps.clock.now()));
     } else {
-      this.tracker = new NoteTracker();
+      this.emitAll(this.tracker.restart(this.deps.clock.now()));
     }
     this.publish(true);
   }
@@ -306,6 +340,10 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
 
   /** Suelta pistas, nodos, contexto, temporizador y oyentes. Emite `off` si había una nota. */
   private release(): void {
+    if (this.pendingContext) {
+      void this.pendingContext.close().catch(() => undefined);
+      this.pendingContext = null;
+    }
     const capture = this.capture;
     if (!capture) {
       this.publishOff();

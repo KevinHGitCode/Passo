@@ -2,7 +2,7 @@ import { MicrophoneInput } from '@/adapters/microphone/microphone-input';
 import type { NoteEvent } from '@/core/domain/note-event';
 import type { MonitorSnapshot } from '@/core/ports/input-monitor';
 import type { InputStatus } from '@/core/ports/note-input';
-import { MicHarness } from '../fakes/fake-microphone';
+import { FakeMicContext, MicHarness } from '../fakes/fake-microphone';
 import { concat, noise, pianoNote, silence } from '../support/synth';
 
 function build(
@@ -236,6 +236,8 @@ describe('MicrophoneInput · pérdida y limpieza', () => {
     h.devices.holdResponse = true;
     const pending = mic.start();
     mic.stop();
+    // El contexto creado en el gesto se cierra de inmediato, sin esperar a la respuesta del permiso.
+    expect(h.context.closed).toBe(true);
     h.devices.release();
     await pending;
     expect(h.devices.stream.track.stopped).toBe(true);
@@ -251,6 +253,51 @@ describe('MicrophoneInput · pérdida y limpieza', () => {
     h.context.analyser.signal = NOTE_SIGNAL;
     h.advance(3200);
     expect(events.filter((event) => event.type === 'on')).toHaveLength(1);
+  });
+});
+
+describe('MicrophoneInput · fallos internos', () => {
+  it('si montar la tubería de audio lanza una excepción, suelta todo y queda «sin-soporte» (sin luz de micrófono)', async () => {
+    const h = new MicHarness();
+    const contexts: FakeMicContext[] = [];
+    const mic = new MicrophoneInput({
+      mediaDevices: h.devices,
+      createContext: () => {
+        const context = new FakeMicContext();
+        context.createAnalyser = () => {
+          throw new Error('sin analizador');
+        };
+        contexts.push(context);
+        return context;
+      },
+      clock: h.clock,
+      timers: h.timers,
+    });
+    await expect(mic.start()).resolves.toBeUndefined();
+    expect(mic.getStatus()).toEqual({ kind: 'sin-soporte' });
+    expect(h.devices.stream.track.stopped).toBe(true);
+    expect(contexts[0]?.closed).toBe(true);
+    expect(h.timers.active).toBe(0);
+  });
+
+  it('un oyente de notas que lanza una excepción no detiene la escucha ni a los demás oyentes', async () => {
+    const { h, mic, events } = await started();
+    mic.subscribe(() => {
+      throw new Error('oyente roto');
+    });
+    h.context.analyser.signal = NOTE_SIGNAL;
+    h.advance(3200);
+    expect(events.filter((event) => event.type === 'on')).toHaveLength(1);
+  });
+
+  it('el reloj de las muestras no deriva: tras varios segundos las notas siguen fechadas con ±40 ms', async () => {
+    const { h, events } = await started();
+    const later = concat(silence(6000), pianoNote(67, { ms: 700 }), silence(800));
+    h.context.analyser.signal = later;
+    h.advance(8200);
+    const on = events.find((event) => event.type === 'on');
+    expect(on?.note).toBe(67);
+    expect(Math.abs((on?.at ?? 0) - (1000 + 6000))).toBeLessThanOrEqual(40);
   });
 });
 

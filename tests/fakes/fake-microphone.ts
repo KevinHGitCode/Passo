@@ -120,9 +120,9 @@ export class FakeMicContext implements MicAudioContextLike {
     };
   }
 
-  createAnalyser(): AnalyserLike {
+  createAnalyser: () => AnalyserLike = () => {
     return this.analyser;
-  }
+  };
 
   addEventListener(_type: 'statechange', listener: () => void): void {
     this.listeners.add(listener);
@@ -195,7 +195,7 @@ export class MicHarness {
   readonly visibility = new FakeVisibility();
   readonly contexts: FakeMicContext[] = [];
 
-  createContext = (): FakeMicContext => {
+  createContext: () => FakeMicContext = () => {
     const context = new FakeMicContext();
     this.contexts.push(context);
     return context;

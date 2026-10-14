@@ -80,6 +80,8 @@ export interface PianoOptions {
   readonly attackMs?: number;
   /** Tiempo de caída de 60 dB de la fundamental, en segundos. */
   readonly t60?: number;
+  /** Ganancia por parcial (índice 0 = fundamental): imita resonancias del altavoz o de la sala. */
+  readonly partialGains?: readonly number[];
   /** Fuerza relativa de la fundamental (0–1): bajarla imita altavoces pequeños. */
   readonly fundamentalGain?: number;
   readonly sampleRate?: number;
@@ -97,6 +99,7 @@ export function pianoNote(midi: number, options: PianoOptions = {}): Float32Arra
     t60 = 4,
     attackMs = 5,
     fundamentalGain = 1,
+    partialGains = [],
     sampleRate = SAMPLE_RATE,
     seed = 1,
   } = options;
@@ -108,7 +111,7 @@ export function pianoNote(midi: number, options: PianoOptions = {}): Float32Arra
   for (let n = 1; n <= partials; n++) {
     const frequency = n * f0 * Math.sqrt(1 + inharmonicity * n * n);
     if (frequency >= nyquist * 0.9) break;
-    const partialAmplitude = (n === 1 ? fundamentalGain : 1) / n;
+    const partialAmplitude = ((n === 1 ? fundamentalGain : 1) * (partialGains[n - 1] ?? 1)) / n;
     const decay = Math.log(1000) / (t60 / Math.max(1, n * 0.6)); // 60 dB = ×1000
     for (let i = 0; i < count; i++) {
       const t = i / sampleRate;

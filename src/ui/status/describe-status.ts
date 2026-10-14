@@ -10,11 +10,80 @@ export interface StatusView {
   readonly short: string;
   readonly title: string;
   readonly text: string;
+  /** Se muestra siempre como chip de una línea (nunca como fila ancha que mueva la pantalla). */
+  readonly compact?: boolean;
   /** Acción que ofrece el estado, si la hay. */
-  readonly action?: { readonly kind: 'retry' | 'unlock'; readonly label: string };
+  readonly action?: {
+    readonly kind: 'retry' | 'start' | 'stop' | 'unlock';
+    readonly label: string;
+  };
+}
+
+function describeMicrophone(status: InputStatus): StatusView {
+  const base = { compact: true, title: 'Micrófono' } as const;
+  switch (status.kind) {
+    case 'inactivo':
+      return {
+        ...base,
+        tone: 'info',
+        short: 'Micrófono apagado',
+        text: 'Passo oye tu piano con el micrófono. El audio se analiza aquí: no se graba ni se envía.',
+        action: { kind: 'start', label: 'Activar' },
+      };
+    case 'iniciando':
+      return {
+        ...base,
+        tone: 'info',
+        short: 'Esperando tu permiso…',
+        text: 'Elige «Permitir» cuando el navegador pregunte.',
+      };
+    case 'conectado':
+      return {
+        ...base,
+        tone: 'ok',
+        short: 'Te escucho',
+        text: `Micrófono: ${status.deviceName}`,
+        action: { kind: 'stop', label: 'Apagar' },
+      };
+    case 'sin-dispositivo':
+      return {
+        ...base,
+        tone: 'warn',
+        short: status.reason === 'ocupado' ? 'Micrófono ocupado' : 'No encuentro micrófono',
+        text:
+          status.reason === 'ocupado'
+            ? 'Otra aplicación usa el micrófono. Ciérrala y reintenta.'
+            : 'Conecta un micrófono o revisa «Sonido» en Windows.',
+        action: { kind: 'retry', label: 'Buscar de nuevo' },
+      };
+    case 'desconectado':
+      return {
+        ...base,
+        tone: 'warn',
+        short: 'Micrófono perdido',
+        text: `Se perdió ${status.deviceName}. Reactívalo para seguir.`,
+        action: { kind: 'start', label: 'Reactivar' },
+      };
+    case 'permiso-denegado':
+      return {
+        ...base,
+        tone: 'warn',
+        short: 'Micrófono bloqueado',
+        text: 'El navegador bloqueó el micrófono. Pulsa el candado de la barra de direcciones y permite «Micrófono».',
+        action: { kind: 'retry', label: 'Reintentar' },
+      };
+    case 'sin-soporte':
+      return {
+        ...base,
+        tone: 'warn',
+        short: 'Micrófono no disponible',
+        text: 'Este navegador no permite usar el micrófono. Usa Chrome o Edge.',
+      };
+  }
 }
 
 export function describeInputStatus(source: InputSource, status: InputStatus): StatusView {
+  if (source === 'microfono') return describeMicrophone(status);
   if (source === 'teclado-pc') {
     return {
       tone: 'ok',
@@ -24,6 +93,13 @@ export function describeInputStatus(source: InputSource, status: InputStatus): S
     };
   }
   switch (status.kind) {
+    case 'inactivo':
+      return {
+        tone: 'info',
+        short: 'Piano MIDI apagado',
+        title: 'Piano MIDI',
+        text: 'La entrada MIDI no está activa.',
+      };
     case 'iniciando':
       return {
         tone: 'info',

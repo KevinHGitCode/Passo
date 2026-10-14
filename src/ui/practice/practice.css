@@ -420,6 +420,14 @@
 .chip--ok .status__dot {
   background: var(--ok);
 }
+.chip--warn {
+  color: var(--err-strong);
+  background: var(--err-soft);
+  border-color: var(--err);
+}
+.chip--warn .status__dot {
+  background: var(--err);
+}
 .chip--info .status__dot {
   background: var(--text-muted);
 }

@@ -22,7 +22,7 @@ function StatusItem({
   readonly onAction: () => void;
   readonly testId: string;
 }) {
-  if (view.tone === 'warn') {
+  if (view.tone === 'warn' && !view.compact) {
     return (
       <div className="status status--warn" data-testid={testId} data-tone="warn" role="alert">
         <span className="status__dot" aria-hidden="true" />
@@ -60,11 +60,12 @@ function InputStatusItem({ input }: { readonly input: NoteInput }) {
     (onChange) => input.subscribeStatus(onChange),
     () => input.getStatus(),
   );
+  const view = describeInputStatus(input.source, status);
   return (
     <StatusItem
-      view={describeInputStatus(input.source, status)}
+      view={view}
       testId={`status-${input.source}`}
-      onAction={() => void input.start()}
+      onAction={() => (view.action?.kind === 'stop' ? input.stop() : void input.start())}
     />
   );
 }

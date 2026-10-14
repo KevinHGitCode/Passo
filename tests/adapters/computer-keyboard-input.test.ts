@@ -58,6 +58,12 @@ describe('mapa del teclado del PC', () => {
     expect(nombres).toEqual(['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5']);
   });
 
+  it('la fila de abajo (Z X C V B N M) es la mano izquierda: Do3 a Si3, solo blancas', () => {
+    const fila = ['KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyB', 'KeyN', 'KeyM'];
+    const nombres = fila.map((code) => noteName(KEYBOARD_NOTE_MAP[code] as number, 'americana'));
+    expect(nombres).toEqual(['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3']);
+  });
+
   it('no repite números MIDI', () => {
     const values = Object.values(KEYBOARD_NOTE_MAP);
     expect(new Set(values).size).toBe(values.length);
@@ -78,7 +84,7 @@ describe('ComputerKeyboardInput', () => {
   it('ignora repeticiones del sistema, teclas fuera del mapa y combinaciones con modificadores', async () => {
     const { target, events } = await setup();
     target.key('keydown', 'KeyA', { repeat: true });
-    target.key('keydown', 'KeyZ');
+    target.key('keydown', 'KeyQ');
     target.key('keydown', 'KeyS', { ctrlKey: true });
     target.key('keydown', 'KeyD', { altKey: true });
     target.key('keydown', 'KeyF', { metaKey: true });

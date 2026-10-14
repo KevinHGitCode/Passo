@@ -206,9 +206,9 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
       this.setUp(context, stream);
     } catch {
       // Un flujo sin pistas o un contexto que falla: se suelta todo y se informa, sin dejar la luz del micrófono encendida.
+      this.release();
       stream.getAudioTracks().forEach((track) => track.stop());
       void context.close().catch(() => undefined);
-      this.capture = null;
       this.setStatus({ kind: 'sin-soporte' });
     }
   }
@@ -367,7 +367,7 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
   private publishOff(): void {
     this.lastHeard = null;
     this.monitor = SILENT_MONITOR;
-    this.monitorHandlers.forEach((handler) => handler(this.monitor));
+    this.notify(this.monitorHandlers, this.monitor);
   }
 
   private currentPhase(): ListenPhase {
@@ -415,11 +415,22 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
     if (!force && changed && now - this.lastPublishAt < 8) return;
     this.lastPublishAt = now;
     this.monitor = next;
-    this.monitorHandlers.forEach((handler) => handler(next));
+    this.notify(this.monitorHandlers, next);
+  }
+
+  /** Un oyente que falla no debe impedir que los demás se enteren ni dejar la escucha a medias. */
+  private notify<T>(handlers: ReadonlySet<(value: T) => void>, value: T): void {
+    for (const handler of handlers) {
+      try {
+        handler(value);
+      } catch {
+        // Se ignora: el fallo es del oyente, no de la escucha.
+      }
+    }
   }
 
   private setStatus(status: InputStatus): void {
     this.status = status;
-    this.statusHandlers.forEach((handler) => handler(status));
+    this.notify(this.statusHandlers, status);
   }
 }

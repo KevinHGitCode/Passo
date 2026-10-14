@@ -280,6 +280,23 @@ describe('MicrophoneInput · fallos internos', () => {
     expect(h.timers.active).toBe(0);
   });
 
+  it('un oyente de estado o de monitor que lanza no deja la escucha a medias ni sin apagar', async () => {
+    const { h, mic } = build();
+    mic.subscribeStatus(() => {
+      throw new Error('oyente de estado roto');
+    });
+    mic.subscribeMonitor(() => {
+      throw new Error('oyente de monitor roto');
+    });
+    await mic.start();
+    expect(mic.getStatus().kind).toBe('conectado');
+    mic.stop();
+    expect(mic.getStatus()).toEqual({ kind: 'inactivo' });
+    expect(h.timers.active).toBe(0);
+    expect(h.visibility.listenerCount()).toBe(0);
+    expect(h.devices.stream.track.stopped).toBe(true);
+  });
+
   it('un oyente de notas que lanza una excepción no detiene la escucha ni a los demás oyentes', async () => {
     const { h, mic, events } = await started();
     mic.subscribe(() => {

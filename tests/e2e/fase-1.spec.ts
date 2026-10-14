@@ -165,8 +165,8 @@ test('Fase 1 · escucha activa con micrófono simulado: ronda completa (video pr
   await test.step('Dos teclas a la vez no cuentan como error', async () => {
     const errorsBefore = await errorCount(page);
     const target = await targetNote(page);
-    await micNote(page, target, { ms: 900 });
-    await micNote(page, target + 7, { ms: 900 });
+    await micNote(page, target, { ms: 900, amp: 0.14 });
+    await micNote(page, target + 7, { ms: 900, amp: 0.14 });
     await pause(page, 1600);
     expect(await errorCount(page)).toBe(errorsBefore);
     await micCapture(page, '08-dos-teclas-no-es-error');
@@ -305,50 +305,67 @@ test('Fase 1 · navegador sin micrófono', async ({ page }) => {
   await micCapture(page, '23-sin-soporte-microfono');
 });
 
-test('Fase 1 · el teclado no se mueve entre estados (estabilidad visual)', async ({ page }) => {
-  await page.addInitScript(FAKE_MIC_SCRIPT);
-  const tops: Record<string, number> = {};
+for (const size of [
+  { width: 1280, height: 800 },
+  { width: 1366, height: 650 },
+]) {
+  test.describe(`estabilidad ${size.width}×${size.height}`, () => {
+    test.use({ viewport: size });
 
-  await page.goto('/?seed=7');
-  tops['apagado'] = await keyboardTop(page);
+    test(`Fase 1 · el teclado no se mueve entre estados (${size.width}×${size.height})`, async ({
+      page,
+    }) => {
+      await page.addInitScript(FAKE_MIC_SCRIPT);
+      const tops: Record<string, number> = {};
 
-  await micSetMode(page, 'denied');
-  await page.getByTestId('activate-mic').click();
-  await expect(page.getByTestId('mic-panel')).toHaveAttribute('data-state', 'permiso-denegado');
-  tops['denegado'] = await keyboardTop(page);
+      await page.goto('/?seed=7');
+      tops['apagado'] = await keyboardTop(page);
 
-  await micSetMode(page, 'notfound');
-  await page.getByTestId('retry-mic').click();
-  await expect(page.getByTestId('mic-panel')).toHaveAttribute('data-state', 'sin-dispositivo');
-  tops['sin-dispositivo'] = await keyboardTop(page);
+      await micSetMode(page, 'denied');
+      await page.getByTestId('activate-mic').click();
+      await expect(page.getByTestId('mic-panel')).toHaveAttribute('data-state', 'permiso-denegado');
+      tops['denegado'] = await keyboardTop(page);
 
-  await micSetMode(page, 'ok');
-  await page.getByTestId('retry-mic').click();
-  await expect(page.getByTestId('mic-panel')).toHaveAttribute('data-state', 'calibrando');
-  tops['calibrando'] = await keyboardTop(page);
-  await waitListening(page);
-  tops['listo'] = await keyboardTop(page);
+      await micSetMode(page, 'notfound');
+      await page.getByTestId('retry-mic').click();
+      await expect(page.getByTestId('mic-panel')).toHaveAttribute('data-state', 'sin-dispositivo');
+      tops['sin-dispositivo'] = await keyboardTop(page);
 
-  await page.getByTestId('start').click();
-  await expect(page.getByTestId('target')).toBeVisible();
-  tops['ronda'] = await keyboardTop(page);
+      await micSetMode(page, 'ok');
+      await page.getByTestId('retry-mic').click();
+      await expect(page.getByTestId('mic-panel')).toHaveAttribute('data-state', 'calibrando');
+      tops['calibrando'] = await keyboardTop(page);
+      await waitListening(page);
+      tops['listo'] = await keyboardTop(page);
 
-  await micNote(page, (await targetNote(page)) + 3, { ms: 500 });
-  await expect(page.getByTestId('feedback')).toHaveAttribute('data-tone', 'error', {
-    timeout: 4000,
+      await page.getByTestId('start').click();
+      await expect(page.getByTestId('target')).toBeVisible();
+      tops['ronda'] = await keyboardTop(page);
+
+      await micNote(page, (await targetNote(page)) + 3, { ms: 500 });
+      await expect(page.getByTestId('feedback')).toHaveAttribute('data-tone', 'error', {
+        timeout: 4000,
+      });
+      tops['error'] = await keyboardTop(page);
+
+      await micEndTrack(page);
+      await expect(page.locator('.paused')).toBeVisible();
+      tops['pausa'] = await keyboardTop(page);
+      // También con la ronda terminada y la bienvenida de nuevo no debe moverse (se mide arriba).
+
+      writeFileSync(
+        join(MIC_EVIDENCE_DIR, `estabilidad-visual-${size.width}x${size.height}.json`),
+        JSON.stringify(tops, null, 2),
+      );
+      const reference = tops['apagado'] as number;
+      for (const [state, top] of Object.entries(tops)) {
+        expect(Math.abs(top - reference), `el teclado se movió en «${state}»`).toBeLessThanOrEqual(
+          1,
+        );
+      }
+    });
   });
-  tops['error'] = await keyboardTop(page);
-
-  await micEndTrack(page);
-  await expect(page.locator('.paused')).toBeVisible();
-  tops['pausa'] = await keyboardTop(page);
-
-  writeFileSync(join(MIC_EVIDENCE_DIR, 'estabilidad-visual.json'), JSON.stringify(tops, null, 2));
-  const reference = tops['apagado'] as number;
-  for (const [state, top] of Object.entries(tops)) {
-    expect(Math.abs(top - reference), `el teclado se movió en «${state}»`).toBeLessThanOrEqual(1);
-  }
-});
+}
 
 test('Fase 1 · móvil y daltonismo con escucha activa', async ({ browser }) => {
   const mobile = await browser.newContext({

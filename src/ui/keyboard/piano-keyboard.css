@@ -1,5 +1,6 @@
 .piano {
   display: block;
+  overflow: visible; /* el anillo de la nota oída no se recorta en los bordes */
   width: 100%;
   height: auto;
   /* En pantallas de poca altura el teclado se encoge para que quepa con el resto del tablero. */

@@ -67,6 +67,12 @@ export function DebugPanel({
       <span>máx {format(stats.max)}</span>
       <span>Audio (salida est.) {format(audioLatency)}</span>
       {microphone && (
+        <span data-testid="debug-listen-stats">
+          Oído en la ronda: alta {snapshot.listenStats.alta} · media {snapshot.listenStats.media} ·
+          dudosas {snapshot.listenStats.dudoso} · ecos {snapshot.listenStats.eco}
+        </span>
+      )}
+      {microphone && (
         <span data-testid="debug-mic">
           Micrófono: {monitor.phase} · nivel {monitor.level.toFixed(2)}
           {monitor.heard ? ` · oigo ${monitor.heard.midi} (${monitor.heard.cents} cents)` : ''}

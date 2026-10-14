@@ -323,3 +323,42 @@ describe('Revisión de la Fase 1 (interfaz)', () => {
     expect(screen.getByTestId('status-microfono').textContent).toContain('Te escucho');
   });
 });
+
+describe('panel ?debug', () => {
+  it('muestra el reparto de lo oído (alta, media, dudosas y ecos) para ajustar umbrales', async () => {
+    const { DebugPanel } = await import('@/ui/debug/DebugPanel');
+    const mic = new FakeMicInput();
+    const session = new PracticeSession({
+      inputs: [mic],
+      audio: { noteOn: () => undefined, noteOff: () => undefined },
+      clock: new FakeClock(0),
+      rng: createSeededRng(4),
+      config: { ...LEVEL_1_CONFIG, roundSize: 5 },
+    });
+    session.start();
+    const target = session.getSnapshot().exercise?.target ?? 60;
+    render(
+      <DebugPanel
+        session={session}
+        microphone={mic}
+        audio={{
+          getStatus: () => 'listo',
+          subscribeStatus: () => () => undefined,
+          unlock: () => Promise.resolve(),
+        }}
+      />,
+    );
+    act(() =>
+      mic.emitEvent({
+        type: 'on',
+        note: target,
+        velocity: 70,
+        at: 100,
+        source: 'microfono',
+        confidence: 'alta',
+      }),
+    );
+    expect(screen.getByTestId('debug-listen-stats').textContent).toContain('alta 1');
+    expect(screen.getByTestId('debug-listen-stats').textContent).toContain('media 0');
+  });
+});

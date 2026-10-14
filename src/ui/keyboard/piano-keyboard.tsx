@@ -84,7 +84,7 @@ export function PianoKeyboard({
   return (
     <svg
       className="piano"
-      viewBox={`${viewX} 0 ${viewWidth} ${WHITE_HEIGHT + 4}`}
+      viewBox={`${viewX} -2 ${viewWidth} ${WHITE_HEIGHT + 6}`}
       preserveAspectRatio="xMidYMid meet"
       role="img"
       aria-label={ariaLabel}
@@ -136,6 +136,15 @@ export function PianoKeyboard({
           </g>
         );
       })}
+      {/* Anillos de nota oída: se dibujan al final para que ninguna tecla los tape. */}
+      {ordered.map((key) =>
+        visuals?.get(key.midi)?.heard ? (
+          <g key={`heard-${key.midi}`} aria-hidden="true" pointerEvents="none">
+            <path d={keyPath(key.x, key.width, key.height)} className="key__heard-halo" />
+            <path d={keyPath(key.x, key.width, key.height)} className="key__heard-ring" />
+          </g>
+        ) : null,
+      )}
     </svg>
   );
 }

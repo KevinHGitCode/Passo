@@ -69,12 +69,32 @@ export function feedbackMessage(
         detail: `Era ${name(outcome.attempt.targetMidi)}, ${verb} ${name(outcome.attempt.playedMidi)} · ${describeMistake(outcome.attempt.targetMidi, outcome.attempt.playedMidi, notation)}`,
       };
     }
-    case 'dudoso':
+    case 'dudoso': {
+      const heard = name(outcome.heardMidi);
+      if (outcome.reason === 'octava') {
+        const octaves = Math.abs(outcome.heardMidi - outcome.targetMidi) / 12;
+        const amount = octaves === 1 ? 'una octava' : `${octaves} octavas`;
+        const direction = outcome.heardMidi > outcome.targetMidi ? 'arriba' : 'abajo';
+        return {
+          tone: 'neutral',
+          title: 'No te oí bien',
+          detail: `Oí ${heard}: es un ${pitchName(outcome.targetMidi, notation)}, pero ${amount} más ${direction}. No cuenta como error: si tocaste ${name(outcome.targetMidi)}, repítelo.`,
+        };
+      }
+      if (outcome.reason === 'lejana') {
+        return {
+          tone: 'neutral',
+          title: 'No te oí bien',
+          detail:
+            'Oí un sonido que no encaja con la nota pedida. No cuenta como error: toca solo la tecla pedida y mantenla un segundo.',
+        };
+      }
       return {
         tone: 'neutral',
         title: 'No te oí bien',
-        detail: `Oí algo como ${name(outcome.heardMidi)}. Toca una sola tecla y déjala sonar.`,
+        detail: `Oí algo como ${heard}. No cuenta como error: vuelve a tocarla y mantenla un segundo.`,
       };
+    }
     case 'ronda-completa':
       return {
         tone: 'done',

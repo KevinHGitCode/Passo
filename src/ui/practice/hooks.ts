@@ -13,14 +13,19 @@ export function useSessionSnapshot(session: PracticeSession): SessionSnapshot {
   return useSyncExternalStore(session.subscribe, session.getSnapshot);
 }
 
-const FEEDBACK_VISIBLE_MS = { correct: 700, error: 1600 } as const;
+const FEEDBACK_VISIBLE_MS = { correct: 700, error: 1600, dudoso: 3000 } as const;
 
 /** Devuelve el feedback solo durante un rato (breve si acertó, más largo si falló). */
 export function useRecentFeedback(feedback: SessionFeedback | null): SessionFeedback | null {
   const [expiredId, setExpiredId] = useState(0);
   const id = feedback?.id ?? 0;
+  const kind = feedback?.outcome.kind;
   const duration =
-    feedback?.outcome.kind === 'error' ? FEEDBACK_VISIBLE_MS.error : FEEDBACK_VISIBLE_MS.correct;
+    kind === 'error'
+      ? FEEDBACK_VISIBLE_MS.error
+      : kind === 'dudoso'
+        ? FEEDBACK_VISIBLE_MS.dudoso
+        : FEEDBACK_VISIBLE_MS.correct;
 
   useEffect(() => {
     if (id === 0) return undefined;

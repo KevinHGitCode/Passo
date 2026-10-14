@@ -10,9 +10,11 @@ export function hintText(hint: TrackerHint): string {
     case 'saturado':
       return 'Suena muy fuerte y se distorsiona. Baja el volumen del piano o aleja el portátil.';
     case 'debil':
-      return 'Casi no te oigo. Toca más fuerte o acerca el portátil al teclado.';
+      return 'Casi no te oigo. Toca más fuerte, acerca el portátil al teclado y comprueba que el piano suena por sus altavoces (sin auriculares).';
     case 'confuso':
       return 'Te oigo, pero no distingo la nota. Toca una sola tecla y déjala sonar un momento.';
+    case 'sin-senal':
+      return 'No llega sonido del micrófono. Comprueba que no esté silenciado.';
     case 'ruidoso':
       return 'Hay bastante ruido; puede fallar. Busca un lugar más silencioso.';
   }
@@ -22,11 +24,11 @@ export function hintText(hint: TrackerHint): string {
 export function monitorNotice(monitor: MonitorSnapshot): string | null {
   if (monitor.hint) return hintText(monitor.hint);
   if (monitor.degraded) {
-    return 'Tu navegador aplica filtros de audio al micrófono; puede fallar con notas largas.';
+    return 'Windows puede estar aplicando «Mejoras de audio» al micrófono; desactívalas en Sonido › Propiedades del micrófono.';
   }
   if (monitor.tuningOffsetCents !== null && Math.abs(monitor.tuningOffsetCents) >= 25) {
     const sign = monitor.tuningOffsetCents > 0 ? '+' : '−';
-    return `Tu teclado suena ~${sign}${Math.abs(monitor.tuningOffsetCents)} cents fuera de 440 Hz: revisa «Tuning» en el piano.`;
+    return `Tu teclado suena ~${sign}${Math.abs(monitor.tuningOffsetCents)} cents (centésimas de semitono) fuera de 440 Hz: revisa «Tuning» en el piano.`;
   }
   return null;
 }
@@ -50,7 +52,7 @@ export function checkMessage(
   if (heard === null) {
     return {
       tone: 'espera',
-      text: `Toca el ${pitchName(expected, notation)} central de tu piano y déjalo sonar un momento.`,
+      text: `Toca el ${pitchName(expected, notation)} central (el tercer ${pitchName(expected, notation)} desde la izquierda en un teclado de 61 teclas) y déjalo sonar un momento.`,
     };
   }
   const name = noteName(heard, notation);
@@ -65,6 +67,6 @@ export function checkMessage(
   }
   return {
     tone: 'otra',
-    text: `Oigo ${name}, ${describeSemitones(heard - expected)} que el Do central. ¿Tu teclado está transpuesto? Revisa «Transpose» en el piano.`,
+    text: `Oigo ${name}, ${describeSemitones(heard - expected)} que el Do central. Si tocaste el Do central, tu teclado puede estar transpuesto: revisa «Transpose» en el piano.`,
   };
 }

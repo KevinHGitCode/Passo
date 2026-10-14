@@ -71,4 +71,24 @@ describe('PianoKeyboard', () => {
     expect(x).toBe(7 * 24);
     expect(width).toBe(8 * 24);
   });
+
+  it('la nota oída se marca con un anillo con halo dibujado al final (no queda tapado por otra tecla)', () => {
+    const visuals = new Map<number, KeyVisual>([[62, { heard: true }]]);
+    const { container } = render(
+      <PianoKeyboard from={60} to={72} visuals={visuals} ariaLabel="Teclado" />,
+    );
+    expect(container.querySelectorAll('.key__heard-ring')).toHaveLength(1);
+    expect(container.querySelectorAll('.key__heard-halo')).toHaveLength(1);
+    const svg = container.querySelector('svg');
+    const lastChild = svg?.lastElementChild;
+    expect(lastChild?.querySelector('.key__heard-ring')).not.toBeNull();
+    expect(keyElement(container, 62).classList.contains('key--heard')).toBe(true);
+    expect(keyElement(container, 62).querySelector('.key__heard-dot')).not.toBeNull();
+  });
+
+  it('el viewBox deja margen arriba para que el borde superior de las teclas no se recorte', () => {
+    const { getByTestId } = render(<PianoKeyboard from={60} to={72} ariaLabel="Teclado" />);
+    const [, y] = (getByTestId('piano').getAttribute('viewBox') ?? '').split(' ').map(Number);
+    expect(y).toBeLessThan(0);
+  });
 });

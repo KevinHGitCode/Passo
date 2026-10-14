@@ -38,9 +38,17 @@ function setup(options: { withPc?: boolean } = {}) {
       canStartWithoutMic={options.withPc === true}
     />,
   );
+  let atCounter = 0;
   const hear = (note: number, confidence: NoteConfidence = 'alta') =>
     act(() =>
-      mic.emitEvent({ type: 'on', note, velocity: 70, at: 100, source: 'microfono', confidence }),
+      mic.emitEvent({
+        type: 'on',
+        note,
+        velocity: 70,
+        at: (atCounter += 2000),
+        source: 'microfono',
+        confidence,
+      }),
     );
   const targetMidi = () => Number(screen.getByTestId('target-note').dataset['midi']);
   return { mic, pc, session, hear, targetMidi };
@@ -194,10 +202,12 @@ describe('Escucha activa durante la ronda', () => {
     expect(screen.getByTestId('meter').querySelector('.meter__fill--clip')).not.toBeNull();
   });
 
-  it('tres errores iguales avisan de un posible teclado transpuesto', () => {
+  it('errores iguales sobre notas pedidas distintas avisan de un posible teclado transpuesto', () => {
     const { hear, targetMidi } = startRound();
     hear(targetMidi() + 2);
+    hear(targetMidi());
     hear(targetMidi() + 2);
+    hear(targetMidi());
     hear(targetMidi() + 2);
     act(() => vi.advanceTimersByTime(3000));
     expect(screen.getByTestId('stage-idle').textContent).toContain('transpuesto 2 semitonos');
@@ -206,7 +216,7 @@ describe('Escucha activa durante la ronda', () => {
 
 describe('mensajes de escucha', () => {
   it('hay un texto para cada aviso', () => {
-    for (const hint of ['saturado', 'debil', 'confuso', 'ruidoso'] as const) {
+    for (const hint of ['saturado', 'debil', 'confuso', 'ruidoso', 'sin-senal'] as const) {
       expect(hintText(hint).length).toBeGreaterThan(20);
     }
   });
@@ -214,7 +224,7 @@ describe('mensajes de escucha', () => {
   it('monitorNotice da prioridad al aviso, luego a filtros del navegador y a la desafinación', () => {
     const base = { ...SILENT_MONITOR, phase: 'escuchando' as const };
     expect(monitorNotice({ ...base, hint: 'debil', degraded: true })).toContain('Casi no te oigo');
-    expect(monitorNotice({ ...base, degraded: true })).toContain('filtros de audio');
+    expect(monitorNotice({ ...base, degraded: true })).toContain('Mejoras de audio');
     expect(monitorNotice({ ...base, tuningOffsetCents: -30 })).toContain('−30 cents');
     expect(monitorNotice({ ...base, tuningOffsetCents: 10 })).toBeNull();
   });
@@ -225,5 +235,80 @@ describe('mensajes de escucha', () => {
     expect(checkMessage(48, 'latina').text).toContain('una octava más abajo');
     expect(checkMessage(84, 'latina').text).toContain('2 octavas más arriba');
     expect(checkMessage(61, 'latina').text).toContain('1 semitono más agudo');
+  });
+});
+
+describe('Revisión de la Fase 1 (interfaz)', () => {
+  function ready() {
+    const parts = setup();
+    act(() => parts.mic.makeReady());
+    fireEvent.click(screen.getByTestId('start'));
+    return parts;
+  }
+
+  it('«No te oí bien» se queda 3 s para poder leerse (un acierto solo 0,7 s)', () => {
+    const { hear, targetMidi } = ready();
+    hear(targetMidi() === 60 ? 62 : 60, 'media');
+    act(() => vi.advanceTimersByTime(2000));
+    expect(screen.queryByTestId('feedback')).not.toBeNull();
+    act(() => vi.advanceTimersByTime(1500));
+    expect(screen.queryByTestId('feedback')).toBeNull();
+  });
+
+  it('otra octava con confianza alta se muestra neutra y explicada, no como error', () => {
+    const { hear, targetMidi } = ready();
+    hear(targetMidi() + 12, 'alta');
+    const feedback = screen.getByTestId('feedback');
+    expect(feedback.dataset['tone']).toBe('neutral');
+    expect(feedback.textContent).toContain('una octava más arriba');
+    expect(feedback.textContent).toContain('No cuenta como error');
+    expect(screen.getByTestId('counters').textContent).toContain('Errores 0');
+  });
+
+  it('la pausa por micrófono perdido se anuncia con su motivo', () => {
+    const { mic } = ready();
+    act(() => mic.setStatus({ kind: 'desconectado', deviceName: 'Micro' }));
+    expect(screen.getByTestId('live').textContent).toContain('Se perdió el micrófono');
+  });
+
+  it('el foco pasa al título del panel cuando cambia el estado del micrófono (el botón pulsado desaparece)', () => {
+    const { mic } = setup();
+    act(() => mic.setStatus({ kind: 'iniciando' }));
+    expect(document.activeElement?.tagName).toBe('H2');
+    expect(document.activeElement?.textContent).toContain('Esperando tu permiso');
+  });
+
+  it('la comprobación del Do central se anuncia (role=status) y explica dónde está el Do central', () => {
+    const { mic } = setup();
+    act(() => mic.makeReady());
+    const check = screen.getByTestId('mic-check');
+    expect(check.getAttribute('role')).toBe('status');
+    expect(check.textContent).toContain('tercer Do desde la izquierda');
+  });
+
+  it('el chip del micrófono dice «Midiendo ruido…» y «Escucha en pausa» según la fase', async () => {
+    const { StatusZone } = await import('@/ui/status/StatusZone');
+    const mic = new FakeMicInput();
+    act(() => {
+      mic.setStatus({ kind: 'conectado', deviceName: 'Micro' });
+      mic.setMonitor({ phase: 'calibrando', calibration: 0.3 });
+    });
+    render(
+      <StatusZone
+        inputs={[mic]}
+        microphone={mic}
+        showAudio={false}
+        audio={{
+          getStatus: () => 'listo',
+          subscribeStatus: () => () => undefined,
+          unlock: () => Promise.resolve(),
+        }}
+      />,
+    );
+    expect(screen.getByTestId('status-microfono').textContent).toContain('Midiendo ruido');
+    act(() => mic.setMonitor({ phase: 'suspendido' }));
+    expect(screen.getByTestId('status-microfono').textContent).toContain('Escucha en pausa');
+    act(() => mic.setMonitor({ phase: 'escuchando' }));
+    expect(screen.getByTestId('status-microfono').textContent).toContain('Te escucho');
   });
 });

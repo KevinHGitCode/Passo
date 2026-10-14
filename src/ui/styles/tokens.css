@@ -39,7 +39,7 @@
   --key-target: #3454d1;
   --key-target-edge: #1d338f;
   --key-heard: #7c3aed;
-  --meter-track: var(--surface-2);
+  --meter-track: color-mix(in srgb, var(--text) 14%, var(--surface-2));
   --meter-fill: var(--accent);
   --meter-gate: var(--text-muted);
   --meter-clip: var(--err);

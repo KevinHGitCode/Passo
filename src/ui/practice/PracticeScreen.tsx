@@ -64,7 +64,7 @@ function Icon({ tone }: { readonly tone: FeedbackMessage['tone'] }) {
 /** Texto para lectores de pantalla. Incluye el nº de errores para que dos errores iguales se anuncien. */
 function liveMessage(snapshot: SessionSnapshot): string {
   const { exercise, feedback, notation } = snapshot;
-  if (snapshot.phase === 'pausada') return 'Ronda en pausa';
+  if (snapshot.phase === 'pausada') return `Ronda en pausa. ${pauseText(snapshot)}`;
   if (!exercise) return '';
   const target = noteName(exercise.target, notation);
   if (!feedback) return `Toca ${target}`;
@@ -86,8 +86,8 @@ function pauseText(snapshot: SessionSnapshot): string {
 
 function transpositionText(semitones: number): string {
   const count = Math.abs(semitones);
-  const unit = count === 1 ? 'semitono' : 'semitonos';
-  return `Parece que tu teclado está transpuesto ${count} ${unit} (${semitones > 0 ? 'más agudo' : 'más grave'}). Revisa «Transpose» en el piano.`;
+  const amount = count === 12 ? 'una octava' : `${count} ${count === 1 ? 'semitono' : 'semitonos'}`;
+  return `Parece que tu teclado está transpuesto ${amount} (${semitones > 0 ? 'más agudo' : 'más grave'}). Revisa «Transpose» en el piano.`;
 }
 
 function Summary({

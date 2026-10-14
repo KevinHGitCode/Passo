@@ -75,9 +75,31 @@ describe('feedbackMessage · entrada por micrófono', () => {
   });
 
   it('una nota dudosa es neutra y pide tocar una sola tecla', () => {
-    const message = feedbackMessage({ kind: 'dudoso', heardMidi: 64 }, 'latina');
+    const message = feedbackMessage(
+      { kind: 'dudoso', heardMidi: 64, targetMidi: 62, reason: 'poca-confianza' },
+      'latina',
+    );
     expect(message.tone).toBe('neutral');
     expect(message.detail).toContain('Mi4');
+    expect(message.detail).toContain('No cuenta como error');
+  });
+
+  it('si se oyó otra octava lo explica y dice que no cuenta como error', () => {
+    const message = feedbackMessage(
+      { kind: 'dudoso', heardMidi: 74, targetMidi: 62, reason: 'octava' },
+      'latina',
+    );
+    expect(message.detail).toContain('Oí Re5');
+    expect(message.detail).toContain('una octava más arriba');
+    expect(message.detail).toContain('No cuenta como error');
+  });
+
+  it('un sonido que no encaja pide tocar solo la tecla pedida', () => {
+    const message = feedbackMessage(
+      { kind: 'dudoso', heardMidi: 40, targetMidi: 62, reason: 'lejana' },
+      'latina',
+    );
+    expect(message.detail).toContain('solo la tecla pedida');
   });
 });
 

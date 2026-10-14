@@ -119,9 +119,17 @@
 }
 
 /* Nota oída por el micrófono: anillo y punto (no cambia el relleno, convive con objetivo/acierto/error). */
-.key--heard .key__shape {
+.key__heard-halo {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 6;
+  stroke-linejoin: round;
+}
+.key__heard-ring {
+  fill: none;
   stroke: var(--key-heard);
-  stroke-width: 3;
+  stroke-width: 3.2;
+  stroke-linejoin: round;
 }
 .key__heard-dot {
   fill: var(--key-heard);

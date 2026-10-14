@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useEffect, useRef } from 'react';
 import type { NotationMode } from '@/core/domain/note';
 import type { MonitorSnapshot } from '@/core/ports/input-monitor';
 import type { InputStatus } from '@/core/ports/note-input';
@@ -27,13 +28,25 @@ export function MicPanel({
   const check = checkMessage(monitor.heard?.midi ?? null, notation);
   const state = status.kind === 'conectado' ? monitor.phase : status.kind;
 
+  // Al cambiar de estado el botón pulsado desaparece: el foco pasa al título (que se anuncia).
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const previousState = useRef(state);
+  useEffect(() => {
+    if (previousState.current === state) return;
+    previousState.current = state;
+    const active = document.activeElement;
+    if (active === null || active === document.body) {
+      titleRef.current?.focus({ preventScroll: true });
+    }
+  }, [state]);
+
   let title = 'Passo escucha tu piano';
   let body: ReactNode = (
     <>
       <p className="mic-panel__text">
         Passo oye tu piano con el micrófono del portátil. El audio se analiza aquí: no se graba ni
         se envía. Cuando el navegador pregunte, elige «Permitir». Pon el portátil a unos 50 cm del
-        teclado.
+        teclado; el piano debe sonar por sus altavoces (sin auriculares).
       </p>
       <button
         type="button"
@@ -129,7 +142,7 @@ export function MicPanel({
     title = 'Te escucho';
     body = (
       <>
-        <p className={`check check--${check.tone}`} data-testid="mic-check">
+        <p className={`check check--${check.tone}`} data-testid="mic-check" role="status">
           {check.text}
         </p>
         <button
@@ -146,7 +159,7 @@ export function MicPanel({
 
   return (
     <div className="welcome mic-panel" data-testid="mic-panel" data-state={state}>
-      <h2 className="welcome__title" tabIndex={-1}>
+      <h2 className="welcome__title" tabIndex={-1} ref={titleRef}>
         {title}
       </h2>
       {body}

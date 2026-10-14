@@ -36,7 +36,9 @@ export function App({
         session={session}
         theme={theme}
         onCycleTheme={cycleTheme}
-        statusZone={<StatusZone inputs={inputs} audio={audio} showAudio={showSound} />}
+        statusZone={
+          <StatusZone inputs={inputs} audio={audio} microphone={microphone} showAudio={showSound} />
+        }
         pcKeysHint={pcKeysHint}
         microphone={microphone}
         canStartWithoutMic={canStartWithoutMic}

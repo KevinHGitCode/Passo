@@ -1,5 +1,6 @@
 import type { InputSource } from '@/core/domain/note-event';
 import type { AudioStatus } from '@/core/ports/audio-control';
+import type { MonitorSnapshot } from '@/core/ports/input-monitor';
 import type { InputStatus } from '@/core/ports/note-input';
 
 export type StatusTone = 'ok' | 'info' | 'warn';
@@ -19,7 +20,7 @@ export interface StatusView {
   };
 }
 
-function describeMicrophone(status: InputStatus): StatusView {
+function describeMicrophone(status: InputStatus, monitor?: MonitorSnapshot): StatusView {
   const base = { compact: true, title: 'Micrófono' } as const;
   switch (status.kind) {
     case 'inactivo':
@@ -38,6 +39,22 @@ function describeMicrophone(status: InputStatus): StatusView {
         text: 'Elige «Permitir» cuando el navegador pregunte.',
       };
     case 'conectado':
+      if (monitor?.phase === 'calibrando') {
+        return {
+          ...base,
+          tone: 'info',
+          short: 'Midiendo ruido…',
+          text: 'Guarda silencio un momento: mido el ruido de la habitación.',
+        };
+      }
+      if (monitor?.phase === 'suspendido') {
+        return {
+          ...base,
+          tone: 'info',
+          short: 'Escucha en pausa',
+          text: 'Vuelve a esta pestaña para seguir escuchando.',
+        };
+      }
       return {
         ...base,
         tone: 'ok',
@@ -82,8 +99,12 @@ function describeMicrophone(status: InputStatus): StatusView {
   }
 }
 
-export function describeInputStatus(source: InputSource, status: InputStatus): StatusView {
-  if (source === 'microfono') return describeMicrophone(status);
+export function describeInputStatus(
+  source: InputSource,
+  status: InputStatus,
+  monitor?: MonitorSnapshot,
+): StatusView {
+  if (source === 'microfono') return describeMicrophone(status, monitor);
   if (source === 'teclado-pc') {
     return {
       tone: 'ok',

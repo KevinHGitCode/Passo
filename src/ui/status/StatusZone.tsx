@@ -1,12 +1,16 @@
 import { useSyncExternalStore } from 'react';
 import type { AudioControl } from '@/core/ports/audio-control';
+import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { NoteInput } from '@/core/ports/note-input';
+import { useMonitor } from '../practice/hooks';
 import { describeAudioStatus, describeInputStatus } from './describe-status';
 import type { StatusView } from './describe-status';
 
 export interface StatusZoneProps {
   readonly inputs: readonly NoteInput[];
   readonly audio: AudioControl;
+  /** Monitor del micrófono: permite mostrar «Midiendo ruido…» y «Escucha en pausa». */
+  readonly microphone?: (NoteInput & InputMonitor) | undefined;
   /** Muestra el estado del sonido de la app (por defecto sí). */
   readonly showAudio?: boolean;
 }
@@ -57,12 +61,23 @@ function StatusItem({
   );
 }
 
-function InputStatusItem({ input }: { readonly input: NoteInput }) {
+function InputStatusItem({
+  input,
+  monitor,
+}: {
+  readonly input: NoteInput;
+  readonly monitor: InputMonitor | undefined;
+}) {
+  const snapshot = useMonitor(monitor);
   const status = useSyncExternalStore(
     (onChange) => input.subscribeStatus(onChange),
     () => input.getStatus(),
   );
-  const view = describeInputStatus(input.source, status);
+  const view = describeInputStatus(
+    input.source,
+    status,
+    input.source === 'microfono' ? snapshot : undefined,
+  );
   return (
     <StatusItem
       view={view}
@@ -87,11 +102,15 @@ function AudioStatusItem({ audio }: { readonly audio: AudioControl }) {
 }
 
 /** Zona de estado fija bajo la cabecera: entradas conectadas y sonido. No es modal. */
-export function StatusZone({ inputs, audio, showAudio = true }: StatusZoneProps) {
+export function StatusZone({ inputs, audio, microphone, showAudio = true }: StatusZoneProps) {
   return (
     <div className="status-zone" role="region" aria-label="Estado de conexión">
       {inputs.map((input) => (
-        <InputStatusItem key={input.source} input={input} />
+        <InputStatusItem
+          key={input.source}
+          input={input}
+          monitor={input.source === 'microfono' ? microphone : undefined}
+        />
       ))}
       {showAudio && <AudioStatusItem audio={audio} />}
     </div>

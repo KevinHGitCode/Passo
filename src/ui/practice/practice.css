@@ -695,6 +695,22 @@
   }
 }
 @media (max-height: 700px) and (min-width: 600px) {
+  .target__hint {
+    display: none;
+  }
+  .feedback {
+    padding: 8px 14px 8px 10px;
+  }
+  .paused {
+    padding: 8px 14px;
+  }
+  .mic-panel__text {
+    max-width: 64ch;
+    font-size: 14px;
+  }
+  .welcome {
+    padding: 6px 8px;
+  }
   .board__top {
     min-height: 228px;
   }
@@ -702,6 +718,30 @@
     font-size: 64px;
   }
   .stage {
-    min-height: 68px;
+    min-height: 84px;
+  }
+}
+
+/* Revisión de la Fase 1 */
+.listen__notice {
+  color: var(--text);
+}
+.check {
+  min-height: 3em;
+}
+.chip {
+  min-height: 32px;
+}
+
+/* Pantallas estrechas: el aviso de «no te oí» puede ocupar dos líneas (la altura de la tira es fija). */
+@media (max-width: 899px) {
+  .listen {
+    min-height: 48px;
+  }
+  .listen__notice {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 }

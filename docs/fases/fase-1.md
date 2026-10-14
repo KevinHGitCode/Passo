@@ -163,6 +163,8 @@ queda tras una interfaz para cambiarla después), selector de dispositivo de ent
 - Un re-ataque de la misma nota más suave que la cola de la anterior, o a menos de 300–500 ms, se pierde (aceptable hoy: ningún nivel repite la misma nota seguida; importará en la Fase 4, ritmo).
 - Un teclado afinado a más de ±35 cents de 440 Hz puede leerse una nota desplazada hasta que se estime la afinación.
 - El tiempo de reacción por micrófono es aproximado (latencia de entrada 30–80 ms).
+- Un ataque a menos de ~60 ms de soltar la nota anterior se toma por un hueco de audio y se pierde (a 90 ms o más se oyen las dos: hay prueba). Un hueco de audio de más de 60 ms dentro de una nota se verá como una liberación.
+- Se verificó con 24 semillas de estrés: sin la guardia de huecos habría ~63 notas falsas; con ella, 0.
 
 ## Aplazado a la Fase 2 (acordado con los expertos)
 

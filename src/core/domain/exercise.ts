@@ -8,6 +8,12 @@ export const LEVEL_1_POOL: readonly Midi[] = [60, 62, 64, 65, 67];
 
 export const DEFAULT_ROUND_SIZE = 20;
 
+/**
+ * Por micrófono, la nota que acaba de acertarse puede «reaparecer» (eco, hueco de audio, cola de la
+ * propia nota). Si se oye de nuevo dentro de este tiempo no se cuenta como error.
+ */
+export const ECHO_WINDOW_MS = 900;
+
 export interface RoundConfig {
   readonly level: number;
   readonly pool: readonly Midi[];
@@ -122,6 +128,17 @@ export function evaluate(
   if (state.finished || !isNoteOn(event)) return { state, outcome: { kind: 'ignorado' } };
 
   const isCorrect = event.note === state.target;
+  const previous = state.attempts[state.attempts.length - 1];
+  if (
+    !isCorrect &&
+    event.source === 'microfono' &&
+    state.attemptsOnTarget === 0 &&
+    previous?.isCorrect === true &&
+    previous.playedMidi === event.note &&
+    event.at - previous.playedAt < ECHO_WINDOW_MS
+  ) {
+    return { state, outcome: { kind: 'ignorado' } };
+  }
   if (!isCorrect && event.confidence === 'media') {
     return { state, outcome: { kind: 'dudoso', heardMidi: event.note } };
   }

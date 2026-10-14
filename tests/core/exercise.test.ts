@@ -225,3 +225,45 @@ describe('detectTransposition', () => {
     expect(detectTransposition([miss(40, 60), miss(41, 61), miss(42, 62)])).toBeNull();
   });
 });
+
+describe('evaluate · eco de la nota recién acertada (micrófono)', () => {
+  const heard = (
+    note: number,
+    at: number,
+    source: 'microfono' | 'teclado-pc' = 'microfono',
+  ): NoteEvent => ({
+    type: 'on',
+    note,
+    velocity: 80,
+    at,
+    source,
+    confidence: source === 'microfono' ? 'alta' : undefined,
+  });
+
+  function afterHit() {
+    const state = stateWithTarget(62);
+    const hit = evaluate(state, heard(62, 1400), ctx);
+    // Ahora el objetivo es otro; la nota anterior (62) reaparece.
+    return { state: { ...hit.state, target: 65 }, previousAt: 1400 };
+  }
+
+  it('la nota anterior oída de nuevo dentro de 900 ms se ignora (no es error)', () => {
+    const { state, previousAt } = afterHit();
+    const echo = evaluate(state, heard(62, previousAt + 200), ctx);
+    expect(echo.outcome.kind).toBe('ignorado');
+    expect(echo.state).toBe(state);
+  });
+
+  it('pasado ese tiempo, la misma nota sí cuenta como error', () => {
+    const { state, previousAt } = afterHit();
+    expect(evaluate(state, heard(62, previousAt + 1100), ctx).outcome.kind).toBe('error');
+  });
+
+  it('una nota distinta sí es un error enseguida, y el teclado del PC no tiene esta regla', () => {
+    const { state, previousAt } = afterHit();
+    expect(evaluate(state, heard(60, previousAt + 200), ctx).outcome.kind).toBe('error');
+    expect(evaluate(state, heard(62, previousAt + 200, 'teclado-pc'), ctx).outcome.kind).toBe(
+      'error',
+    );
+  });
+});

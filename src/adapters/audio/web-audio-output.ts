@@ -1,4 +1,5 @@
 import type { Midi } from '@/core/domain/note';
+import { midiToFrequency } from '@/core/domain/pitch';
 import type { AudioControl, AudioStatus } from '@/core/ports/audio-control';
 import type { AudioOutput } from '@/core/ports/audio-output';
 import type { Unsubscribe } from '@/core/ports/note-input';
@@ -39,11 +40,6 @@ export interface AudioContextLike {
 }
 
 export type CreateAudioContext = () => AudioContextLike | undefined;
-
-/** Frecuencia en Hz de una nota MIDI (69 = La4 = 440 Hz). */
-export function midiToFrequency(note: Midi): number {
-  return 440 * 2 ** ((note - 69) / 12);
-}
 
 const MASTER_GAIN = 0.35;
 const ATTACK_S = 0.006;

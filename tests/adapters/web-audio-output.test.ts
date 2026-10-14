@@ -1,4 +1,5 @@
-import { WebAudioOutput, midiToFrequency } from '@/adapters/audio/web-audio-output';
+import { WebAudioOutput } from '@/adapters/audio/web-audio-output';
+import { midiToFrequency } from '@/core/domain/pitch';
 import type { AudioStatus } from '@/core/ports/audio-control';
 import { FakeAudioContext } from '../fakes/fake-audio-context';
 

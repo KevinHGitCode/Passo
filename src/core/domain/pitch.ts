@@ -51,6 +51,10 @@ export interface PitchEstimate {
   readonly halfRatio: number;
   /** Energía en 3f/2 (3.er parcial de la nota f/2) respecto a la de f. Un Mi5 real no tiene nada ahí. */
   readonly combRatio: number;
+  /** Cuánto sobresale la energía de f/2 del ruido de sus alrededores (±2,5 semitonos). */
+  readonly halfSnr: number;
+  /** Cuánto sobresale la energía de 3f/2 del ruido de sus alrededores. */
+  readonly combSnr: number;
 }
 
 export interface PitchOptions {
@@ -160,6 +164,8 @@ function harmonicRatios(
   subharmonicRatio: number;
   halfRatio: number;
   combRatio: number;
+  halfSnr: number;
+  combSnr: number;
 } {
   const nyquist = sampleRate / 2;
   const m1 = goertzelMagnitude(samples, sampleRate, f0);
@@ -173,11 +179,24 @@ function harmonicRatios(
   const peak1 = peakMagnitude(samples, sampleRate, f0);
   const peakHalf = f0 / 2 >= 40 ? peakMagnitude(samples, sampleRate, f0 / 2) : 0;
   const peakComb = 1.5 * f0 < nyquist ? peakMagnitude(samples, sampleRate, 1.5 * f0) : 0;
+  // Ruido local: el mayor de los dos vecinos a ±2,5 semitonos (fuera de los parciales de la nota).
+  const noiseAround = (frequency: number): number =>
+    Math.max(
+      goertzelMagnitude(samples, sampleRate, frequency * 2 ** (-2.5 / 12)),
+      goertzelMagnitude(samples, sampleRate, frequency * 2 ** (2.5 / 12)),
+    );
+  const snr = (peak: number, frequency: number): number => {
+    if (peak === 0) return 0;
+    const noise = noiseAround(frequency);
+    return noise === 0 ? Number.POSITIVE_INFINITY : peak / noise;
+  };
   return {
     fundamentalRatio: strongest === 0 ? 0 : m1 / strongest,
     subharmonicRatio: m1 === 0 ? 0 : Math.max(half, third) / m1,
     halfRatio: peak1 === 0 ? 0 : peakHalf / peak1,
     combRatio: peak1 === 0 ? 0 : peakComb / peak1,
+    halfSnr: snr(peakHalf, f0 / 2),
+    combSnr: snr(peakComb, 1.5 * f0),
   };
 }
 

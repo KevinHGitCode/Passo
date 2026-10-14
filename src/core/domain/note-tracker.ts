@@ -39,6 +39,8 @@ export interface TrackerConfig {
   /** Una vez corregida, se mantiene mientras ambas energías superen esta fracción (evita el vaivén Mi5↔Mi4). */
   readonly octaveKeepRatio: number;
   readonly octaveKeepCombRatio: number;
+  /** Las energías en f/2 y 3f/2 deben sobresalir al menos este factor del ruido de alrededor (ruido rosa o de sala no deben «corregir»). */
+  readonly octaveMinSnr: number;
   /** No se corrige si la nota f/2 ya sonaba hace menos de estos ms (un Mi4 seguido de un Mi5 real). */
   readonly octaveGuardMs: number;
   /** Presencia mínima de la fundamental (descarta «fundamentales virtuales»). */
@@ -87,6 +89,7 @@ export const DEFAULT_TRACKER_CONFIG: TrackerConfig = {
   octaveCombRatio: 0.02,
   octaveKeepRatio: 0.03,
   octaveKeepCombRatio: 0.012,
+  octaveMinSnr: 4,
   octaveGuardMs: 700,
   minFundamentalRatio: 0.03,
   minMidi: 48,
@@ -496,6 +499,8 @@ export class NoteTracker {
       pitch.halfRatio >= config.octaveKeepRatio &&
       pitch.combRatio >= config.octaveKeepCombRatio;
     if (!strong && !keep) return false;
+    // Con ruido de banda ancha las energías en f/2 y 3f/2 pueden parecer reales: deben sobresalir del ruido local.
+    if (pitch.halfSnr < config.octaveMinSnr || pitch.combSnr < config.octaveMinSnr) return false;
     const lower = nearestNote(pitch.frequency / 2, this.tuningOffset ?? 0).midi;
     if (lower < config.minMidi) return false;
     const previous = this.sounding;

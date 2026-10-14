@@ -26,3 +26,12 @@ export function single(note: Midi): Target {
 export function sameTarget(a: Target, b: Target): boolean {
   return a.notes.length === b.notes.length && a.notes.every((note, i) => note === b.notes[i]);
 }
+
+/** La nota del objetivo más cercana a `note` (a igual distancia, la más grave). */
+export function closestTargetNote(target: Target, note: Midi): Midi {
+  let closest = target.notes[0];
+  for (const candidate of target.notes) {
+    if (Math.abs(candidate - note) < Math.abs(closest - note)) closest = candidate;
+  }
+  return closest;
+}

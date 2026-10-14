@@ -42,7 +42,12 @@ export function DebugPanel({
 
   const feedbackId = snapshot.feedback?.id ?? 0;
   const outcome = snapshot.feedback?.outcome;
-  const playedAt = outcome && outcome.kind !== 'dudoso' ? outcome.attempt.playedAt : undefined;
+  const playedAt =
+    outcome === undefined || outcome.kind === 'dudoso'
+      ? undefined
+      : outcome.kind === 'parcial'
+        ? outcome.at
+        : outcome.attempt.playedAt;
 
   useEffect(() => {
     if (feedbackId === 0 || playedAt === undefined) return undefined;

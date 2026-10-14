@@ -11,6 +11,7 @@ import { buildKeyVisuals } from '@/ui/practice/key-visuals';
 function attempt(target: number, played: number, reactionMs = 640): Attempt {
   return {
     targetMidi: target,
+    targetNotes: [target],
     playedMidi: played,
     isCorrect: target === played,
     shownAt: 0,

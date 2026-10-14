@@ -104,6 +104,7 @@ describe('evaluate', () => {
     const second = evaluate(first.state, on(62, 1900, 100), ctx);
     expect(first.state.attempts[0]).toEqual({
       targetMidi: 62,
+      targetNotes: [62],
       playedMidi: 60,
       isCorrect: false,
       shownAt: 1000,
@@ -227,9 +228,19 @@ describe('evaluate · entrada por micrófono', () => {
 
 describe('detectTransposition', () => {
   const miss = (target: number, played: number): Attempt =>
-    ({ targetMidi: target, playedMidi: played, isCorrect: false }) as Attempt;
+    ({
+      targetMidi: target,
+      targetNotes: [target],
+      playedMidi: played,
+      isCorrect: false,
+    }) as unknown as Attempt;
   const hit = (target: number): Attempt =>
-    ({ targetMidi: target, playedMidi: target, isCorrect: true }) as Attempt;
+    ({
+      targetMidi: target,
+      targetNotes: [target],
+      playedMidi: target,
+      isCorrect: true,
+    }) as unknown as Attempt;
 
   it('3 errores con la misma diferencia sobre notas pedidas distintas indican transposición', () => {
     expect(detectTransposition([miss(60, 62), hit(60), miss(64, 66), hit(64), miss(65, 67)])).toBe(

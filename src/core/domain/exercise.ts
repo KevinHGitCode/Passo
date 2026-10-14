@@ -2,7 +2,7 @@ import type { Midi, NotationMode } from './note';
 import { pitchClass, semitoneDistance } from './note';
 import type { InputSource, NoteConfidence, NoteEvent } from './note-event';
 import type { Rng } from './rng';
-import { sameTarget, single } from './target';
+import { closestTargetNote, sameTarget, single } from './target';
 import type { Target } from './target';
 
 /** Nivel 1: teclas blancas Do4–Sol4 (posición de cinco dedos, mano derecha). */
@@ -15,6 +15,13 @@ export const DEFAULT_ROUND_SIZE = 20;
  * propia nota). Si se oye de nuevo dentro de este tiempo no se cuenta como error.
  */
 export const ECHO_WINDOW_MS = 900;
+
+/**
+ * Varias notas equivocadas seguidas (≤ 120 ms entre sí, ≤ 300 ms desde la primera) al tocar un acorde
+ * son un solo error: no se castiga tres veces un acorde mal armado.
+ */
+export const WRONG_GROUP_GAP_MS = 120;
+export const WRONG_GROUP_MAX_MS = 300;
 
 export interface RoundConfig {
   readonly level: number;
@@ -30,7 +37,10 @@ export const LEVEL_1_CONFIG: RoundConfig = {
 
 /** Registro de una pulsación evaluada. Son los datos que usará el motor adaptativo (Fase 5). */
 export interface Attempt {
+  /** Nota del objetivo con la que se compara la pulsación: la más cercana a la tocada. */
   readonly targetMidi: Midi;
+  /** Todas las notas del objetivo (una sola en el modo notas). */
+  readonly targetNotes: Target['notes'];
   readonly playedMidi: Midi;
   readonly isCorrect: boolean;
   readonly shownAt: number;
@@ -56,6 +66,10 @@ export interface Attempt {
 export interface ExerciseState {
   readonly config: RoundConfig;
   readonly target: Target;
+  /** Notas del objetivo que están pulsadas ahora mismo (pulsadas después de mostrarse el objetivo). */
+  readonly held: readonly Midi[];
+  /** Grupo de notas equivocadas en curso (acordes); evita contar un error por cada nota de más. */
+  readonly wrongGroup: { readonly startedAt: number; readonly lastAt: number } | null;
   readonly shownAt: number;
   readonly attemptsOnTarget: number;
   readonly completedTargets: number;
@@ -91,6 +105,13 @@ export type Outcome =
       /** poca-confianza: la detección dudó · octava: misma nota en otra octava · lejana: demasiado lejos para ser un fallo creíble. */
       readonly reason: 'poca-confianza' | 'octava' | 'lejana';
     }
+  /** Una nota del objetivo sonó, pero faltan otras: ni acierto ni error. */
+  | {
+      readonly kind: 'parcial';
+      readonly held: readonly Midi[];
+      readonly missing: readonly Midi[];
+      readonly at: number;
+    }
   | { readonly kind: 'acierto'; readonly attempt: Attempt }
   | { readonly kind: 'error'; readonly attempt: Attempt; readonly semitones: number }
   | {
@@ -114,6 +135,8 @@ export function startRound(config: RoundConfig, rng: Rng, now: number): Exercise
   return {
     config,
     target: pickTarget(config.pool, null, rng),
+    held: [],
+    wrongGroup: null,
     shownAt: now,
     attemptsOnTarget: 0,
     completedTargets: 0,
@@ -150,37 +173,26 @@ function microphoneDoubt(
   return null;
 }
 
-/** Un `on` con velocidad 0 es un `off` en MIDI; los `off` nunca cuentan como intento. */
+/** Un `on` con velocidad 0 es un `off` en MIDI. */
 function isNoteOn(event: NoteEvent): boolean {
   return event.type === 'on' && event.velocity > 0;
 }
 
-/**
- * Evalúa una pulsación. Función pura: no lee reloj ni usa azar propio.
- * Cada `note-on` es un intento independiente, aunque haya varias teclas a la vez.
- */
-export function evaluate(
+function ignored(state: ExerciseState): { state: ExerciseState; outcome: Outcome } {
+  return { state, outcome: { kind: 'ignorado' } };
+}
+
+function buildAttempt(
   state: ExerciseState,
   event: NoteEvent,
   context: EvaluateContext,
-): { state: ExerciseState; outcome: Outcome } {
-  if (state.finished || !isNoteOn(event)) return { state, outcome: { kind: 'ignorado' } };
-
-  const targetNote = state.target.notes[0];
-  const isCorrect = event.note === targetNote;
-  if (!isCorrect && event.source === 'microfono') {
-    const doubt = microphoneDoubt(state, event, targetNote);
-    if (doubt === 'eco') return { state, outcome: { kind: 'ignorado' } };
-    if (doubt !== null) {
-      return {
-        state,
-        outcome: { kind: 'dudoso', heardMidi: event.note, targetMidi: targetNote, reason: doubt },
-      };
-    }
-  }
+  targetMidi: Midi,
+  isCorrect: boolean,
+): Attempt {
   const attemptIndexForTarget = state.attemptsOnTarget + 1;
-  const attempt: Attempt = {
-    targetMidi: targetNote,
+  return {
+    targetMidi,
+    targetNotes: state.target.notes,
     playedMidi: event.note,
     isCorrect,
     shownAt: state.shownAt,
@@ -196,21 +208,83 @@ export function evaluate(
     targetIndex: state.completedTargets,
     detectionConfidence: event.confidence ?? null,
   };
-  const attempts = [...state.attempts, attempt];
+}
 
-  if (!isCorrect) {
+/**
+ * Evalúa una pulsación. Función pura: no lee reloj ni usa azar propio.
+ *
+ * - Objetivo de una nota: cada `note-on` es un intento independiente, aunque haya varias teclas a la vez.
+ * - Objetivo de varias notas (tercera, acorde): cada nota del conjunto que suena es un avance
+ *   (`parcial`) y se acierta cuando **todas están pulsadas a la vez**. Una nota de más es un error al
+ *   instante (varias seguidas cuentan una sola vez); que falten notas no lo es. Soltar una nota la quita.
+ */
+export function evaluate(
+  state: ExerciseState,
+  event: NoteEvent,
+  context: EvaluateContext,
+): { state: ExerciseState; outcome: Outcome } {
+  if (state.finished) return ignored(state);
+  if (!isNoteOn(event)) {
+    if (!state.held.includes(event.note)) return ignored(state);
+    return ignored({ ...state, held: state.held.filter((note) => note !== event.note) });
+  }
+
+  const notes = state.target.notes;
+  const isGroup = notes.length > 1;
+  const closest = closestTargetNote(state.target, event.note);
+
+  if (!notes.includes(event.note)) {
+    if (event.source === 'microfono') {
+      // Un micrófono de una sola voz no puede juzgar un acorde: una nota ajena es siempre dudosa.
+      const doubt = microphoneDoubt(state, event, closest) ?? (isGroup ? 'poca-confianza' : null);
+      if (doubt === 'eco') return ignored(state);
+      if (doubt !== null) {
+        return {
+          state,
+          outcome: { kind: 'dudoso', heardMidi: event.note, targetMidi: closest, reason: doubt },
+        };
+      }
+    }
+    const group = state.wrongGroup;
+    if (
+      isGroup &&
+      group !== null &&
+      event.at - group.lastAt <= WRONG_GROUP_GAP_MS &&
+      event.at - group.startedAt <= WRONG_GROUP_MAX_MS
+    ) {
+      return ignored({ ...state, wrongGroup: { ...group, lastAt: event.at } });
+    }
+    const attempt = buildAttempt(state, event, context, closest, false);
     return {
-      state: { ...state, attemptsOnTarget: attemptIndexForTarget, attempts },
-      outcome: { kind: 'error', attempt, semitones: semitoneDistance(targetNote, event.note) },
+      state: {
+        ...state,
+        attemptsOnTarget: attempt.attemptIndexForTarget,
+        attempts: [...state.attempts, attempt],
+        wrongGroup: isGroup ? { startedAt: event.at, lastAt: event.at } : null,
+      },
+      outcome: { kind: 'error', attempt, semitones: semitoneDistance(closest, event.note) },
     };
   }
 
+  if (state.held.includes(event.note)) return ignored(state);
+  const held = [...state.held, event.note];
+  const missing = notes.filter((note) => !held.includes(note));
+  if (missing.length > 0) {
+    return {
+      state: { ...state, held },
+      outcome: { kind: 'parcial', held, missing, at: event.at },
+    };
+  }
+
+  const attempt = buildAttempt(state, event, context, event.note, true);
+  const attempts = [...state.attempts, attempt];
   const completedTargets = state.completedTargets + 1;
   if (completedTargets >= state.config.roundSize) {
     return {
       state: {
         ...state,
-        attemptsOnTarget: attemptIndexForTarget,
+        held,
+        attemptsOnTarget: attempt.attemptIndexForTarget,
         completedTargets,
         attempts,
         finished: true,
@@ -223,6 +297,8 @@ export function evaluate(
     state: {
       ...state,
       target: pickTarget(state.config.pool, state.target, context.rng),
+      held: [],
+      wrongGroup: null,
       shownAt: context.now ?? event.at,
       attemptsOnTarget: 0,
       completedTargets,
@@ -237,14 +313,15 @@ export function summarizeRound(attempts: readonly Attempt[]): RoundSummary {
   const errorsByNote = new Map<Midi, number>();
   for (const attempt of attempts) {
     if (!attempt.isCorrect) {
-      errorsByNote.set(attempt.targetMidi, (errorsByNote.get(attempt.targetMidi) ?? 0) + 1);
+      const key = attempt.targetNotes[0];
+      errorsByNote.set(key, (errorsByNote.get(key) ?? 0) + 1);
     }
   }
 
   let slowest: RoundSummary['slowest'] = null;
   for (const attempt of firstAttempts) {
     if (slowest === null || attempt.reactionMs > slowest.reactionMs) {
-      slowest = { midi: attempt.targetMidi, reactionMs: attempt.reactionMs };
+      slowest = { midi: attempt.targetNotes[0], reactionMs: attempt.reactionMs };
     }
   }
 
@@ -272,7 +349,9 @@ export function summarizeRound(attempts: readonly Attempt[]): RoundSummary {
  * Exigir notas pedidas distintas evita avisar a quien insiste en la tecla vecina.
  */
 export function detectTransposition(attempts: readonly Attempt[]): number | null {
-  const errors = attempts.slice(-6).filter((attempt) => !attempt.isCorrect);
+  const errors = attempts
+    .slice(-6)
+    .filter((attempt) => !attempt.isCorrect && attempt.targetNotes.length === 1);
   const groups = new Map<number, Set<number>>();
   const counts = new Map<number, number>();
   for (const attempt of errors) {

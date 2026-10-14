@@ -22,7 +22,7 @@ export function buildKeyVisuals(input: KeyVisualInput): Map<Midi, KeyVisual> {
   if (input.help && input.target !== null) add(input.target, { target: true });
 
   const outcome = input.feedback?.outcome;
-  if (outcome && outcome.kind !== 'dudoso') {
+  if (outcome && outcome.kind !== 'dudoso' && outcome.kind !== 'parcial') {
     if (outcome.kind === 'error') {
       add(outcome.attempt.targetMidi, { feedback: 'expected' });
       add(outcome.attempt.playedMidi, { feedback: 'wrong' });

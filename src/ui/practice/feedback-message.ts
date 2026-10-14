@@ -60,6 +60,12 @@ export function feedbackMessage(
   switch (outcome.kind) {
     case 'acierto':
       return { tone: 'ok', title: '¡Correcto!', detail: name(outcome.attempt.targetMidi) };
+    case 'parcial':
+      return {
+        tone: 'neutral',
+        title: 'Casi',
+        detail: `${outcome.missing.length === 1 ? 'Falta' : 'Faltan'} ${outcome.missing.map(name).join(' · ')}`,
+      };
     case 'error': {
       // Por micrófono la app infiere la nota: dice «oí», no «tocaste».
       const verb = outcome.attempt.inputSource === 'microfono' ? 'oí' : 'tocaste';

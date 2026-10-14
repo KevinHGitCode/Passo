@@ -157,7 +157,7 @@ export class PracticeSession {
       phase: 'en-curso',
       pauseReason: null,
       pausedSource: null,
-      exercise: exercise ? { ...exercise, shownAt: this.deps.clock.now() } : exercise,
+      exercise: exercise ? { ...exercise, shownAt: this.deps.clock.now(), held: [] } : exercise,
     });
   }
 
@@ -193,7 +193,7 @@ export class PracticeSession {
         : this.snapshot.pressed.filter((note) => note !== event.note);
 
     const { exercise, phase } = this.snapshot;
-    if (phase !== 'en-curso' || exercise === null || !isOn) {
+    if (phase !== 'en-curso' || exercise === null) {
       if (pressed !== this.snapshot.pressed) this.update({ pressed });
       return;
     }
@@ -204,9 +204,17 @@ export class PracticeSession {
       help: this.snapshot.help,
       now: this.deps.clock.now(),
     });
-    const listenStats = this.countListening(event, result.outcome.kind);
+    const listenStats = isOn
+      ? this.countListening(event, result.outcome.kind)
+      : this.snapshot.listenStats;
     if (result.outcome.kind === 'ignorado') {
-      this.update({ pressed, listenStats });
+      if (
+        pressed !== this.snapshot.pressed ||
+        listenStats !== this.snapshot.listenStats ||
+        result.state !== exercise
+      ) {
+        this.update({ pressed, listenStats, exercise: result.state });
+      }
       return;
     }
 

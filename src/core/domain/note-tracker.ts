@@ -2,6 +2,7 @@ import type { FrameAnalysis } from './frame-analysis';
 import type { Midi } from './note';
 import type { NoteConfidence, NoteEvent } from './note-event';
 import { nearestNote } from './pitch';
+import type { PitchEstimate } from './pitch';
 
 /** Avisos que el seguimiento puede dar para que la interfaz explique por qué «no se oye». */
 export type TrackerHint = 'saturado' | 'debil' | 'confuso' | 'ruidoso' | 'sin-senal';
@@ -31,6 +32,15 @@ export interface TrackerConfig {
   readonly strongCentsSpread: number;
   /** Si la energía en f0/2 o f0/3 supera esta fracción de la de f0, la nota puede estar una octava más abajo: confianza `media`. */
   readonly maxSubharmonicRatio: number;
+  /** Corrección de octava: si la energía en f/2 y en 3f/2 supera esta fracción de la de f, f es el 2.º parcial de la nota real. */
+  readonly octaveRatio: number;
+  /** Energía mínima en 3f/2 (3.er parcial de la nota inferior); un Mi5 real no tiene nada ahí (medido <= 0,002). */
+  readonly octaveCombRatio: number;
+  /** Una vez corregida, se mantiene mientras ambas energías superen esta fracción (evita el vaivén Mi5↔Mi4). */
+  readonly octaveKeepRatio: number;
+  readonly octaveKeepCombRatio: number;
+  /** No se corrige si la nota f/2 ya sonaba hace menos de estos ms (un Mi4 seguido de un Mi5 real). */
+  readonly octaveGuardMs: number;
   /** Presencia mínima de la fundamental (descarta «fundamentales virtuales»). */
   readonly minFundamentalRatio: number;
   /** Rango fiable de notas (Do3–Do6). */
@@ -73,6 +83,11 @@ export const DEFAULT_TRACKER_CONFIG: TrackerConfig = {
   maxCentsSpread: 20,
   strongCentsSpread: 10,
   maxSubharmonicRatio: 0.15,
+  octaveRatio: 0.05,
+  octaveCombRatio: 0.02,
+  octaveKeepRatio: 0.03,
+  octaveKeepCombRatio: 0.012,
+  octaveGuardMs: 700,
   minFundamentalRatio: 0.03,
   minMidi: 48,
   maxMidi: 84,
@@ -107,6 +122,8 @@ interface Candidate {
   readonly peakLevel: number;
   /** Mayor energía de bloque en los primeros 40 ms: un ataque de piano llega a su máximo ahí. */
   readonly attackPeak: number;
+  /** Se está aplicando la corrección de octava a este ataque. */
+  halving: boolean;
   frames: {
     midi: Midi;
     rawCents: number;
@@ -120,6 +137,8 @@ interface Sounding {
   readonly midi: Midi;
   readonly cents: number;
   readonly onsetAt: number;
+  /** La altura se leyó una octava más arriba y se corrigió. */
+  readonly halving: boolean;
   quietFrames: number;
   /** Desviaciones (cents, sin recentrar) medidas con la nota ya estable. */
   readonly steadyCents: number[];
@@ -336,7 +355,13 @@ export class NoteTracker {
       if (isOnset) {
         this.lastOnsetAt = blockStart;
         // La nota anterior sigue «sonando» hasta que el nuevo ataque se confirme como otra nota.
-        this.candidate = { onsetAt: blockStart, peakLevel: level, attackPeak: level, frames: [] };
+        this.candidate = {
+          onsetAt: blockStart,
+          peakLevel: level,
+          attackPeak: level,
+          halving: false,
+          frames: [],
+        };
         this.weakSince = null;
       } else if (this.candidate && blockStart - this.candidate.onsetAt < 120) {
         const inAttack = blockStart - this.candidate.onsetAt < 40;
@@ -385,8 +410,12 @@ export class NoteTracker {
       candidate.frames = [];
       return;
     }
-    const raw = nearestNote(pitch.frequency, 0);
-    const corrected = nearestNote(pitch.frequency, this.tuningOffset ?? 0);
+    // Un 2.º parcial fuerte puede hacer oír la octava de arriba (Mi5 en vez de Mi4): se corrige.
+    const halve = this.shouldHalve(pitch, candidate);
+    candidate.halving = halve;
+    const frequency = halve ? pitch.frequency / 2 : pitch.frequency;
+    const raw = nearestNote(frequency, 0);
+    const corrected = nearestNote(frequency, this.tuningOffset ?? 0);
     if (corrected.midi < this.config.minMidi || corrected.midi > this.config.maxMidi) {
       candidate.frames = [];
       return;
@@ -398,7 +427,7 @@ export class NoteTracker {
       rawCents: raw.cents,
       cents: corrected.cents,
       clarity: pitch.clarity,
-      subharmonic: pitch.subharmonicRatio,
+      subharmonic: halve ? 0 : pitch.subharmonicRatio,
     });
 
     if (candidate.frames.length < this.config.confirmFrames) return;
@@ -446,10 +475,38 @@ export class NoteTracker {
       midi,
       cents: meanCents,
       onsetAt: candidate.onsetAt,
+      halving: candidate.halving,
       quietFrames: 0,
       steadyCents: [],
     };
     this.candidate = null;
+  }
+
+  /**
+   * Regla de la octava: si hay energía en f/2 **y** en 3f/2 (el 3.er parcial de la nota inferior),
+   * f es el 2.º parcial de una nota una octava más grave. Un Mi5 real no tiene nada en 3f/2.
+   * Nunca sube de octava; no corrige si la nota inferior sonaba hace poco (Mi4 → Mi5 real).
+   */
+  private shouldHalve(pitch: PitchEstimate, candidate: Candidate): boolean {
+    const config = this.config;
+    const strong =
+      pitch.halfRatio >= config.octaveRatio && pitch.combRatio >= config.octaveCombRatio;
+    const keep =
+      candidate.halving &&
+      pitch.halfRatio >= config.octaveKeepRatio &&
+      pitch.combRatio >= config.octaveKeepCombRatio;
+    if (!strong && !keep) return false;
+    const lower = nearestNote(pitch.frequency / 2, this.tuningOffset ?? 0).midi;
+    if (lower < config.minMidi) return false;
+    const previous = this.sounding;
+    if (
+      previous &&
+      previous.midi === lower &&
+      candidate.onsetAt - previous.onsetAt < config.octaveGuardMs
+    ) {
+      return false;
+    }
+    return true;
   }
 
   /** Con la nota ya estable (100 ms después del ataque) mide su desviación real para estimar la afinación. */
@@ -459,10 +516,11 @@ export class NoteTracker {
     if (!sounding || !pitch) return;
     if (frame.endAt - frame.windowMs < sounding.onsetAt + 100) return;
     if (pitch.clarity < this.config.strongClarity) return;
-    const corrected = nearestNote(pitch.frequency, this.tuningOffset ?? 0);
+    const frequency = sounding.halving ? pitch.frequency / 2 : pitch.frequency;
+    const corrected = nearestNote(frequency, this.tuningOffset ?? 0);
     if (corrected.midi !== sounding.midi) return;
     if (sounding.steadyCents.length < 64) {
-      sounding.steadyCents.push(nearestNote(pitch.frequency, 0).cents);
+      sounding.steadyCents.push(nearestNote(frequency, 0).cents);
     }
   }
 

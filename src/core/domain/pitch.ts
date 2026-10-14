@@ -47,6 +47,10 @@ export interface PitchEstimate {
    * (o una quinta + octava) por debajo: la detección favorece el periodo más corto.
    */
   readonly subharmonicRatio: number;
+  /** Energía en f/2 respecto a la de f. Alta junto a `combRatio` indica que f es el 2.º parcial de la nota real (octava más grave). */
+  readonly halfRatio: number;
+  /** Energía en 3f/2 (3.er parcial de la nota f/2) respecto a la de f. Un Mi5 real no tiene nada ahí. */
+  readonly combRatio: number;
 }
 
 export interface PitchOptions {
@@ -137,11 +141,26 @@ function goertzelMagnitude(samples: Float32Array, sampleRate: number, frequency:
   return Math.sqrt(Math.max(0, s1 * s1 + s2 * s2 - coefficient * s1 * s2));
 }
 
+/** Mayor magnitud de Goertzel en `frequency` con ±25 cents de tolerancia (afinación o inarmonicidad). */
+function peakMagnitude(samples: Float32Array, sampleRate: number, frequency: number): number {
+  let peak = 0;
+  for (const cents of [-25, 0, 25]) {
+    const magnitude = goertzelMagnitude(samples, sampleRate, frequency * 2 ** (cents / 1200));
+    if (magnitude > peak) peak = magnitude;
+  }
+  return peak;
+}
+
 function harmonicRatios(
   samples: Float32Array,
   sampleRate: number,
   f0: number,
-): { fundamentalRatio: number; subharmonicRatio: number } {
+): {
+  fundamentalRatio: number;
+  subharmonicRatio: number;
+  halfRatio: number;
+  combRatio: number;
+} {
   const nyquist = sampleRate / 2;
   const m1 = goertzelMagnitude(samples, sampleRate, f0);
   const m2 = 2 * f0 < nyquist ? goertzelMagnitude(samples, sampleRate, 2 * f0) : 0;
@@ -150,9 +169,15 @@ function harmonicRatios(
   // Subarmónicos: solo se miran si caben por encima de ~40 Hz.
   const half = f0 / 2 >= 40 ? goertzelMagnitude(samples, sampleRate, f0 / 2) : 0;
   const third = f0 / 3 >= 40 ? goertzelMagnitude(samples, sampleRate, f0 / 3) : 0;
+  // Regla de la octava: ¿es f el 2.º parcial de una nota f/2? Debe haber energía en f/2 y en 3f/2.
+  const peak1 = peakMagnitude(samples, sampleRate, f0);
+  const peakHalf = f0 / 2 >= 40 ? peakMagnitude(samples, sampleRate, f0 / 2) : 0;
+  const peakComb = 1.5 * f0 < nyquist ? peakMagnitude(samples, sampleRate, 1.5 * f0) : 0;
   return {
     fundamentalRatio: strongest === 0 ? 0 : m1 / strongest,
     subharmonicRatio: m1 === 0 ? 0 : Math.max(half, third) / m1,
+    halfRatio: peak1 === 0 ? 0 : peakHalf / peak1,
+    combRatio: peak1 === 0 ? 0 : peakComb / peak1,
   };
 }
 

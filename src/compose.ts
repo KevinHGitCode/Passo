@@ -123,6 +123,7 @@ export function composeApp(search: string = window.location.search) {
     audio,
     clock,
     rng,
+    expectationSinks: [microphone],
     ...(config ? { config } : {}),
     ...(devMode && useMic ? { primarySource: 'microfono' as const } : {}),
   });

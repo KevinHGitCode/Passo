@@ -203,6 +203,7 @@ describe('evaluate · entrada por micrófono', () => {
       kind: 'dudoso',
       heardMidi: 64,
       targetMidi: 62,
+      targetNotes: [62],
       reason: 'poca-confianza',
     });
     expect(result.state).toBe(state);

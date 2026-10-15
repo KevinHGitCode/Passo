@@ -413,7 +413,9 @@ export function PracticeScreen({
                     {snapshot.transposition !== null
                       ? transpositionText(snapshot.transposition)
                       : micReady
-                        ? 'Escuchando tu nota…'
+                        ? targetNotes.length > 1
+                          ? 'Escuchando tu acorde…'
+                          : 'Escuchando tu nota…'
                         : 'Esperando tu nota…'}
                   </p>
                 )}

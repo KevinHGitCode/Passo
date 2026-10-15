@@ -85,6 +85,13 @@ export function feedbackMessage(
     }
     case 'dudoso': {
       const heard = name(outcome.heardMidi);
+      if (outcome.targetNotes.length > 1) {
+        return {
+          tone: 'neutral',
+          title: 'No te oí bien',
+          detail: `Oí ${heard} de más. No cuenta como error: toca ${pitchesText(outcome.targetNotes, notation)} y mantenlas un segundo.`,
+        };
+      }
       if (outcome.reason === 'octava') {
         const octaves = Math.abs(outcome.heardMidi - outcome.targetMidi) / 12;
         const amount = octaves === 1 ? 'una octava' : `${octaves} octavas`;

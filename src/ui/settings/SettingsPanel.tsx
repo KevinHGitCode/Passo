@@ -235,6 +235,30 @@ export function SettingsPanel({
               />
             ) : null,
           )}
+          {prefs.input === 'microfono' && (
+            <>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={prefs.polyphonicMic}
+                aria-describedby="polyphonic-note"
+                className="switch"
+                onClick={() => preferences.update({ polyphonicMic: !prefs.polyphonicMic })}
+                data-testid="polyphonic-switch"
+              >
+                <span className="switch__track" aria-hidden="true">
+                  <span className="switch__thumb" />
+                </span>
+                <span>
+                  Oír varias notas a la vez <span className="beta">BETA</span>
+                </span>
+              </button>
+              <p id="polyphonic-note" className="settings-group__note">
+                Para terceras y acordes con el micrófono. Pon el piano cerca; en la mano izquierda
+                solo comprueba que las notas suenan.
+              </p>
+            </>
+          )}
         </fieldset>
 
         <fieldset className="settings-group">
@@ -261,8 +285,8 @@ export function SettingsPanel({
           </div>
           {groupsBlocked && (
             <p id="mode-blocked" className="settings-group__note" data-testid="mode-blocked">
-              Terceras y acordes necesitan el teclado del PC o un piano MIDI: con el micrófono
-              llegarán en una versión beta.
+              Terceras y acordes necesitan el teclado del PC o un piano MIDI. Con el micrófono,
+              activa «Oír varias notas a la vez» (beta).
             </p>
           )}
           <div className="levels" role="radiogroup" aria-label="Nivel">

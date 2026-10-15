@@ -1,3 +1,4 @@
+import type { ChordMeasurement } from '../domain/chord-listener';
 import type { Midi } from '../domain/note';
 import type { TrackerHint } from '../domain/note-tracker';
 import type { Unsubscribe } from './note-input';
@@ -31,6 +32,8 @@ export interface MonitorSnapshot {
 export interface InputMonitor {
   getMonitor(): MonitorSnapshot;
   subscribeMonitor(handler: (snapshot: MonitorSnapshot) => void): Unsubscribe;
+  /** Mediciones recientes de acordes, para validar con un piano real (solo depuración). */
+  getChordLog?(): readonly ChordMeasurement[];
 }
 
 export const SILENT_MONITOR: MonitorSnapshot = {

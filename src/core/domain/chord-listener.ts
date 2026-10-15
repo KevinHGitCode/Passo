@@ -43,6 +43,24 @@ export interface ListenContext {
   readonly tuningCents: number;
 }
 
+/** Lo que se midió en un ataque: para validar el verificador con un piano real (`?debug`). */
+export interface ChordMeasurement {
+  /** Instante del ataque (ms, reloj de la app). */
+  readonly at: number;
+  readonly expected: readonly Midi[];
+  readonly notes: readonly {
+    readonly midi: Midi;
+    readonly present: boolean;
+    /** Relación con el ruido de la sala, pico frente a las notas vecinas y subida tras el ataque. */
+    readonly snr: number;
+    readonly peak: number;
+    readonly rise: number;
+  }[];
+  readonly extras: readonly Midi[];
+}
+
+const LOG_SIZE = 30;
+
 interface Pending {
   readonly onsetAbs: number;
   readonly readyAbs: number;
@@ -68,6 +86,7 @@ export class ChordListener {
   private cooldownUntil = 0;
   private pending: Pending | null = null;
   private sounding: readonly Midi[] = [];
+  private readonly log: ChordMeasurement[] = [];
 
   constructor(config: ChordListenerConfig = DEFAULT_LISTENER_CONFIG) {
     this.config = config;
@@ -75,6 +94,11 @@ export class ChordListener {
 
   isActive(): boolean {
     return this.expected !== null;
+  }
+
+  /** Las últimas mediciones (de la más antigua a la más reciente). */
+  getLog(): readonly ChordMeasurement[] {
+    return this.log;
   }
 
   /** Qué notas se esperan ahora; `null` (o menos de dos notas) apaga la verificación. */
@@ -95,6 +119,8 @@ export class ChordListener {
 
   /** Olvida el audio y lo pendiente (tras un hueco o al apagar). Devuelve el `off` de lo que sonaba. */
   reset(at: number): NoteEvent[] {
+    // Con `sampleRate = 0` el siguiente audio vuelve a reservar la memoria.
+    this.sampleRate = 0;
     this.ring = new Float32Array(0);
     this.written = 0;
     this.nextBlock = 0;
@@ -209,6 +235,19 @@ export class ChordListener {
       this.config.verifier,
     );
     const onsetAt = endAt - ((this.written - pending.onsetAbs) / this.sampleRate) * 1000;
+    this.log.push({
+      at: onsetAt,
+      expected,
+      notes: verdict.notes.map(({ midi, present, snr, peak, rise }) => ({
+        midi,
+        present,
+        snr,
+        peak,
+        rise,
+      })),
+      extras: verdict.extras,
+    });
+    if (this.log.length > LOG_SIZE) this.log.shift();
     const events: NoteEvent[] = this.releaseAll(onsetAt);
     const heard: Midi[] = [];
     for (const note of verdict.notes) {

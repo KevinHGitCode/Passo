@@ -172,6 +172,36 @@ describe('panel de ajustes · ejercicio', () => {
     expect(screen.getByTestId('mode-blocked').textContent).toContain('beta');
   });
 
+  it('con el micrófono aparece «Oír varias notas a la vez (beta)»; activarlo habilita terceras y acordes', () => {
+    const { openPanel, session, preferences } = setup();
+    openPanel();
+    const toggle = screen.getByTestId('polyphonic-switch');
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(toggle.textContent).toContain('BETA');
+    fireEvent.click(toggle);
+    expect(preferences.getSnapshot().polyphonicMic).toBe(true);
+    expect((screen.getByTestId('mode-terceras') as HTMLInputElement).disabled).toBe(false);
+    expect(screen.queryByTestId('mode-blocked')).toBeNull();
+    fireEvent.click(screen.getByTestId('mode-acordes'));
+    expect(session.getSnapshot().mode).toBe('acordes');
+  });
+
+  it('apagar la beta con acordes elegidos vuelve a notas', () => {
+    const { openPanel, session } = setup({
+      stored: { version: 1, input: 'microfono', polyphonicMic: true, mode: 'acordes' },
+    });
+    openPanel();
+    expect(session.getSnapshot().mode).toBe('acordes');
+    fireEvent.click(screen.getByTestId('polyphonic-switch'));
+    expect(session.getSnapshot().mode).toBe('notas');
+  });
+
+  it('con otra entrada no se ofrece la beta del micrófono', () => {
+    const { openPanel } = setup({ stored: KEYBOARD });
+    openPanel();
+    expect(screen.queryByTestId('polyphonic-switch')).toBeNull();
+  });
+
   it('con el teclado del PC se puede elegir modo y nivel, y la sesión lo recibe', () => {
     const { openPanel, session, preferences } = setup({ stored: KEYBOARD });
     openPanel();

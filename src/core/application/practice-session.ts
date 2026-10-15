@@ -6,6 +6,7 @@ import type { InputSource, NoteEvent } from '../domain/note-event';
 import type { Rng } from '../domain/rng';
 import type { AudioOutput } from '../ports/audio-output';
 import type { Clock } from '../ports/clock';
+import type { ExpectationSink } from '../ports/expectation-sink';
 import type { InputStatus, NoteInput, Unsubscribe } from '../ports/note-input';
 
 export type SessionPhase = 'inactiva' | 'en-curso' | 'pausada' | 'completada';
@@ -68,6 +69,11 @@ export interface PracticeSessionDeps {
    * Sin ella, solo se vigila la última entrada usada.
    */
   readonly primarySource?: InputSource;
+  /**
+   * Quien puede verificar varias notas a la vez (el micrófono). Se le avisa de las notas del objetivo
+   * actual mientras la escucha de varias notas está activada (BETA).
+   */
+  readonly expectationSinks?: readonly ExpectationSink[];
 }
 
 /** Caso de uso: orquesta entradas, evaluación pura, sonido y notificación a la interfaz. */
@@ -81,6 +87,9 @@ export class PracticeSession {
   private feedbackCounter = 0;
   private lastSource: InputSource | null = null;
   private primarySource: InputSource | null;
+  private polyphonic = false;
+  /** Última expectativa enviada a quien verifica (para no repetirla). */
+  private expectation = 'ninguna';
 
   constructor(deps: PracticeSessionDeps) {
     this.deps = deps;
@@ -188,6 +197,13 @@ export class PracticeSession {
   setPrimarySource(source: InputSource | null): void {
     this.primarySource = source;
     this.lastSource = null;
+  }
+
+  /** Activa o apaga la escucha de varias notas por micrófono (BETA). */
+  setPolyphonicMic(enabled: boolean): void {
+    if (enabled === this.polyphonic) return;
+    this.polyphonic = enabled;
+    this.syncExpectation();
   }
 
   setNotation(notation: NotationMode): void {
@@ -317,6 +333,31 @@ export class PracticeSession {
 
   private update(changes: Partial<SessionSnapshot>): void {
     this.snapshot = { ...this.snapshot, ...changes };
+    this.syncExpectation();
     this.listeners.forEach((listener) => listener());
+  }
+
+  /** Dice a quien verifica acordes qué notas se esperan ahora (solo con la ronda en curso y la beta activada). */
+  private syncExpectation(): void {
+    const sinks = this.deps.expectationSinks;
+    if (!sinks || sinks.length === 0) return;
+    const { phase, exercise } = this.snapshot;
+    const notes =
+      this.polyphonic &&
+      phase === 'en-curso' &&
+      exercise !== null &&
+      exercise.target.notes.length > 1
+        ? exercise.target.notes
+        : null;
+    const key = notes === null ? 'ninguna' : notes.join('-');
+    if (key === this.expectation) return;
+    this.expectation = key;
+    for (const sink of sinks) {
+      try {
+        sink.setExpectation(notes);
+      } catch {
+        // Un verificador que falla no debe romper la práctica.
+      }
+    }
   }
 }

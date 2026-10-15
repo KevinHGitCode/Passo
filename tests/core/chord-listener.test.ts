@@ -209,6 +209,41 @@ describe('ChordListener', () => {
     expect(ons(run(listener, withRoom(click)))).toEqual([]);
   });
 
+  it('después de un reset sigue funcionando: vuelve a oír el siguiente acorde', () => {
+    const listener = new ChordListener();
+    listener.setExpectation(DO_MAYOR);
+    run(listener, withRoom(chordAt(DO_MAYOR, 0.5, 1.5)));
+    listener.reset(2000);
+    expect(ons(run(listener, withRoom(chordAt(DO_MAYOR, 1, 2.5, { seed: 7 }))))).toEqual(DO_MAYOR);
+  });
+
+  it('guarda un registro de lo medido (para validar con un piano real): esperado, notas y su evidencia', () => {
+    const listener = new ChordListener();
+    listener.setExpectation(DO_MAYOR);
+    run(listener, withRoom(chordAt([60, 67], 1, 2.5)));
+    const log = listener.getLog();
+    expect(log).toHaveLength(1);
+    expect(log[0]?.expected).toEqual(DO_MAYOR);
+    expect(log[0]?.notes.map((note) => [note.midi, note.present])).toEqual([
+      [60, true],
+      [64, false],
+      [67, true],
+    ]);
+    expect(log[0]?.notes.every((note) => Number.isFinite(note.snr) && note.peak >= 0)).toBe(true);
+    expect(Math.abs((log[0]?.at ?? 0) - 1000)).toBeLessThan(30);
+  });
+
+  it('el registro guarda solo las últimas 30 mediciones', () => {
+    const listener = new ChordListener();
+    listener.setExpectation(DO_MAYOR);
+    const parts = Array.from({ length: 34 }, (_, i) =>
+      chordAt(DO_MAYOR, 0.2, 1.2, { seed: i + 1 }),
+    );
+    run(listener, withRoom(concat(...parts)));
+    expect(listener.getLog().length).toBeLessThanOrEqual(30);
+    expect(listener.getLog().length).toBeGreaterThan(20);
+  });
+
   it('reset olvida el audio y suelta lo que sonaba', () => {
     const listener = new ChordListener();
     listener.setExpectation(DO_MAYOR);

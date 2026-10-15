@@ -1,7 +1,10 @@
+import { ChordListener } from '@/core/domain/chord-listener';
 import { analyzeFrame, BLOCK_SIZE } from '@/core/domain/frame-analysis';
+import type { Midi } from '@/core/domain/note';
 import type { NoteEvent } from '@/core/domain/note-event';
 import { NoteTracker } from '@/core/domain/note-tracker';
 import type { Clock } from '@/core/ports/clock';
+import type { ExpectationSink } from '@/core/ports/expectation-sink';
 import { SILENT_MONITOR } from '@/core/ports/input-monitor';
 import type { InputMonitor, ListenPhase, MonitorSnapshot } from '@/core/ports/input-monitor';
 import type { InputStatus, NoteInput, Unsubscribe } from '@/core/ports/note-input';
@@ -95,7 +98,7 @@ interface Capture {
  * Escucha activa: oye el instrumento por el micrófono y convierte el audio en eventos de nota.
  * El audio nunca sale del navegador: solo se calculan nivel, altura y ataques.
  */
-export class MicrophoneInput implements NoteInput, InputMonitor {
+export class MicrophoneInput implements NoteInput, InputMonitor, ExpectationSink {
   readonly source = 'microfono';
   private readonly deps: MicrophoneDeps;
   private readonly handlers = new Set<(event: NoteEvent) => void>();
@@ -105,6 +108,8 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
   private monitor: MonitorSnapshot = SILENT_MONITOR;
   private capture: Capture | null = null;
   private tracker = new NoteTracker();
+  /** Verifica acordes (varias notas a la vez) cuando la sesión dice qué se espera; si no, no hace nada. */
+  private readonly chords = new ChordListener();
   private startToken = 0;
   private suspended = false;
   private degraded = false;
@@ -120,6 +125,15 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
 
   getStatus(): InputStatus {
     return this.status;
+  }
+
+  getChordLog() {
+    return this.chords.getLog();
+  }
+
+  /** Qué acorde se espera oír (`null`: ninguno). Con un acorde esperado las notas se verifican a la vez. */
+  setExpectation(notes: readonly Midi[] | null): void {
+    this.chords.setExpectation(notes);
   }
 
   getMonitor(): MonitorSnapshot {
@@ -274,6 +288,7 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
     if (available > MAX_GAP_SAMPLES_FACTOR * sampleRate) {
       // Hueco de más de medio segundo (pestaña ahogada): no se puede fiar del seguimiento, se reinicia.
       this.emitAll(this.tracker.reset(at));
+      this.emitAll(this.chords.reset(at));
     }
     const gap = available > WINDOW;
     // Se consumen bloques completos: el resto (las muestras más recientes) queda para el siguiente fotograma.
@@ -287,7 +302,19 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
     try {
       const endAt = at - (lag / sampleRate) * 1000;
       const analysis = analyzeFrame(window, consumed, sampleRate, endAt, gap);
-      this.emitAll(this.tracker.push(analysis));
+      const monophonic = this.tracker.push(analysis);
+      const state = this.tracker.getState();
+      const chord = this.chords.push(window.subarray(window.length - consumed), sampleRate, endAt, {
+        noiseRms: state.noiseFloor,
+        tuningCents: state.tuningOffsetCents ?? 0,
+      });
+      // Con un acorde esperado las notas las dice el verificador (el seguimiento de una voz solo
+      // confundiría); durante la calibración todavía no se sabe cuánto ruido hay y no se mide.
+      if (this.chords.isActive()) {
+        if (state.phase === 'escuchando') this.emitAll(chord);
+      } else {
+        this.emitAll(monophonic);
+      }
     } catch {
       // Un fallo en un fotograma (o en un oyente) no debe detener la escucha.
     }
@@ -312,9 +339,11 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
     this.suspended = hidden;
     if (hidden) {
       this.emitAll(this.tracker.reset(this.deps.clock.now()));
+      this.emitAll(this.chords.reset(this.deps.clock.now()));
     } else {
       // Al volver se mide el ruido de nuevo (el entorno puede haber cambiado) conservando la afinación.
       this.emitAll(this.tracker.restart(this.deps.clock.now()));
+      this.emitAll(this.chords.reset(this.deps.clock.now()));
     }
     this.publish(true);
   };
@@ -324,8 +353,10 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
     if (!capture) return;
     if (capture.context.state !== 'running') {
       this.emitAll(this.tracker.reset(this.deps.clock.now()));
+      this.emitAll(this.chords.reset(this.deps.clock.now()));
     } else {
       this.emitAll(this.tracker.restart(this.deps.clock.now()));
+      this.emitAll(this.chords.reset(this.deps.clock.now()));
     }
     this.publish(true);
   }
@@ -354,6 +385,7 @@ export class MicrophoneInput implements NoteInput, InputMonitor {
     this.deps.visibility?.removeEventListener('visibilitychange', this.onVisibility);
     capture.context.removeEventListener('statechange', capture.onContextChange);
     this.emitAll(this.tracker.reset(this.deps.clock.now()));
+    this.emitAll(this.chords.reset(this.deps.clock.now()));
     capture.tracks.forEach((track) => {
       track.onended = null;
       track.stop();

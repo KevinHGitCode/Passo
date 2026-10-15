@@ -25,6 +25,7 @@ export function bindSessionToPreferences(
     const prefs = preferences.getSnapshot();
     session.setNotation(prefs.notation);
     session.setHelp(prefs.help);
+    session.setPolyphonicMic(prefs.polyphonicMic);
     if (!options.exercise) return;
     const config = roundConfigFor(prefs.mode, prefs.levels[prefs.mode]);
     const { mode, level } = session.getSnapshot();

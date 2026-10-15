@@ -599,6 +599,133 @@ test('Fase 2 · en modo notas la cascada y la mano también están (posición de
   await f2Capture(page, '21-cascada-modo-notas');
 });
 
+/** Hace sonar varias notas a la vez en el micrófono simulado (un acorde). */
+function micChord(page: Page, midis: readonly number[], ms = 900, amp = 0.14): Promise<void> {
+  return page.evaluate(
+    ([notes, duration, level]) => {
+      const mic = (window as unknown as { __fakeMic: { note: (m: number, o: object) => number } })
+        .__fakeMic;
+      for (const midi of notes as number[]) mic.note(midi, { ms: duration, amp: level });
+    },
+    [midis, ms, amp] as const,
+  );
+}
+
+const listening = (page: Page) =>
+  expect(page.getByTestId('listen')).toHaveAttribute('data-phase', 'escuchando', { timeout: 8000 });
+
+test('Fase 2 · terceras por micrófono (beta): oye las dos notas a la vez y avisa de lo que falta (video)', async ({
+  page,
+}) => {
+  await page.addInitScript(FAKE_MIC_SCRIPT);
+  await page.goto('/?seed=7');
+
+  await test.step('Activar la beta y elegir terceras desde los ajustes', async () => {
+    await openSettings(page);
+    await expect(page.getByTestId('mode-terceras')).toBeDisabled();
+    await page.getByTestId('polyphonic-switch').click();
+    await expect(page.getByTestId('mode-terceras')).toBeEnabled();
+    await page.getByTestId('mode-terceras').check();
+    await beat(page, 600);
+    await f2Capture(page, '22-ajustes-microfono-beta');
+    await closeSettings(page);
+    expect(await micCalls(page)).toBe(0);
+  });
+
+  await test.step('Activar el micrófono y empezar', async () => {
+    await expect(page.getByTestId('welcome')).toHaveCount(0);
+    await page.getByTestId('activate-mic').click();
+    await listening(page);
+    await page.getByTestId('start').click();
+    await expect(page.getByTestId('target')).toContainText('Toca esta tercera');
+    await expect(page.getByTestId('stage-idle')).toContainText('Escuchando tu acorde');
+    await beat(page, 600);
+    await f2Capture(page, '23-tercera-microfono-escuchando');
+  });
+
+  await test.step('Una sola de las dos notas: no es un error, dice qué falta', async () => {
+    const target = await targetMidis(page);
+    await micChord(page, [target[0] as number]);
+    await expect(feedback(page)).toContainText('Falta', { timeout: 5000 });
+    await expect(page.getByTestId('counters')).toContainText('Errores 0');
+    await expect(page.getByTestId('counters')).toContainText('Terceras 0/12');
+    await f2Capture(page, '24-tercera-microfono-falta-una');
+    await page.waitForTimeout(1300);
+  });
+
+  await test.step('Las dos notas a la vez completan la tercera', async () => {
+    for (let n = 1; n <= 3; n++) {
+      const target = await targetMidis(page);
+      await micChord(page, target);
+      await expect(page.getByTestId('counters')).toContainText(`Terceras ${n}/12`, {
+        timeout: 5000,
+      });
+      await expect(page.getByTestId('counters')).toContainText('Errores 0');
+      await page.waitForTimeout(1300);
+    }
+    await f2Capture(page, '25-tercera-microfono-acierto');
+  });
+
+  await test.step('Una nota de más (lejana) no cuenta como error: es dudosa', async () => {
+    const target = await targetMidis(page);
+    await micChord(page, [...target, 77]);
+    await expect(page.getByTestId('counters')).toContainText(/Terceras (3|4)\/12/, {
+      timeout: 5000,
+    });
+    await expect(page.getByTestId('counters')).toContainText('Errores 0');
+  });
+  await saveVideo(page, 'terceras-microfono-beta.webm');
+});
+
+test('Fase 2 · acordes por micrófono (beta): un acorde de tres notas', async ({ page }) => {
+  await page.addInitScript(FAKE_MIC_SCRIPT);
+  await page.goto('/?seed=5&debug');
+  await openSettings(page);
+  await page.getByTestId('polyphonic-switch').click();
+  await page.getByTestId('mode-acordes').check();
+  await closeSettings(page);
+  await page.getByTestId('activate-mic').click();
+  await listening(page);
+  await page.getByTestId('start').click();
+  await expect(page.getByTestId('target-detail')).toContainText('mano derecha · dedos 1 · 3 · 5');
+  for (let n = 1; n <= 2; n++) {
+    const target = await targetMidis(page);
+    expect(target).toHaveLength(3);
+    await micChord(page, target);
+    await expect(page.getByTestId('counters')).toContainText(`Acordes ${n}/12`, { timeout: 5000 });
+    await page.waitForTimeout(1300);
+  }
+  await expect(page.getByTestId('counters')).toContainText('Errores 0');
+
+  // `?debug` deja a la vista lo medido para validar con un piano real.
+  await expect(page.getByTestId('debug-chords')).toContainText('Acordes medidos');
+  const log = await page.evaluate(
+    () =>
+      (
+        window as unknown as {
+          __passoChords?: { esperado: number[]; notas: { suena: boolean; snr: number }[] }[];
+        }
+      ).__passoChords ?? [],
+  );
+  expect(log.length).toBeGreaterThanOrEqual(2);
+  for (const measure of log.slice(0, 2)) {
+    expect(measure.esperado).toHaveLength(3);
+    expect(measure.notas.every((note) => note.suena && note.snr > 10)).toBe(true);
+  }
+  await f2Capture(page, '26-acorde-microfono');
+});
+
+test('Fase 2 · con el micrófono, sin la beta, terceras y acordes siguen bloqueados', async ({
+  page,
+}) => {
+  await page.addInitScript(FAKE_MIC_SCRIPT);
+  await page.goto('/?seed=5');
+  await openSettings(page);
+  await expect(page.getByTestId('mode-acordes')).toBeDisabled();
+  await expect(page.getByTestId('polyphonic-switch')).toHaveAttribute('aria-checked', 'false');
+  expect(await micCalls(page)).toBe(0);
+});
+
 for (const size of [
   { width: 1280, height: 800 },
   { width: 1366, height: 650 },

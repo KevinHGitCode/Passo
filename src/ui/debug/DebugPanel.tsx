@@ -11,6 +11,8 @@ declare global {
     __passoLatency?: number[];
     /** Intentos de la ronda (nota pedida, nota oída, confianza…); solo con `?debug`. */
     __passoAttempts?: unknown[];
+    /** Mediciones de acordes por micrófono (relación con el ruido, pico y subida de cada nota); solo con `?debug`. */
+    __passoChords?: unknown[];
   }
 }
 
@@ -39,6 +41,24 @@ export function DebugPanel({
       en: Math.round(attempt.playedAt),
     }));
   }, [attempts]);
+
+  // Mediciones de acordes: se releen con cada resultado (el micrófono las guarda; aquí solo se copian).
+  const chordLog = microphone?.getChordLog?.() ?? [];
+  const chordCount = chordLog.length;
+  useEffect(() => {
+    window.__passoChords = chordLog.map((item) => ({
+      en: Math.round(item.at),
+      esperado: item.expected,
+      notas: item.notes.map((note) => ({
+        nota: note.midi,
+        suena: note.present,
+        snr: Math.round(note.snr * 10) / 10,
+        pico: Math.round(note.peak * 10) / 10,
+        subida: Number.isFinite(note.rise) ? Math.round(note.rise * 10) / 10 : null,
+      })),
+      deMas: item.extras,
+    }));
+  });
 
   const feedbackId = snapshot.feedback?.id ?? 0;
   const outcome = snapshot.feedback?.outcome;
@@ -75,6 +95,12 @@ export function DebugPanel({
         <span data-testid="debug-listen-stats">
           Oído en la ronda: alta {snapshot.listenStats.alta} · media {snapshot.listenStats.media} ·
           dudosas {snapshot.listenStats.dudoso} · ecos {snapshot.listenStats.eco}
+        </span>
+      )}
+      {microphone?.getChordLog && (
+        <span data-testid="debug-chords">
+          Acordes medidos: {chordCount} · completos{' '}
+          {chordLog.filter((item) => item.notes.every((note) => note.present)).length}
         </span>
       )}
       {microphone && (

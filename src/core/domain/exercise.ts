@@ -121,6 +121,8 @@ export type Outcome =
       readonly kind: 'dudoso';
       readonly heardMidi: Midi;
       readonly targetMidi: Midi;
+      /** Todas las notas del objetivo (varias en terceras y acordes). */
+      readonly targetNotes: Target['notes'];
       /** poca-confianza: la detección dudó · octava: misma nota en otra octava · lejana: demasiado lejos para ser un fallo creíble. */
       readonly reason: 'poca-confianza' | 'octava' | 'lejana';
     }
@@ -284,7 +286,13 @@ export function evaluate(
       if (doubt !== null) {
         return {
           state,
-          outcome: { kind: 'dudoso', heardMidi: event.note, targetMidi: closest, reason: doubt },
+          outcome: {
+            kind: 'dudoso',
+            heardMidi: event.note,
+            targetMidi: closest,
+            targetNotes: notes,
+            reason: doubt,
+          },
         };
       }
     }

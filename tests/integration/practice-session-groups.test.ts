@@ -191,6 +191,23 @@ describe('PracticeSession · configure (modo y nivel)', () => {
     expect(session.getSnapshot().phase).toBe('en-curso');
   });
 
+  it('reset abandona la ronda y vuelve a la bienvenida; sin ronda no hace nada', () => {
+    const { session, input } = setup(thirds);
+    input.press(60, 1100);
+    session.reset();
+    expect(session.getSnapshot()).toMatchObject({
+      phase: 'inactiva',
+      exercise: null,
+      feedback: null,
+      hits: 0,
+      errors: 0,
+      pressed: [],
+    });
+    const idle = session.getSnapshot();
+    session.reset();
+    expect(session.getSnapshot()).toBe(idle);
+  });
+
   it('el intento guarda el modo y todas las notas del objetivo', () => {
     const { session, input } = setup();
     input.press(60, 1100);

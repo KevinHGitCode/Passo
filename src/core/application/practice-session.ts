@@ -153,6 +153,24 @@ export class PracticeSession {
     }
   }
 
+  /** Abandona la ronda y vuelve a la bienvenida (p. ej. al pasar a una entrada que hay que activar). */
+  reset(): void {
+    if (this.snapshot.phase === 'inactiva') return;
+    this.update({
+      phase: 'inactiva',
+      pauseReason: null,
+      pausedSource: null,
+      exercise: null,
+      feedback: null,
+      pressed: [],
+      hits: 0,
+      errors: 0,
+      summary: null,
+      transposition: null,
+      listenStats: NO_LISTEN_STATS,
+    });
+  }
+
   pause(): void {
     if (this.snapshot.phase === 'en-curso')
       this.update({ phase: 'pausada', pauseReason: 'manual' });

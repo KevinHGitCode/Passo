@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { InputManager } from '@/core/application/input-manager';
 import type { PracticeSession } from '@/core/application/practice-session';
 import type { PreferencesService } from '@/core/application/preferences-service';
@@ -8,6 +9,8 @@ import { DebugPanel } from './debug/DebugPanel';
 import { useInputSelection } from './practice/hooks';
 import { PracticeScreen } from './practice/PracticeScreen';
 import { StatusZone } from './status/StatusZone';
+import { SettingsButton, SettingsPanel } from './settings/SettingsPanel';
+import { useSettingsPanel } from './settings/use-settings-panel';
 import { useTheme } from './theme/use-theme';
 
 export interface AppProps {
@@ -35,7 +38,15 @@ export function App({
   debug = false,
   devShowSound = false,
 }: AppProps) {
-  const [theme, cycleTheme] = useTheme(preferences);
+  useTheme(preferences);
+  const settings = useSettingsPanel(session);
+  const gearRef = useRef<HTMLButtonElement>(null);
+  // Al cerrar los ajustes el foco vuelve al engranaje (si no, se perdería).
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !settings.open) gearRef.current?.focus({ preventScroll: true });
+    wasOpen.current = settings.open;
+  }, [settings.open]);
   const selected = useInputSelection(inputManager);
 
   // Con gestor, la pantalla solo muestra la entrada elegida; sin gestor, las que se pidieron en la dirección.
@@ -50,8 +61,9 @@ export function App({
     <>
       <PracticeScreen
         session={session}
-        theme={theme}
-        onCycleTheme={cycleTheme}
+        headerActions={
+          <SettingsButton open={settings.open} onToggle={settings.toggle} buttonRef={gearRef} />
+        }
         statusZone={
           <StatusZone
             inputs={activeInputs}
@@ -63,6 +75,14 @@ export function App({
         showPcKeys={showPcKeys}
         microphone={micActive ? microphone : undefined}
         canStartWithoutMic={canStartWithoutMic}
+      />
+      <SettingsPanel
+        open={settings.open}
+        onClose={settings.close}
+        preferences={preferences}
+        inputs={inputs}
+        inputManager={inputManager}
+        microphone={microphone}
       />
       {debug && (
         <DebugPanel

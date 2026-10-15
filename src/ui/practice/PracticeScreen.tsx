@@ -14,7 +14,6 @@ import { ListeningStrip } from '../listen/ListeningStrip';
 import { MicPanel } from '../listen/MicPanel';
 import { windowAround } from '../keyboard/geometry';
 import { PianoKeyboard } from '../keyboard/piano-keyboard';
-import type { ThemeChoice } from '../theme/use-theme';
 import { feedbackMessage, formatSeconds } from './feedback-message';
 import type { FeedbackMessage } from './feedback-message';
 import {
@@ -26,7 +25,6 @@ import {
 } from './hooks';
 import { buildKeyVisuals } from './key-visuals';
 import { countLabel, notesText, promptText, targetDetail } from './target-text';
-import { SettingsBar } from './SettingsBar';
 import './practice.css';
 
 /** Rango del teclado en pantalla: Do3 a Do6 (el nivel 1 usa Do4–Sol4). */
@@ -39,8 +37,8 @@ const NARROW_MAX_WIDTH = 899;
 
 export interface PracticeScreenProps {
   readonly session: PracticeSession;
-  readonly theme: ThemeChoice;
-  readonly onCycleTheme: () => void;
+  /** Acciones de la cabecera (el engranaje de los ajustes). */
+  readonly headerActions?: ReactNode;
   /** Zona de estado de entradas y sonido (se coloca bajo la cabecera). */
   readonly statusZone?: ReactNode | undefined;
   /** El teclado del PC es una entrada activa: se muestra qué teclas tocar. */
@@ -190,8 +188,7 @@ function levelTitle(mode: ExerciseMode, level: number): string {
 
 export function PracticeScreen({
   session,
-  theme,
-  onCycleTheme,
+  headerActions,
   statusZone,
   showPcKeys = false,
   microphone,
@@ -263,14 +260,7 @@ export function PracticeScreen({
           <h1 className="brand__name">Passo</h1>
           <span className="brand__tag">toca, corrige, avanza</span>
         </div>
-        <SettingsBar
-          notation={notation}
-          onNotation={(value) => session.setNotation(value)}
-          help={help}
-          onHelp={(value) => session.setHelp(value)}
-          theme={theme}
-          onCycleTheme={onCycleTheme}
-        />
+        {headerActions}
       </header>
 
       {statusZone}

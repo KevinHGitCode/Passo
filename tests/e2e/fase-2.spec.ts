@@ -2,7 +2,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { FAKE_MIDI_SCRIPT, beat } from './helpers';
+import { FAKE_MIDI_SCRIPT, beat, closeSettings, openSettings } from './helpers';
 import { FAKE_MIC_SCRIPT } from './mic-helpers';
 import {
   F2_EVIDENCE_DIR,
@@ -171,7 +171,9 @@ test('Fase 2 · acordes de la mano izquierda: dedos 5-3-1 con la fila Z X C V B 
 test('Fase 2 · con notación americana el acorde se llama «C major»', async ({ page }) => {
   await page.goto('/?seed=3&pc&mic=off&modo=acordes&nivel=1');
   await page.getByTestId('start').click();
+  await openSettings(page);
   await page.getByLabel('C D E').click();
+  await closeSettings(page);
   await expect(page.getByTestId('target-detail')).toHaveText(/^(C|G) major · /);
   await f2Capture(page, '10-acorde-notacion-americana');
 });
@@ -180,10 +182,12 @@ test('Fase 2 · las preferencias se recuerdan al recargar (notación, ayuda y te
   page,
 }) => {
   await page.goto('/?seed=3&pc&mic=off');
+  await openSettings(page);
   await page.getByLabel('C D E').click();
   await page.getByTestId('help-switch').click();
-  await page.getByRole('button', { name: /Tema/ }).click();
+  await page.getByTestId('theme-claro').click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'claro');
+  await closeSettings(page);
 
   const saved = await page.evaluate(() => window.localStorage.getItem('passo.preferencias'));
   expect(JSON.parse(saved ?? '{}')).toMatchObject({
@@ -195,9 +199,12 @@ test('Fase 2 · las preferencias se recuerdan al recargar (notación, ayuda y te
   });
 
   await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'claro');
+  await openSettings(page);
   await expect(page.getByLabel('C D E')).toBeChecked();
   await expect(page.getByTestId('help-switch')).toHaveAttribute('aria-checked', 'false');
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'claro');
+  await expect(page.getByTestId('theme-claro')).toBeChecked();
+  await closeSettings(page);
   await page.getByTestId('start').click();
   await expect(page.getByTestId('target-note')).toHaveText(/^[CDEFG]4$/);
   await expect(page.locator('.key--target')).toHaveCount(0);
@@ -213,6 +220,7 @@ test('Fase 2 · el tema que se guardaba antes de las preferencias se conserva', 
   });
   await page.goto('/?seed=3&pc&mic=off');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'oscuro');
+  await openSettings(page);
   await page.getByLabel('C D E').click();
   const saved = await page.evaluate(() => window.localStorage.getItem('passo.preferencias'));
   expect(JSON.parse(saved ?? '{}')).toMatchObject({ theme: 'oscuro', notation: 'americana' });
@@ -221,6 +229,7 @@ test('Fase 2 · el tema que se guardaba antes de las preferencias se conserva', 
 test('Fase 2 · ?modo= fija el ejercicio de esta visita pero no lo guarda', async ({ page }) => {
   await page.goto('/?seed=3&pc&mic=off&modo=acordes&nivel=3');
   await expect(page.getByTestId('welcome')).toContainText('Toca el acorde que aparece');
+  await openSettings(page);
   await page.getByLabel('C D E').click();
   const saved = await page.evaluate(() => window.localStorage.getItem('passo.preferencias'));
   expect(JSON.parse(saved ?? '{}')).toMatchObject({ mode: 'notas', notation: 'americana' });
@@ -240,7 +249,9 @@ test('Fase 2 · sin almacenamiento (ventana privada o bloqueado) la app sigue fu
     });
   });
   await page.goto('/?seed=3&pc&mic=off');
+  await openSettings(page);
   await page.getByLabel('C D E').click();
+  await closeSettings(page);
   await page.getByTestId('start').click();
   await expect(page.getByTestId('target-note')).toHaveText(/^[CDEFG]4$/);
 });
@@ -336,6 +347,139 @@ test('Fase 2 · con el piano MIDI elegido solo escucha el MIDI (el teclado del P
   expect(target).toBeGreaterThan(0);
 });
 
+test('Fase 2 · ajustes: elegir entrada y ejercicio desde el engranaje, con la ronda en pausa (video)', async ({
+  page,
+}) => {
+  await page.addInitScript(FAKE_MIC_SCRIPT);
+  await page.addInitScript(FAKE_MIDI_SCRIPT);
+  await page.goto('/?seed=7');
+  await expect(page.getByTestId('mic-panel')).toBeVisible();
+  await beat(page, 700);
+  await f2Capture(page, '13-ajustes-cerrados-microfono');
+
+  await test.step('Con el micrófono solo hay notas: terceras y acordes están bloqueados', async () => {
+    await openSettings(page);
+    await expect(page.getByTestId('input-microfono')).toBeChecked();
+    await expect(page.getByTestId('mode-terceras')).toBeDisabled();
+    await expect(page.getByTestId('mode-acordes')).toBeDisabled();
+    await expect(page.getByTestId('mode-blocked')).toContainText('beta');
+    await beat(page, 800);
+    await f2Capture(page, '14-ajustes-microfono');
+  });
+
+  await test.step('Elegir el teclado del PC: se enciende solo ese y el micrófono ni se toca', async () => {
+    await page.getByTestId('input-teclado-pc').check();
+    await expect(page.getByTestId('input-status')).toHaveText('Activo');
+    await expect(page.getByTestId('mode-terceras')).toBeEnabled();
+    expect(await micCalls(page)).toBe(0);
+    await page.getByTestId('mode-terceras').check();
+    await page.getByTestId('level-2').check();
+    await beat(page, 800);
+    await f2Capture(page, '15-ajustes-teclado-terceras');
+    await closeSettings(page);
+    await expect(page.getByTestId('mic-panel')).toHaveCount(0);
+    await expect(page.getByTestId('welcome')).toContainText('Toca la tercera que aparece');
+  });
+
+  await test.step('Con la ronda en curso, los ajustes la pausan y Esc la reanuda', async () => {
+    await page.getByTestId('start').click();
+    const target = await targetMidis(page);
+    await down(page, target[0] as number);
+    await expect(feedback(page)).toContainText('Casi');
+    await releaseAll(page, target);
+
+    await page.keyboard.press('Control+Comma');
+    await expect(page.getByTestId('settings-panel')).toBeVisible();
+    await expect(page.locator('.paused')).toBeVisible();
+    await expect(
+      page.getByTestId('settings-panel').getByRole('heading', { name: 'Ajustes' }),
+    ).toBeFocused();
+    await beat(page, 700);
+    await f2Capture(page, '16-ajustes-con-ronda-en-pausa');
+    // En pausa las teclas no cuentan.
+    await down(page, target[0] as number);
+    await releaseAll(page, target);
+    await expect(page.getByTestId('counters')).toContainText('Errores 0');
+    await expect(page.getByTestId('counters')).toContainText('Terceras 0/12');
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('settings-panel')).toHaveCount(0);
+    await expect(page.locator('.paused')).toHaveCount(0);
+    await expect(page.getByTestId('settings-button')).toBeFocused();
+    await playTarget(page);
+    await expect(page.getByTestId('counters')).toContainText('Terceras 1/12');
+  });
+
+  await test.step('Cambiar a piano MIDI: el teclado del PC deja de contar', async () => {
+    await openSettings(page);
+    await page.getByTestId('input-midi').check();
+    await expect(page.getByTestId('input-status')).toContainText('Yamaha');
+    await closeSettings(page);
+    await expect(page.getByTestId('status-midi')).toBeVisible();
+    await expect(page.getByTestId('status-teclado-pc')).toHaveCount(0);
+    const target = await targetMidis(page);
+    await down(page, target[0] as number);
+    await releaseAll(page, target);
+    await expect(page.getByTestId('counters')).toContainText('Terceras 1/12');
+    await expect(page.getByTestId('counters')).toContainText('Errores 0');
+  });
+
+  await test.step('Volver al micrófono: vuelve a las notas y sigue apagado hasta que lo actives', async () => {
+    await openSettings(page);
+    await page.getByTestId('input-microfono').check();
+    await expect(page.getByTestId('mode-notas')).toBeChecked();
+    await closeSettings(page);
+    await expect(page.getByTestId('mic-panel')).toBeVisible();
+    await expect(page.getByTestId('welcome')).toHaveCount(0);
+    expect(await micCalls(page)).toBe(0);
+    await beat(page, 700);
+    await f2Capture(page, '17-de-vuelta-al-microfono');
+  });
+  await saveVideo(page, 'ajustes-engranaje.webm');
+});
+
+test('Fase 2 · ajustes: lo elegido se recuerda al recargar (entrada y ejercicio)', async ({
+  page,
+}) => {
+  await page.goto('/?seed=7');
+  await openSettings(page);
+  await page.getByTestId('input-teclado-pc').check();
+  await page.getByTestId('mode-acordes').check();
+  await page.getByTestId('level-3').check();
+  await closeSettings(page);
+
+  await page.reload();
+  await expect(page.getByTestId('welcome')).toContainText('Toca el acorde que aparece');
+  await expect(page.getByTestId('status-teclado-pc')).toBeVisible();
+  await openSettings(page);
+  await expect(page.getByTestId('input-teclado-pc')).toBeChecked();
+  await expect(page.getByTestId('mode-acordes')).toBeChecked();
+  await expect(page.getByTestId('level-3')).toBeChecked();
+  await page.getByTestId('settings-reset').click();
+  await expect(page.getByTestId('input-microfono')).toBeChecked();
+  await expect(page.getByTestId('mode-notas')).toBeChecked();
+});
+
+test('Fase 2 · ajustes en un móvil: panel modal que cierra con Esc y devuelve el foco', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  const page = await context.newPage();
+  await page.goto('/?seed=7&pc&mic=off');
+  await openSettings(page);
+  await expect(page.getByTestId('settings-panel')).toHaveAttribute('aria-modal', 'true');
+  await expect(page.locator('.settings-backdrop')).toBeVisible();
+  await beat(page, 600);
+  await f2Capture(page, '18-ajustes-movil');
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('settings-panel')).toHaveCount(0);
+  await expect(page.getByTestId('settings-button')).toBeFocused();
+  await openSettings(page);
+  await page.locator('.settings-backdrop').click({ position: { x: 5, y: 400 } });
+  await expect(page.getByTestId('settings-panel')).toHaveCount(0);
+  await context.close();
+});
+
 for (const size of [
   { width: 1280, height: 800 },
   { width: 1366, height: 650 },
@@ -369,6 +513,11 @@ for (const size of [
         await down(page, notes[0] as number);
         await expect(feedback(page)).toContainText('Casi');
         tops[`${mode}${level}-parcial`] = await keyboardTop(page);
+
+        await openSettings(page);
+        await expect(page.locator('.paused')).toBeVisible();
+        tops[`${mode}${level}-ajustes`] = await keyboardTop(page);
+        await closeSettings(page);
 
         const extra = extraNote(notes);
         await down(page, extra);

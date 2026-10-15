@@ -23,7 +23,7 @@ function setup(roundSize = 2) {
     rng: createSeededRng(3),
     config: { ...LEVEL_1_CONFIG, roundSize },
   });
-  render(<PracticeScreen session={session} theme="auto" onCycleTheme={() => undefined} />);
+  render(<PracticeScreen session={session} />);
   const press = (note: number) => act(() => input.press(note, 100));
   const targetMidi = () => Number(screen.getByTestId('target-note').dataset['midi']);
   const wrongNote = () => (targetMidi() === 60 ? 62 : 60);

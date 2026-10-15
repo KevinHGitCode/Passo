@@ -32,8 +32,6 @@ function setup(options: { withPc?: boolean } = {}) {
   render(
     <PracticeScreen
       session={session}
-      theme="auto"
-      onCycleTheme={() => undefined}
       microphone={mic}
       canStartWithoutMic={options.withPc === true}
     />,

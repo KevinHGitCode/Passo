@@ -10,7 +10,9 @@ import {
   NO_MIDI_SCRIPT,
   beat,
   capture,
+  closeSettings,
   ensureEvidenceDirs,
+  openSettings,
   playCorrect,
   playWrong,
   targetMidi,
@@ -78,9 +80,11 @@ test('Fase 0 · ronda completa con el teclado del PC (video principal)', async (
 
   await test.step('Otra ronda en notación americana y sin ayuda', async () => {
     await page.getByRole('button', { name: 'Otra ronda' }).click();
+    await openSettings(page);
     await page.getByLabel('C D E').check();
-    await expect(page.getByTestId('target-note')).toHaveText(/^[CDEFG]4$/);
     await page.getByTestId('help-switch').click();
+    await closeSettings(page);
+    await expect(page.getByTestId('target-note')).toHaveText(/^[CDEFG]4$/);
     await expect(page.locator('.key--target')).toHaveCount(0);
     await beat(page, 800);
     await capture(page, '06-sin-ayuda-notacion-americana');

@@ -1,5 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 export const EVIDENCE_DIR = join('evidencias', 'fase-0');
@@ -103,3 +104,14 @@ export const EMPTY_MIDI_SCRIPT = `
   });
 })();
 `;
+
+/** Abre el panel de ajustes (el engranaje de la cabecera). */
+export async function openSettings(page: Page): Promise<void> {
+  await page.getByTestId('settings-button').click();
+  await expect(page.getByTestId('settings-panel')).toBeVisible();
+}
+
+export async function closeSettings(page: Page): Promise<void> {
+  await page.getByTestId('settings-close').click();
+  await expect(page.getByTestId('settings-panel')).toHaveCount(0);
+}

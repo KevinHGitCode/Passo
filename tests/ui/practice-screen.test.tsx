@@ -19,7 +19,7 @@ function setup(roundSize = 2) {
     rng: createSeededRng(3),
     config: { ...LEVEL_1_CONFIG, roundSize },
   });
-  render(<PracticeScreen session={session} theme="auto" onCycleTheme={() => undefined} />);
+  render(<PracticeScreen session={session} />);
   const press = (note: number, at = 100) => act(() => input.press(note, at));
   const start = () => fireEvent.click(screen.getByTestId('start'));
   const targetMidi = () => Number(screen.getByTestId('target-note').dataset['midi']);
@@ -67,17 +67,17 @@ describe('PracticeScreen', () => {
   it('cambiar la notación cambia los nombres (Do ↔ C)', () => {
     const { start, session } = setup();
     start();
-    fireEvent.click(screen.getByLabelText('C D E'));
+    act(() => session.setNotation('americana'));
     expect(session.getSnapshot().notation).toBe('americana');
     expect(screen.getByTestId('target-note').textContent).toMatch(/^[CDEFG]4$/);
   });
 
   it('sin ayuda la tecla objetivo no se ilumina, pero un error revela la correcta', () => {
-    const { start, press, targetMidi, wrongNote } = setup();
+    const { start, press, targetMidi, wrongNote, session } = setup();
     start();
     const piano = () => screen.getByTestId('piano');
     expect(piano().querySelector('.key--target')).not.toBeNull();
-    fireEvent.click(screen.getByTestId('help-switch'));
+    act(() => session.setHelp(false));
     expect(piano().querySelector('.key--target')).toBeNull();
     press(wrongNote());
     expect(

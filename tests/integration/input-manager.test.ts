@@ -169,6 +169,27 @@ describe('bindInputsToPreferences', () => {
     expect(session.getSnapshot().phase).toBe('en-curso');
   });
 
+  it('pasar al micrófono con una ronda empezada vuelve a la bienvenida (hay que activarlo)', () => {
+    const { session, preferences, mic } = build({ version: 1, input: 'teclado-pc' });
+    session.start();
+    preferences.update({ input: 'microfono' });
+    expect(session.getSnapshot()).toMatchObject({ phase: 'inactiva', exercise: null, hits: 0 });
+    expect(mic.startCalls).toBe(0);
+  });
+
+  it('pasar a otra entrada deja la ronda como estaba', () => {
+    const { session, preferences } = build({ version: 1, input: 'teclado-pc' });
+    session.start();
+    preferences.update({ input: 'midi' });
+    expect(session.getSnapshot().phase).toBe('en-curso');
+  });
+
+  it('al arrancar con el micrófono elegido no se reinicia nada', () => {
+    const { session } = build();
+    session.start();
+    expect(session.getSnapshot().phase).toBe('en-curso');
+  });
+
   it('al soltar el puente las preferencias dejan de mandar', () => {
     const { pc, manager, preferences, unbind } = build();
     unbind();

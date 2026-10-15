@@ -20,7 +20,7 @@ function setup(config: RoundConfig, roundSize = 3) {
     rng: createSeededRng(3),
     config: { ...config, roundSize },
   });
-  render(<PracticeScreen session={session} theme="auto" onCycleTheme={() => undefined} />);
+  render(<PracticeScreen session={session} />);
   const press = (note: number, at = 100) => act(() => input.press(note, at));
   const release = (note: number, at = 200) => act(() => input.release(note, at));
   const start = () => fireEvent.click(screen.getByTestId('start'));

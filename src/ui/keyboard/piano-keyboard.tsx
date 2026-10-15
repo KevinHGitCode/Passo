@@ -1,6 +1,10 @@
 import { isBlackKey } from '@/core/domain/note';
 import type { Midi } from '@/core/domain/note';
-import { BLACK_HEIGHT, layoutKeys, WHITE_HEIGHT } from './geometry';
+import type { HandShape } from '@/core/domain/hand-shape';
+import { Cascade } from './cascade';
+import type { CascadeBlock } from './cascade';
+import { BLACK_HEIGHT, layoutKeys, viewBoxOf, WHITE_HEIGHT } from './geometry';
+import { Hand } from './hand';
 import type { KeyLayout } from './geometry';
 import './piano-keyboard.css';
 
@@ -25,6 +29,15 @@ export interface PianoKeyboardProps {
   readonly labelFor?: ((midi: Midi) => string | undefined) | undefined;
   /** Recorta la vista a una parte del teclado (pantallas estrechas). */
   readonly viewWindow?: { readonly from: Midi; readonly to: Midi } | undefined;
+  /**
+   * Cola de notas sobre el teclado. Con un valor (aunque sea vacío) se reservan sus filas, así el
+   * teclado no se mueve al empezar o terminar una ronda.
+   */
+  readonly cascade?: readonly CascadeBlock[] | undefined;
+  /** Texto de cada nota en los bloques de la cascada (el nombre con su octava). */
+  readonly blockLabel?: ((midi: Midi) => string) | undefined;
+  /** La mano bajo el teclado; con `null` se reserva su fila vacía. */
+  readonly hand?: HandShape | null | undefined;
   readonly ariaLabel: string;
 }
 
@@ -60,6 +73,9 @@ export function PianoKeyboard({
   visuals,
   labelFor,
   viewWindow,
+  cascade,
+  blockLabel,
+  hand,
   ariaLabel,
 }: PianoKeyboardProps) {
   const layout = layoutKeys(from, to);
@@ -81,10 +97,15 @@ export function PianoKeyboard({
     }
   }
 
+  const box = viewBoxOf(viewX, viewWidth, {
+    cascade: cascade !== undefined,
+    hand: hand !== undefined,
+  });
+
   return (
     <svg
       className="piano"
-      viewBox={`${viewX} -2 ${viewWidth} ${WHITE_HEIGHT + 6}`}
+      viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`}
       preserveAspectRatio="xMidYMid meet"
       role="img"
       aria-label={ariaLabel}
@@ -136,6 +157,8 @@ export function PianoKeyboard({
           </g>
         );
       })}
+      {cascade && <Cascade layout={layout} blocks={cascade} labelFor={blockLabel ?? (() => '')} />}
+      {hand && <Hand layout={layout} shape={hand} />}
       {/* Anillos de nota oída: se dibujan al final para que ninguna tecla los tape. */}
       {ordered.map((key) =>
         visuals?.get(key.midi)?.heard ? (

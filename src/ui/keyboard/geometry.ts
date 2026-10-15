@@ -16,6 +16,48 @@ const BLACK_OFFSET_BY_PITCH_CLASS: Readonly<Record<number, number>> = {
   10: 0.14, // La#
 };
 
+/**
+ * El teclado, la cascada de notas que esperan encima y la mano debajo comparten **un solo sistema de
+ * coordenadas** (el mismo `viewBox` SVG): así cada bloque cae justo sobre su tecla y cada dedo queda
+ * justo bajo ella, a cualquier tamaño de pantalla.
+ */
+export const BLOCK_HEIGHT = 16;
+export const BLOCK_GAP = 4;
+/** Filas de la cascada: la nota actual y las que esperan (la 0 es la de abajo, sobre las teclas). */
+export const CASCADE_SLOTS = 3;
+export const CASCADE_MARGIN = 2;
+export const CASCADE_HEIGHT =
+  CASCADE_SLOTS * BLOCK_HEIGHT + (CASCADE_SLOTS - 1) * BLOCK_GAP + 2 * CASCADE_MARGIN;
+export const FINGER_HEIGHT = 22;
+export const FINGER_WIDTH = 18;
+export const HAND_MARGIN = 3;
+export const HAND_HEIGHT = FINGER_HEIGHT + 2 * HAND_MARGIN;
+/** Margen por encima y por debajo de las teclas (sombras y bordes). */
+const KEY_MARGIN = 2;
+
+/** Arriba de una fila de la cascada (y de las teclas = 0): la fila 0 es la más cercana a las teclas. */
+export function slotTop(slot: number): number {
+  return -CASCADE_MARGIN - BLOCK_HEIGHT - slot * (BLOCK_HEIGHT + BLOCK_GAP);
+}
+
+export interface ViewBoxOptions {
+  /** Reserva las filas de la cascada por encima de las teclas. */
+  readonly cascade?: boolean | undefined;
+  /** Reserva la fila de la mano por debajo de las teclas. */
+  readonly hand?: boolean | undefined;
+}
+
+/** El `viewBox` del teclado con las filas reservadas: una sola escala para teclas, bloques y dedos. */
+export function viewBoxOf(
+  x: number,
+  width: number,
+  { cascade = false, hand = false }: ViewBoxOptions = {},
+): { readonly x: number; readonly y: number; readonly width: number; readonly height: number } {
+  const above = cascade ? CASCADE_HEIGHT : KEY_MARGIN;
+  const below = hand ? HAND_HEIGHT : 0;
+  return { x, y: -above, width, height: above + WHITE_HEIGHT + 4 + below };
+}
+
 export interface KeyLayout {
   readonly midi: Midi;
   readonly isBlack: boolean;

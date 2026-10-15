@@ -4,7 +4,7 @@
   width: 100%;
   height: auto;
   /* En pantallas de poca altura el teclado se encoge para que quepa con el resto del tablero. */
-  max-height: clamp(190px, calc(100vh - 480px), 330px);
+  max-height: clamp(255px, calc(100vh - 440px), 470px);
   user-select: none;
   filter: drop-shadow(0 6px 10px var(--shadow));
 }
@@ -136,4 +136,105 @@
   fill: var(--key-heard);
   stroke: #ffffff;
   stroke-width: 1;
+}
+
+/* ---------- Cascada de notas (sobre las teclas) ---------- */
+.cascade__block {
+  transition:
+    transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 240ms ease;
+  animation: cascade-in 260ms ease-out both;
+}
+@keyframes cascade-in {
+  from {
+    opacity: 0;
+  }
+}
+.cascade__rect {
+  transition:
+    fill 200ms ease,
+    stroke 200ms ease;
+}
+.cascade__name {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 700;
+  transition: fill 200ms ease;
+}
+.cascade__block--now .cascade__rect {
+  fill: var(--key-target);
+  stroke: var(--key-target-edge);
+  stroke-width: 1;
+}
+.cascade__block--now .cascade__name {
+  fill: var(--on-accent);
+}
+.cascade__block--next .cascade__rect {
+  fill: color-mix(in srgb, var(--key-target) 14%, transparent);
+  stroke: var(--key-target);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+}
+.cascade__block--next .cascade__name {
+  fill: var(--text-muted);
+}
+.cascade__comb {
+  fill: none;
+  stroke: var(--key-target);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cascade__finger circle {
+  fill: var(--surface);
+  stroke: var(--key-target-edge);
+  stroke-width: 0.8;
+}
+.cascade__finger text {
+  font-family: var(--font-ui);
+  font-size: 7.2px;
+  font-weight: 800;
+  fill: var(--text);
+}
+.cascade__block--next .cascade__finger circle {
+  stroke: var(--key-target);
+}
+
+/* ---------- Mano bajo el teclado ---------- */
+.hand--derecha {
+  --hand: var(--hand-right);
+}
+.hand--izquierda {
+  --hand: var(--hand-left);
+}
+.hand__finger text {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 800;
+}
+.hand__finger--used rect {
+  fill: var(--hand);
+  stroke: var(--hand);
+  stroke-width: 1;
+}
+.hand__finger--used text {
+  fill: var(--hand-on);
+}
+.hand__finger--ghost rect {
+  fill: none;
+  stroke: var(--hand);
+  stroke-width: 1;
+  stroke-dasharray: 3 2.5;
+  opacity: 0.55;
+}
+.hand__finger--ghost text {
+  fill: var(--hand);
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cascade__block {
+    transition: none;
+    animation: none;
+  }
 }

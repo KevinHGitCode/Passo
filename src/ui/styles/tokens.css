@@ -39,6 +39,10 @@
   --key-target: #3454d1;
   --key-target-edge: #1d338f;
   --key-heard: #7c3aed;
+  /* Manos: azul y rosa violáceo (seguros para daltonismo) y además distinta forma (cápsula / cuadrado). */
+  --hand-right: #0b6fb3;
+  --hand-left: #a63d80;
+  --hand-on: #ffffff;
   --meter-track: color-mix(in srgb, var(--text) 14%, var(--surface-2));
   --meter-fill: var(--accent);
   --meter-gate: var(--text-muted);
@@ -83,6 +87,9 @@
     --key-target: #8fa4ff;
     --key-target-edge: #c7d2ff;
     --key-heard: #7c3aed;
+    --hand-right: #63bdf0;
+    --hand-left: #e58cc0;
+    --hand-on: #0b1020;
   }
 }
 
@@ -119,4 +126,7 @@
   --key-target: #8fa4ff;
   --key-target-edge: #c7d2ff;
   --key-heard: #7c3aed;
+  --hand-right: #63bdf0;
+  --hand-left: #e58cc0;
+  --hand-on: #0b1020;
 }

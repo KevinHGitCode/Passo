@@ -130,7 +130,11 @@ function hann(n: number): Float32Array {
   return window;
 }
 
-function goertzelMagnitude(samples: Float32Array, sampleRate: number, frequency: number): number {
+export function goertzelMagnitude(
+  samples: Float32Array,
+  sampleRate: number,
+  frequency: number,
+): number {
   const n = samples.length;
   const omega = (2 * Math.PI * frequency) / sampleRate;
   const coefficient = 2 * Math.cos(omega);

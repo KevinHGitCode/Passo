@@ -1,26 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import type { PreferencesService } from '@/core/application/preferences-service';
+import { THEME_CHOICES } from '@/core/domain/preferences';
+import type { ThemeChoice } from '@/core/domain/preferences';
 
-export type ThemeChoice = 'auto' | 'claro' | 'oscuro';
-
-const STORAGE_KEY = 'passo.tema';
-const CHOICES: readonly ThemeChoice[] = ['auto', 'claro', 'oscuro'];
-
-function readStored(): ThemeChoice {
-  try {
-    const value = window.localStorage.getItem(STORAGE_KEY);
-    return CHOICES.find((choice) => choice === value) ?? 'auto';
-  } catch {
-    return 'auto';
-  }
-}
-
-function store(choice: ThemeChoice): void {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, choice);
-  } catch {
-    // Sin almacenamiento disponible: el tema solo dura esta visita.
-  }
-}
+export type { ThemeChoice };
 
 function apply(choice: ThemeChoice): void {
   const root = document.documentElement;
@@ -29,23 +12,22 @@ function apply(choice: ThemeChoice): void {
 }
 
 /** Aplica el tema guardado antes del primer pintado (evita el parpadeo claro → oscuro). */
-export function initTheme(): void {
-  apply(readStored());
+export function initTheme(choice: ThemeChoice): void {
+  apply(choice);
 }
 
-/** Tema claro/oscuro/automático, recordado en el navegador (si se puede). */
-export function useTheme(): readonly [ThemeChoice, () => void] {
-  const [choice, setChoice] = useState<ThemeChoice>(readStored);
+/** Tema claro/oscuro/automático; se recuerda con el resto de las preferencias. */
+export function useTheme(preferences: PreferencesService): readonly [ThemeChoice, () => void] {
+  const { theme } = useSyncExternalStore(preferences.subscribe, preferences.getSnapshot);
 
   useEffect(() => {
-    apply(choice);
-  }, [choice]);
+    apply(theme);
+  }, [theme]);
 
   const cycle = useCallback(() => {
-    const next = CHOICES[(CHOICES.indexOf(choice) + 1) % CHOICES.length] ?? 'auto';
-    store(next);
-    setChoice(next);
-  }, [choice]);
+    const next = THEME_CHOICES[(THEME_CHOICES.indexOf(theme) + 1) % THEME_CHOICES.length] ?? 'auto';
+    preferences.update({ theme: next });
+  }, [theme, preferences]);
 
-  return [choice, cycle];
+  return [theme, cycle];
 }

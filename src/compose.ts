@@ -10,7 +10,13 @@ import type {
 } from '@/adapters/microphone/microphone-types';
 import { MidiNoteInput } from '@/adapters/midi/midi-input';
 import type { MidiAccessLike } from '@/adapters/midi/midi-types';
+import {
+  LocalStoragePreferencesStore,
+  browserStorage,
+} from '@/adapters/storage/local-storage-preferences-store';
 import { PracticeSession } from '@/core/application/practice-session';
+import { PreferencesService } from '@/core/application/preferences-service';
+import { bindSessionToPreferences } from '@/core/application/preferences-sync';
 import { isExerciseMode } from '@/core/domain/curriculum';
 import { roundConfigFor } from '@/core/domain/exercise';
 import { createSeededRng } from '@/core/domain/rng';
@@ -40,6 +46,7 @@ export function composeApp(search: string = window.location.search) {
     : undefined;
 
   const clock: Clock = { now: () => performance.now() };
+  const preferences = new PreferencesService(new LocalStoragePreferencesStore(browserStorage()));
 
   const microphone = new MicrophoneInput({
     mediaDevices: navigator.mediaDevices as unknown as MediaDevicesLike | undefined,
@@ -114,8 +121,12 @@ export function composeApp(search: string = window.location.search) {
     ...(useMic ? { primarySource: 'microfono' as const } : {}),
   });
 
+  // Notación, ayuda y ejercicio se recuerdan; `?modo=` fija el ejercicio sin guardarlo.
+  bindSessionToPreferences(session, preferences, { exercise: config === undefined });
+
   return {
     session,
+    preferences,
     inputs: inputs as readonly NoteInput[],
     microphone: useMic ? microphone : undefined,
     audio,

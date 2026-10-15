@@ -9,13 +9,15 @@ import '@/ui/styles/base.css';
 const root = document.getElementById('root');
 if (!root) throw new Error('Falta el elemento #root');
 
-initTheme();
-const { session, inputs, audio, microphone, debug, showSound, pcKeysHint } = composeApp();
+const { session, preferences, inputs, audio, microphone, debug, showSound, pcKeysHint } =
+  composeApp();
+initTheme(preferences.getSnapshot().theme);
 
 createRoot(root).render(
   <StrictMode>
     <App
       session={session}
+      preferences={preferences}
       inputs={inputs}
       audio={audio}
       microphone={microphone}

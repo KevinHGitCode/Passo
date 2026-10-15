@@ -1,4 +1,5 @@
 import type { PracticeSession } from '@/core/application/practice-session';
+import type { PreferencesService } from '@/core/application/preferences-service';
 import type { AudioControl } from '@/core/ports/audio-control';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { NoteInput } from '@/core/ports/note-input';
@@ -9,6 +10,7 @@ import { useTheme } from './theme/use-theme';
 
 export interface AppProps {
   readonly session: PracticeSession;
+  readonly preferences: PreferencesService;
   readonly inputs: readonly NoteInput[];
   readonly audio: AudioControl;
   /** Entrada por micrófono con su monitor (nivel, nota oída). */
@@ -21,6 +23,7 @@ export interface AppProps {
 
 export function App({
   session,
+  preferences,
   inputs,
   audio,
   microphone,
@@ -28,7 +31,7 @@ export function App({
   showSound = false,
   pcKeysHint,
 }: AppProps) {
-  const [theme, cycleTheme] = useTheme();
+  const [theme, cycleTheme] = useTheme(preferences);
   const canStartWithoutMic = inputs.some((input) => input.source !== 'microfono');
   return (
     <>

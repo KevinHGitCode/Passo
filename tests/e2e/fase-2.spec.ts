@@ -175,6 +175,75 @@ test('Fase 2 · con notación americana el acorde se llama «C major»', async (
   await f2Capture(page, '10-acorde-notacion-americana');
 });
 
+test('Fase 2 · las preferencias se recuerdan al recargar (notación, ayuda y tema)', async ({
+  page,
+}) => {
+  await page.goto('/?seed=3&pc&mic=off');
+  await page.getByLabel('C D E').click();
+  await page.getByTestId('help-switch').click();
+  await page.getByRole('button', { name: /Tema/ }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'claro');
+
+  const saved = await page.evaluate(() => window.localStorage.getItem('passo.preferencias'));
+  expect(JSON.parse(saved ?? '{}')).toMatchObject({
+    version: 1,
+    notation: 'americana',
+    help: false,
+    theme: 'claro',
+    mode: 'notas',
+  });
+
+  await page.reload();
+  await expect(page.getByLabel('C D E')).toBeChecked();
+  await expect(page.getByTestId('help-switch')).toHaveAttribute('aria-checked', 'false');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'claro');
+  await page.getByTestId('start').click();
+  await expect(page.getByTestId('target-note')).toHaveText(/^[CDEFG]4$/);
+  await expect(page.locator('.key--target')).toHaveCount(0);
+  await beat(page, 600);
+  await f2Capture(page, '11-preferencias-recordadas');
+});
+
+test('Fase 2 · el tema que se guardaba antes de las preferencias se conserva', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!window.localStorage.getItem('passo.preferencias')) {
+      window.localStorage.setItem('passo.tema', 'oscuro');
+    }
+  });
+  await page.goto('/?seed=3&pc&mic=off');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'oscuro');
+  await page.getByLabel('C D E').click();
+  const saved = await page.evaluate(() => window.localStorage.getItem('passo.preferencias'));
+  expect(JSON.parse(saved ?? '{}')).toMatchObject({ theme: 'oscuro', notation: 'americana' });
+});
+
+test('Fase 2 · ?modo= fija el ejercicio de esta visita pero no lo guarda', async ({ page }) => {
+  await page.goto('/?seed=3&pc&mic=off&modo=acordes&nivel=3');
+  await expect(page.getByTestId('welcome')).toContainText('Toca el acorde que aparece');
+  await page.getByLabel('C D E').click();
+  const saved = await page.evaluate(() => window.localStorage.getItem('passo.preferencias'));
+  expect(JSON.parse(saved ?? '{}')).toMatchObject({ mode: 'notas', notation: 'americana' });
+
+  await page.goto('/?seed=3&pc&mic=off');
+  await expect(page.getByTestId('welcome')).toContainText('Toca la nota que aparece');
+});
+
+test('Fase 2 · sin almacenamiento (ventana privada o bloqueado) la app sigue funcionando', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'localStorage', {
+      get() {
+        throw new DOMException('bloqueado', 'SecurityError');
+      },
+    });
+  });
+  await page.goto('/?seed=3&pc&mic=off');
+  await page.getByLabel('C D E').click();
+  await page.getByTestId('start').click();
+  await expect(page.getByTestId('target-note')).toHaveText(/^[CDEFG]4$/);
+});
+
 for (const size of [
   { width: 1280, height: 800 },
   { width: 1366, height: 650 },

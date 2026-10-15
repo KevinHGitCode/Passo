@@ -64,6 +64,18 @@ function parseLevels(value: unknown, fallback: Preferences['levels']): Preferenc
 }
 
 /**
+ * Sin la escucha de varias notas (BETA) el micrófono solo puede juzgar notas sueltas: con él, el
+ * ejercicio es siempre el de notas. Así ninguna combinación guardada o pedida deja un estado imposible.
+ */
+function consistent(preferences: Preferences): Preferences {
+  return preferences.input === 'microfono' &&
+    !preferences.polyphonicMic &&
+    preferences.mode !== 'notas'
+    ? { ...preferences, mode: 'notas' }
+    : preferences;
+}
+
+/**
  * Convierte lo leído del almacenamiento (o un cambio) en preferencias válidas. Nunca lanza:
  * cada campo inválido toma el valor de `fallback`. Si la versión no es la actual solo se aprovecha
  * el tema (así se conserva el que se guardaba antes de que existieran las preferencias).
@@ -72,6 +84,10 @@ export function parsePreferences(
   raw: unknown,
   fallback: Preferences = DEFAULT_PREFERENCES,
 ): Preferences {
+  return consistent(parseFields(raw, fallback));
+}
+
+function parseFields(raw: unknown, fallback: Preferences): Preferences {
   if (!isRecord(raw)) return fallback;
   const theme = oneOf(raw['theme'], THEME_CHOICES, fallback.theme);
   if (raw['version'] !== PREFERENCES_VERSION) return { ...fallback, theme };

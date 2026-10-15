@@ -104,10 +104,14 @@ describe('PreferencesService', () => {
   });
 });
 
+// Con el micrófono solo hay ejercicio de notas: para probar terceras y acordes, otra entrada.
+const WITH_KEYBOARD = { version: 1, input: 'teclado-pc' };
+
 describe('bindSessionToPreferences', () => {
   it('al empezar aplica las preferencias a la sesión (notación, ayuda y ejercicio)', () => {
     const store = new FakePreferencesStore({
       version: 1,
+      input: 'teclado-pc',
       notation: 'americana',
       help: false,
       mode: 'acordes',
@@ -125,7 +129,7 @@ describe('bindSessionToPreferences', () => {
   });
 
   it('lo que cambia en la sesión se guarda como preferencia', () => {
-    const store = new FakePreferencesStore();
+    const store = new FakePreferencesStore(WITH_KEYBOARD);
     const preferences = new PreferencesService(store);
     const session = makeSession();
     bindSessionToPreferences(session, preferences, { exercise: true });
@@ -143,7 +147,7 @@ describe('bindSessionToPreferences', () => {
   });
 
   it('lo que cambia en las preferencias se aplica a la sesión, también con una ronda en curso', () => {
-    const preferences = new PreferencesService(new FakePreferencesStore());
+    const preferences = new PreferencesService(new FakePreferencesStore(WITH_KEYBOARD));
     const session = makeSession();
     bindSessionToPreferences(session, preferences, { exercise: true });
     session.start();
@@ -156,7 +160,7 @@ describe('bindSessionToPreferences', () => {
   });
 
   it('con `exercise: false` el ejercicio lo fija la sesión y no se guarda', () => {
-    const store = new FakePreferencesStore();
+    const store = new FakePreferencesStore(WITH_KEYBOARD);
     const preferences = new PreferencesService(store);
     const session = makeSession(roundConfigFor('acordes', 5) as RoundConfig);
     bindSessionToPreferences(session, preferences, { exercise: false });
@@ -169,7 +173,7 @@ describe('bindSessionToPreferences', () => {
   });
 
   it('no hay bucles: un cambio produce un solo guardado', () => {
-    const store = new FakePreferencesStore();
+    const store = new FakePreferencesStore(WITH_KEYBOARD);
     const preferences = new PreferencesService(store);
     const session = makeSession();
     bindSessionToPreferences(session, preferences, { exercise: true });
@@ -180,7 +184,7 @@ describe('bindSessionToPreferences', () => {
   });
 
   it('al soltar el puente dejan de sincronizarse', () => {
-    const preferences = new PreferencesService(new FakePreferencesStore());
+    const preferences = new PreferencesService(new FakePreferencesStore(WITH_KEYBOARD));
     const session = makeSession();
     const unbind = bindSessionToPreferences(session, preferences, { exercise: true });
     unbind();

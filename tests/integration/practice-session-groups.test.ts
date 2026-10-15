@@ -175,6 +175,22 @@ describe('PracticeSession · configure (modo y nivel)', () => {
     expect(session.getSnapshot().exercise?.target.notes).toHaveLength(3);
   });
 
+  it('si la ronda estaba en pausa (ajustes abiertos), la nueva también empieza en pausa', () => {
+    const { session, input } = setup(thirds);
+    session.pause();
+    session.configure(chords);
+    expect(session.getSnapshot()).toMatchObject({
+      phase: 'pausada',
+      pauseReason: 'manual',
+      mode: 'acordes',
+      hits: 0,
+    });
+    input.press(60, 1100);
+    expect(session.getSnapshot().feedback).toBeNull();
+    session.resume();
+    expect(session.getSnapshot().phase).toBe('en-curso');
+  });
+
   it('el intento guarda el modo y todas las notas del objetivo', () => {
     const { session, input } = setup();
     input.press(60, 1100);

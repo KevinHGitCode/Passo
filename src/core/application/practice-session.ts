@@ -139,12 +139,15 @@ export class PracticeSession {
 
   /**
    * Cambia el modo y nivel de los ejercicios. Con una ronda en curso (o en pausa) empieza otra con
-   * el contenido nuevo; si no, se aplica en la próxima.
+   * el contenido nuevo, que sigue en pausa si lo estaba (p. ej. con los ajustes abiertos); si no, se
+   * aplica en la próxima.
    */
   configure(config: RoundConfig): void {
     this.config = config;
-    if (this.snapshot.phase === 'en-curso' || this.snapshot.phase === 'pausada') {
+    const { phase } = this.snapshot;
+    if (phase === 'en-curso' || phase === 'pausada') {
       this.start();
+      if (phase === 'pausada') this.pause();
     } else {
       this.update({ mode: config.mode, level: config.level });
     }

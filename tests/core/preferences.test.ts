@@ -92,6 +92,40 @@ describe('parsePreferences', () => {
   });
 });
 
+describe('coherencia entre entrada y ejercicio', () => {
+  it('con el micrófono (sin la beta de varias notas) el ejercicio siempre es el de notas', () => {
+    expect(
+      parsePreferences({ ...valid, input: 'microfono', mode: 'acordes', polyphonicMic: false })
+        .mode,
+    ).toBe('notas');
+    expect(parsePreferences({ version: 1, input: 'microfono', mode: 'terceras' }).mode).toBe(
+      'notas',
+    );
+  });
+
+  it('con la beta activada el micrófono admite terceras y acordes', () => {
+    expect(
+      parsePreferences({ ...valid, input: 'microfono', mode: 'acordes', polyphonicMic: true }).mode,
+    ).toBe('acordes');
+  });
+
+  it('con otra entrada no cambia nada', () => {
+    expect(parsePreferences({ ...valid, input: 'midi', mode: 'terceras' }).mode).toBe('terceras');
+  });
+
+  it('pasar al micrófono desde terceras vuelve a notas, y los niveles se conservan', () => {
+    const onKeyboard = applyPreferencesPatch(valid, { mode: 'terceras', levels: { terceras: 3 } });
+    const onMic = applyPreferencesPatch(onKeyboard, { input: 'microfono', polyphonicMic: false });
+    expect(onMic.mode).toBe('notas');
+    expect(onMic.levels.terceras).toBe(3);
+  });
+
+  it('pedir terceras con el micrófono elegido no cambia nada', () => {
+    const onMic = applyPreferencesPatch(valid, { input: 'microfono', polyphonicMic: false });
+    expect(samePreferences(applyPreferencesPatch(onMic, { mode: 'terceras' }), onMic)).toBe(true);
+  });
+});
+
 describe('applyPreferencesPatch', () => {
   it('cambia solo lo indicado y mezcla los niveles por modo', () => {
     const next = applyPreferencesPatch(valid, { notation: 'latina', levels: { terceras: 2 } });

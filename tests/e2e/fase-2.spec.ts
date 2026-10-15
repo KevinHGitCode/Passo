@@ -2,7 +2,8 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { beat } from './helpers';
+import { FAKE_MIDI_SCRIPT, beat } from './helpers';
+import { FAKE_MIC_SCRIPT } from './mic-helpers';
 import {
   F2_EVIDENCE_DIR,
   down,
@@ -242,6 +243,97 @@ test('Fase 2 · sin almacenamiento (ventana privada o bloqueado) la app sigue fu
   await page.getByLabel('C D E').click();
   await page.getByTestId('start').click();
   await expect(page.getByTestId('target-note')).toHaveText(/^[CDEFG]4$/);
+});
+
+/** Deja guardada la entrada elegida antes de que cargue la página (solo la primera vez). */
+async function chooseInput(page: Page, input: 'microfono' | 'midi' | 'teclado-pc'): Promise<void> {
+  await page.addInitScript((value) => {
+    if (!window.localStorage.getItem('passo.preferencias')) {
+      window.localStorage.setItem(
+        'passo.preferencias',
+        JSON.stringify({ version: 1, input: value }),
+      );
+    }
+  }, input);
+}
+
+const micCalls = (page: Page) =>
+  page.evaluate(
+    () => (window as unknown as { __fakeMic: { calls: unknown[] } }).__fakeMic.calls.length,
+  );
+
+test('Fase 2 · por defecto escucha el micrófono, pero no se enciende solo hasta que lo activas', async ({
+  page,
+}) => {
+  await page.addInitScript(FAKE_MIC_SCRIPT);
+  await page.goto('/?seed=3');
+  await expect(page.getByTestId('mic-panel')).toBeVisible();
+  await expect(page.getByTestId('status-microfono')).toBeVisible();
+  await expect(page.getByTestId('status-teclado-pc')).toHaveCount(0);
+  await expect(page.getByTestId('status-midi')).toHaveCount(0);
+  await page.waitForTimeout(1200);
+  expect(await micCalls(page)).toBe(0);
+  await page.keyboard.press('KeyA');
+  await page.mouse.click(5, 5);
+  await page.waitForTimeout(300);
+  expect(await micCalls(page)).toBe(0);
+
+  await page.getByTestId('activate-mic').click();
+  await expect(page.getByTestId('mic-panel')).toHaveAttribute(
+    'data-state',
+    /calibrando|escuchando/,
+  );
+  expect(await micCalls(page)).toBe(1);
+});
+
+test('Fase 2 · con el teclado del PC elegido no aparece el micrófono ni se pide permiso (video)', async ({
+  page,
+}) => {
+  await page.addInitScript(FAKE_MIC_SCRIPT);
+  await chooseInput(page, 'teclado-pc');
+  await page.goto('/?seed=7');
+  await expect(page.getByTestId('welcome')).toBeVisible();
+  await expect(page.getByTestId('mic-panel')).toHaveCount(0);
+  await expect(page.getByTestId('status-teclado-pc')).toContainText('Teclado del PC');
+  await expect(page.getByTestId('status-microfono')).toHaveCount(0);
+  await expect(page.getByTestId('pc-hint')).toContainText('A S D F G');
+  await beat(page, 800);
+  await f2Capture(page, '12-entrada-teclado-del-pc');
+
+  await page.getByTestId('start').click();
+  for (let i = 0; i < 3; i++) {
+    const notes = await targetMidis(page);
+    await down(page, notes[0] as number);
+    await releaseAll(page, notes);
+  }
+  await expect(page.getByTestId('counters')).toContainText('Notas 3/20');
+  expect(await micCalls(page)).toBe(0);
+  await saveVideo(page, 'entrada-teclado-del-pc.webm');
+});
+
+test('Fase 2 · con el piano MIDI elegido solo escucha el MIDI (el teclado del PC no cuenta)', async ({
+  page,
+}) => {
+  await page.addInitScript(FAKE_MIC_SCRIPT);
+  await page.addInitScript(FAKE_MIDI_SCRIPT);
+  await chooseInput(page, 'midi');
+  await page.goto('/?seed=7');
+  await expect(page.getByTestId('mic-panel')).toHaveCount(0);
+  await expect(page.getByTestId('status-midi')).toBeVisible();
+  await expect(page.getByTestId('status-teclado-pc')).toHaveCount(0);
+  await page.getByTestId('start').click();
+  await expect(page.getByTestId('target')).toBeVisible();
+
+  // El teclado del PC está apagado: pulsar teclas no hace nada.
+  const target = (await targetMidis(page))[0] as number;
+  await page.keyboard.down('KeyA');
+  await page.keyboard.up('KeyA');
+  await page.keyboard.down('KeyS');
+  await page.keyboard.up('KeyS');
+  await expect(page.getByTestId('counters')).toContainText('Notas 0/20');
+  await expect(page.getByTestId('counters')).toContainText('Errores 0');
+  expect(await micCalls(page)).toBe(0);
+  expect(target).toBeGreaterThan(0);
 });
 
 for (const size of [

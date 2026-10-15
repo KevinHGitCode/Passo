@@ -8,11 +8,13 @@ import { noteName, octaveOf, pitchName } from '@/core/domain/note';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { NoteInput } from '@/core/ports/note-input';
 import type { Midi, NotationMode } from '@/core/domain/note';
+import { handShape } from '@/core/domain/hand-shape';
 import type { Hand } from '@/core/domain/target';
 import { hintText } from '../listen/listen-messages';
 import { ListeningStrip } from '../listen/ListeningStrip';
 import { MicPanel } from '../listen/MicPanel';
 import { windowAround } from '../keyboard/geometry';
+import type { CascadeBlock } from '../keyboard/cascade';
 import { PianoKeyboard } from '../keyboard/piano-keyboard';
 import { feedbackMessage, formatSeconds } from './feedback-message';
 import type { FeedbackMessage } from './feedback-message';
@@ -240,6 +242,17 @@ export function PracticeScreen({
     if (help && phase !== 'inactiva' && !isBlack) return pitchName(midi, notation);
     return undefined;
   };
+  // La cola de notas y la mano solo se ven con una ronda en marcha (o en pausa); el espacio se reserva siempre.
+  const playing = exercise !== null && (phase === 'en-curso' || phase === 'pausada');
+  const cascade: CascadeBlock[] = playing
+    ? [exercise.target, ...exercise.upcoming].map((target, slot) => ({
+        id: exercise.completedTargets + slot,
+        slot,
+        notes: target.notes,
+        fingers: target.fingers,
+      }))
+    : [];
+  const hand = playing ? handShape(exercise.target) : null;
   const viewWindow = narrow
     ? windowAround(
         targetNotes?.[0] ?? 60,
@@ -260,10 +273,9 @@ export function PracticeScreen({
           <h1 className="brand__name">Passo</h1>
           <span className="brand__tag">toca, corrige, avanza</span>
         </div>
+        {statusZone}
         {headerActions}
       </header>
-
-      {statusZone}
 
       <section
         className="board"
@@ -336,17 +348,9 @@ export function PracticeScreen({
                     ))}
                   </span>
                 )}
-                <span
-                  className={
-                    targetNotes.length === 1 ? 'target__hint' : 'target__hint target__hint--keep'
-                  }
-                  data-testid="target-detail"
-                >
-                  {targetNotes.length === 1
-                    ? help
-                      ? 'La tecla resaltada del teclado'
-                      : 'Búscala en el teclado'
-                    : targetDetail(exercise.target, notation)}
+                <span className="target__hint target__hint--keep" data-testid="target-detail">
+                  {targetDetail(exercise.target, notation) ||
+                    (help ? 'La tecla resaltada del teclado' : 'Búscala en el teclado')}
                 </span>
                 <div
                   className="progress"
@@ -438,6 +442,9 @@ export function PracticeScreen({
             visuals={visuals}
             labelFor={labelFor}
             viewWindow={viewWindow}
+            cascade={cascade}
+            blockLabel={(midi) => noteName(midi, notation)}
+            hand={hand}
             ariaLabel={
               targetNotes !== null && phase === 'en-curso'
                 ? `Teclado de piano de ${noteName(KEYBOARD_FROM, notation)} a ${noteName(KEYBOARD_TO, notation)}. ${targetNotes.length === 1 ? 'Nota' : 'Notas'} a tocar: ${notesText(targetNotes, notation)}`

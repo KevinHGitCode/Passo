@@ -140,7 +140,7 @@ describe('PracticeScreen · modo notas sin cambios', () => {
     const { start } = setup(roundConfigFor('notas', 1) as RoundConfig);
     start();
     expect(screen.getByTestId('target').textContent).toContain('Toca esta nota');
-    expect(screen.getByTestId('target-detail').textContent).toBe('La tecla resaltada del teclado');
+    expect(screen.getByTestId('target-detail').textContent).toMatch(/^mano derecha · dedo [1-5]$/);
     expect(screen.getByTestId('target-note').querySelector('.target__chip')).toBeNull();
     expect(screen.getByTestId('counters').textContent).toContain('Notas 0/3');
   });

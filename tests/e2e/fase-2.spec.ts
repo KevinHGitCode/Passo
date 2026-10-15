@@ -480,6 +480,125 @@ test('Fase 2 · ajustes en un móvil: panel modal que cierra con Esc y devuelve 
   await context.close();
 });
 
+/** Distancias (px) entre el centro de cada bloque o dedo y el de su tecla, medidas en el navegador. */
+async function alignment(page: Page) {
+  return page.evaluate(() => {
+    const piano = document.querySelector('[data-testid=piano]') as Element;
+    const keyBox = (midi: string | null) =>
+      (
+        piano.querySelector(`.key[data-midi="${midi}"] .key__shape`) as Element
+      ).getBoundingClientRect();
+    const centerX = (box: DOMRect) => box.left + box.width / 2;
+    const blocks = [...document.querySelectorAll('.cascade__block--now .cascade__note')].map(
+      (note) => {
+        const key = keyBox(note.getAttribute('data-midi'));
+        const box = (note.querySelector('rect') as Element).getBoundingClientRect();
+        return { dx: Math.abs(centerX(box) - centerX(key)), above: key.top - box.bottom };
+      },
+    );
+    const fingers = [...document.querySelectorAll('.hand__finger')].map((finger) => {
+      const key = keyBox(finger.getAttribute('data-midi'));
+      const box = (finger.querySelector('rect') as Element).getBoundingClientRect();
+      return { dx: Math.abs(centerX(box) - centerX(key)), below: box.top - key.bottom };
+    });
+    return { blocks, fingers };
+  });
+}
+
+test('Fase 2 · cascada y manos: cada bloque cae sobre su tecla y cada dedo queda bajo ella (video)', async ({
+  page,
+}) => {
+  await page.goto('/?seed=7&pc&mic=off&modo=acordes&nivel=4');
+  await page.getByTestId('start').click();
+  await expect(page.getByTestId('cascade').locator('.cascade__block')).toHaveCount(3);
+  await expect(page.getByTestId('hand').locator('.hand__finger')).toHaveCount(5);
+  await expect(page.getByTestId('hand').locator('.hand__finger--used')).toHaveCount(3);
+
+  await test.step('Alineación: bloque–tecla y dedo–tecla a menos de medio píxel', async () => {
+    const { blocks, fingers } = await alignment(page);
+    expect(blocks).toHaveLength(3);
+    for (const block of blocks) {
+      expect(block.dx).toBeLessThanOrEqual(0.5);
+      expect(block.above).toBeGreaterThanOrEqual(0);
+    }
+    for (const finger of fingers) {
+      expect(finger.dx).toBeLessThanOrEqual(0.5);
+      expect(finger.below).toBeGreaterThan(0);
+    }
+    await beat(page, 900);
+    await f2Capture(page, '19-cascada-y-mano-acorde');
+  });
+
+  await test.step('La cola cae con una transición CSS al acertar y se mantiene alineada', async () => {
+    const duration = await page
+      .locator('.cascade__block')
+      .first()
+      .evaluate((el) => getComputedStyle(el).transitionDuration);
+    expect(duration).toContain('0.32s');
+    for (let i = 0; i < 4; i++) {
+      const before = await targetMidis(page);
+      const nextBefore = await page
+        .locator('.cascade__block[data-slot="1"] .cascade__note')
+        .evaluateAll((notes) => notes.map((note) => Number(note.getAttribute('data-midi'))));
+      await playTarget(page);
+      await page.waitForTimeout(420);
+      const after = await targetMidis(page);
+      expect(after).toEqual(nextBefore);
+      expect(after).not.toEqual(before);
+      const { blocks, fingers } = await alignment(page);
+      for (const item of [...blocks, ...fingers]) expect(item.dx).toBeLessThanOrEqual(0.5);
+    }
+  });
+
+  await test.step('Con el último objetivo ya no hay siguientes y al terminar todo desaparece', async () => {
+    for (let i = 0; i < 20; i++) {
+      if (await page.getByTestId('summary').isVisible()) break;
+      await playTarget(page);
+      await page.waitForTimeout(40);
+    }
+    await expect(page.getByTestId('summary')).toBeVisible();
+    await expect(page.getByTestId('cascade').locator('.cascade__block')).toHaveCount(0);
+    await expect(page.getByTestId('hand')).toHaveCount(0);
+  });
+  await saveVideo(page, 'cascada-y-manos.webm');
+});
+
+test('Fase 2 · la mano izquierda se dibuja con cuadrados rosas, el 5 a la izquierda, bajo sus teclas', async ({
+  page,
+}) => {
+  await page.goto('/?seed=9&pc&mic=off&modo=acordes&nivel=5');
+  await page.getByTestId('start').click();
+  await expect(page.getByTestId('hand')).toHaveAttribute('data-hand', 'izquierda');
+  const order = await page.locator('.hand__finger').evaluateAll((fingers) =>
+    fingers
+      .map((finger) => ({
+        finger: Number(finger.getAttribute('data-finger')),
+        x: (finger.querySelector('rect') as Element).getBoundingClientRect().left,
+      }))
+      .sort((a, b) => a.x - b.x)
+      .map((item) => item.finger),
+  );
+  expect(order).toEqual([5, 4, 3, 2, 1]);
+  const { blocks, fingers } = await alignment(page);
+  for (const item of [...blocks, ...fingers]) expect(item.dx).toBeLessThanOrEqual(0.5);
+  await beat(page, 800);
+  await f2Capture(page, '20-mano-izquierda');
+});
+
+test('Fase 2 · en modo notas la cascada y la mano también están (posición de cinco dedos)', async ({
+  page,
+}) => {
+  await page.goto('/?seed=7&pc&mic=off');
+  await page.getByTestId('start').click();
+  await expect(page.getByTestId('cascade').locator('.cascade__block')).toHaveCount(3);
+  await expect(page.getByTestId('hand').locator('.hand__finger--used')).toHaveCount(1);
+  await expect(page.getByTestId('target-detail')).toHaveText(/^mano derecha · dedo [1-5]$/);
+  const { blocks, fingers } = await alignment(page);
+  for (const item of [...blocks, ...fingers]) expect(item.dx).toBeLessThanOrEqual(0.5);
+  await beat(page, 800);
+  await f2Capture(page, '21-cascada-modo-notas');
+});
+
 for (const size of [
   { width: 1280, height: 800 },
   { width: 1366, height: 650 },

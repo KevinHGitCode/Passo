@@ -804,3 +804,107 @@
     min-height: 244px;
   }
 }
+
+/* ---------- Disposición con cascada y manos (Fase 2) ----------
+   El teclado lleva ahora la cascada encima y la mano debajo: el resto del tablero se compacta
+   (el estado de las entradas sube a la cabecera, el mensaje cabe en una línea y el nombre es menor).
+   Estas reglas van al final a propósito: sustituyen a las de tamaños anteriores.
+   La parte superior del tablero tiene una altura fija (la del estado más alto: la bienvenida del
+   micrófono o el resumen de una ronda) para que el teclado no se mueva entre pantallas. */
+.topbar .status-zone {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* Un aviso importante (desconexión, permiso) sigue ocupando su propia fila. */
+.topbar .status-zone:has(.status--warn) {
+  flex-basis: 100%;
+  order: 3;
+}
+.topbar .gear {
+  margin-left: auto;
+}
+.target__name {
+  font-size: clamp(52px, 11vw, 84px);
+}
+.target__name--group {
+  font-size: clamp(40px, 9vw, 68px);
+}
+.stage {
+  min-height: 60px;
+}
+.feedback {
+  padding: 6px 16px 6px 10px;
+  gap: 10px;
+}
+.feedback__icon {
+  padding: 6px;
+}
+.feedback > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 10px;
+}
+.feedback__title {
+  font-size: 18px;
+}
+.paused {
+  padding: 4px 14px;
+  gap: 6px 14px;
+}
+.mic-panel__text,
+.mic-panel__steps {
+  max-width: 64ch;
+}
+@media (min-width: 600px) {
+  .board__top {
+    min-height: 252px;
+    gap: 8px;
+  }
+}
+@media (max-height: 860px) and (min-width: 600px) {
+  .target__name {
+    font-size: 72px;
+  }
+  .target__name--group {
+    font-size: 60px;
+  }
+  .mic-panel__text {
+    font-size: 14px;
+  }
+  .welcome__note {
+    display: none;
+  }
+}
+/* Pantallas de poca altura: menos aire alrededor para que el teclado, la cascada y la mano quepan. */
+@media (max-height: 800px) {
+  .app {
+    padding-bottom: 12px;
+  }
+  .board {
+    padding-bottom: 12px;
+  }
+}
+@media (max-height: 780px) and (min-width: 600px) {
+  .target__name {
+    font-size: 62px;
+  }
+  .target__name--group {
+    font-size: 52px;
+  }
+}
+@media (max-height: 700px) and (min-width: 600px) {
+  .target__name {
+    font-size: 52px;
+  }
+  .target__name--group {
+    font-size: 44px;
+  }
+  .board__top {
+    min-height: 240px;
+  }
+  /* El contador ya dice cuánto falta: sin la barra cabe un teclado mayor. */
+  .progress {
+    display: none;
+  }
+}

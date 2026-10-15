@@ -23,6 +23,7 @@ function stateWithTarget(target: number, overrides: Partial<ExerciseState> = {})
   return {
     ...startRound(LEVEL_1_CONFIG, createSeededRng(1), 1000),
     target: single(target),
+    upcoming: [],
     ...overrides,
   };
 }

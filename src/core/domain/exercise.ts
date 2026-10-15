@@ -10,6 +10,8 @@ import type { Target } from './target';
 export const DEFAULT_ROUND_SIZE = 20;
 /** Una tercera o un acorde cuesta más que una nota: rondas más cortas. */
 export const GROUP_ROUND_SIZE = 12;
+/** Cuántos objetivos siguientes se conocen de antemano (los que se ven esperar en la cascada). */
+export const UPCOMING_COUNT = 2;
 
 /**
  * Por micrófono, la nota que acaba de acertarse puede «reaparecer» (eco, hueco de audio, cola de la
@@ -81,6 +83,8 @@ export interface Attempt {
 export interface ExerciseState {
   readonly config: RoundConfig;
   readonly target: Target;
+  /** Los siguientes objetivos, ya elegidos: los que quedan por jugar, hasta `UPCOMING_COUNT`. */
+  readonly upcoming: readonly Target[];
   /** Notas del objetivo que están pulsadas ahora mismo (pulsadas después de mostrarse el objetivo). */
   readonly held: readonly Midi[];
   /** Grupo de notas equivocadas en curso (acordes); evita contar un error por cada nota de más. */
@@ -146,10 +150,33 @@ export function pickTarget(pool: readonly Target[], previous: Target | null, rng
   return candidates[index] as Target;
 }
 
+/**
+ * Completa la cola de objetivos siguientes con los que quedan por jugar. Se elige en el mismo orden
+ * en que se elegiría uno a uno, así que la sucesión de objetivos de una semilla no cambia.
+ */
+function fillUpcoming(
+  current: Target,
+  queue: readonly Target[],
+  config: RoundConfig,
+  completedTargets: number,
+  rng: Rng,
+): readonly Target[] {
+  const wanted = Math.max(0, Math.min(UPCOMING_COUNT, config.roundSize - completedTargets - 1));
+  const upcoming = queue.slice(0, wanted);
+  let previous = upcoming[upcoming.length - 1] ?? current;
+  while (upcoming.length < wanted) {
+    previous = pickTarget(config.pool, previous, rng);
+    upcoming.push(previous);
+  }
+  return upcoming;
+}
+
 export function startRound(config: RoundConfig, rng: Rng, now: number): ExerciseState {
+  const target = pickTarget(config.pool, null, rng);
   return {
     config,
-    target: pickTarget(config.pool, null, rng),
+    target,
+    upcoming: fillUpcoming(target, [], config, 0, rng),
     held: [],
     wrongGroup: null,
     shownAt: now,
@@ -309,10 +336,13 @@ export function evaluate(
     };
   }
 
+  const [queued, ...rest] = state.upcoming;
+  const target = queued ?? pickTarget(state.config.pool, state.target, context.rng);
   return {
     state: {
       ...state,
-      target: pickTarget(state.config.pool, state.target, context.rng),
+      target,
+      upcoming: fillUpcoming(target, rest, state.config, completedTargets, context.rng),
       held: [],
       wrongGroup: null,
       shownAt: context.now ?? event.at,

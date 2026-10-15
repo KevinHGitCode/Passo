@@ -117,3 +117,37 @@ describe('ComputerKeyboardInput', () => {
     expect(target.count()).toBe(0);
   });
 });
+
+describe('ComputerKeyboardInput · apagar y volver a encender', () => {
+  it('antes de empezar está inactivo; empezar lo conecta y stop() lo deja inactivo', async () => {
+    const target = new FakeKeyTarget();
+    const input = new ComputerKeyboardInput(target);
+    const statuses: string[] = [];
+    input.subscribeStatus((status) => statuses.push(status.kind));
+    expect(input.getStatus().kind).toBe('inactivo');
+    await input.start();
+    expect(input.getStatus().kind).toBe('conectado');
+    input.stop();
+    expect(input.getStatus().kind).toBe('inactivo');
+    expect(target.count()).toBe(0);
+    expect(statuses).toEqual(['conectado', 'inactivo']);
+  });
+
+  it('stop() suelta las teclas pulsadas y después deja de oír; se puede volver a encender', async () => {
+    const { target, input, events } = await setup();
+    target.key('keydown', 'KeyA');
+    input.stop();
+    expect(events.map((event) => event.type)).toEqual(['on', 'off']);
+    target.key('keydown', 'KeyS');
+    expect(events).toHaveLength(2);
+    await input.start();
+    target.key('keydown', 'KeyS');
+    expect(events.map((event) => event.type)).toEqual(['on', 'off', 'on']);
+  });
+
+  it('stop() sin haber empezado no falla', () => {
+    const input = new ComputerKeyboardInput(new FakeKeyTarget());
+    expect(() => input.stop()).not.toThrow();
+    expect(input.getStatus().kind).toBe('inactivo');
+  });
+});

@@ -68,6 +68,7 @@ describe('StatusZone', () => {
   it('muestra cada entrada y el sonido, y reacciona a la desconexión en caliente', () => {
     const midi = new FakeNoteInput('midi');
     const audio = new FakeAudioControl();
+    midi.setStatus({ kind: 'iniciando' });
     render(<StatusZone inputs={[midi]} audio={audio} />);
     expect(screen.getByTestId('status-midi').textContent).toContain('Buscando');
 

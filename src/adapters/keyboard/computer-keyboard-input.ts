@@ -26,7 +26,7 @@ export class ComputerKeyboardInput implements NoteInput {
   private readonly handlers = new Set<(event: NoteEvent) => void>();
   private readonly statusHandlers = new Set<(status: InputStatus) => void>();
   private readonly down = new Map<string, number>();
-  private status: InputStatus = { kind: 'iniciando' };
+  private status: InputStatus = { kind: 'inactivo' };
   private listening = false;
 
   constructor(target: KeyEventTarget) {
@@ -49,12 +49,14 @@ export class ComputerKeyboardInput implements NoteInput {
   }
 
   stop(): void {
-    if (!this.listening) return;
-    this.listening = false;
-    this.target.removeEventListener('keydown', this.onKeyDown);
-    this.target.removeEventListener('keyup', this.onKeyUp);
-    this.target.removeEventListener('blur', this.onBlur);
-    this.releaseAll(0);
+    if (this.listening) {
+      this.listening = false;
+      this.target.removeEventListener('keydown', this.onKeyDown);
+      this.target.removeEventListener('keyup', this.onKeyUp);
+      this.target.removeEventListener('blur', this.onBlur);
+      this.releaseAll(0);
+    }
+    this.setStatus({ kind: 'inactivo' });
   }
 
   subscribe(handler: (event: NoteEvent) => void): Unsubscribe {

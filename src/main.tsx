@@ -9,7 +9,7 @@ import '@/ui/styles/base.css';
 const root = document.getElementById('root');
 if (!root) throw new Error('Falta el elemento #root');
 
-const { session, preferences, inputs, audio, microphone, debug, showSound, pcKeysHint } =
+const { session, preferences, inputs, inputManager, audio, microphone, debug, devShowSound } =
   composeApp();
 initTheme(preferences.getSnapshot().theme);
 
@@ -19,11 +19,11 @@ createRoot(root).render(
       session={session}
       preferences={preferences}
       inputs={inputs}
+      inputManager={inputManager}
       audio={audio}
       microphone={microphone}
       debug={debug}
-      showSound={showSound}
-      pcKeysHint={pcKeysHint}
+      devShowSound={devShowSound}
     />
   </StrictMode>,
 );

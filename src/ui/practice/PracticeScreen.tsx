@@ -8,6 +8,7 @@ import { noteName, octaveOf, pitchName } from '@/core/domain/note';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { NoteInput } from '@/core/ports/note-input';
 import type { Midi, NotationMode } from '@/core/domain/note';
+import type { Hand } from '@/core/domain/target';
 import { hintText } from '../listen/listen-messages';
 import { ListeningStrip } from '../listen/ListeningStrip';
 import { MicPanel } from '../listen/MicPanel';
@@ -42,8 +43,8 @@ export interface PracticeScreenProps {
   readonly onCycleTheme: () => void;
   /** Zona de estado de entradas y sonido (se coloca bajo la cabecera). */
   readonly statusZone?: ReactNode | undefined;
-  /** Ayuda al teclado del PC para el nivel actual. */
-  readonly pcKeysHint?: string | undefined;
+  /** El teclado del PC es una entrada activa: se muestra qué teclas tocar. */
+  readonly showPcKeys?: boolean | undefined;
   /** Entrada por micrófono (escucha activa), con su monitor de nivel y nota oída. */
   readonly microphone?: (NoteInput & InputMonitor) | undefined;
   /** Hay otra entrada (teclado del PC, MIDI): se puede empezar sin micrófono. */
@@ -160,6 +161,13 @@ function Summary({
   );
 }
 
+/** Teclas del PC que hacen de piano: la fila de arriba (mano derecha) y la de abajo (mano izquierda). */
+function pcKeysText(hand: Hand): string {
+  return hand === 'izquierda'
+    ? 'Teclado del PC: Z X C V B N M = Do3 Re3 Mi3 Fa3 Sol3 La3 Si3 · A S D F = Do4 Re4 Mi4 Fa4'
+    : 'Teclado del PC: A S D F G H J K L ; = Do4 Re4 Mi4 Fa4 Sol4 La4 Si4 Do5 Re5 Mi5';
+}
+
 function welcomeTitle(mode: ExerciseMode): string {
   if (mode === 'terceras') return 'Toca la tercera que aparece';
   if (mode === 'acordes') return 'Toca el acorde que aparece';
@@ -185,7 +193,7 @@ export function PracticeScreen({
   theme,
   onCycleTheme,
   statusZone,
-  pcKeysHint,
+  showPcKeys = false,
   microphone,
   canStartWithoutMic = true,
 }: PracticeScreenProps) {
@@ -447,7 +455,11 @@ export function PracticeScreen({
             }
           />
         </div>
-        {!microphone && pcKeysHint && <p className="pc-hint">{pcKeysHint}</p>}
+        {!microphone && showPcKeys && (
+          <p className="pc-hint" data-testid="pc-hint">
+            {pcKeysText(findLevel(snapshot.mode, snapshot.level)?.hand ?? 'derecha')}
+          </p>
+        )}
       </section>
 
       <div className="sr-only" role="status" aria-live="polite" data-testid="live">

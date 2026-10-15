@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import type { InputManager } from '@/core/application/input-manager';
+import type { InputSource } from '@/core/domain/note-event';
 import type {
   PracticeSession,
   SessionFeedback,
@@ -70,5 +72,18 @@ export function useInputStatus(input: NoteInput | undefined): InputStatus | null
     [input],
   );
   const getSnapshot = useCallback(() => (input ? input.getStatus() : null), [input]);
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+
+/** La entrada elegida en el gestor, o `null` si no hay gestor (modo de desarrollo). */
+export function useInputSelection(manager: InputManager | undefined): InputSource | null {
+  const subscribe = useCallback(
+    (onChange: () => void) => (manager ? manager.subscribe(onChange) : () => undefined),
+    [manager],
+  );
+  const getSnapshot = useCallback(
+    () => (manager ? manager.getSnapshot().selected : null),
+    [manager],
+  );
   return useSyncExternalStore(subscribe, getSnapshot);
 }

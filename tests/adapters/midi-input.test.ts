@@ -133,3 +133,28 @@ describe('MidiNoteInput', () => {
     expect(access.listenerCount()).toBe(0);
   });
 });
+
+describe('MidiNoteInput · apagar y volver a encender', () => {
+  it('antes de empezar está inactivo y tras stop() también', async () => {
+    const input = new MidiNoteInput(() =>
+      Promise.resolve(new FakeMidiAccess([new FakeMidiPort('p1')])),
+    );
+    expect(input.getStatus().kind).toBe('inactivo');
+    await input.start();
+    expect(input.getStatus().kind).toBe('conectado');
+    input.stop();
+    expect(input.getStatus()).toEqual({ kind: 'inactivo' });
+  });
+
+  it('tras stop() sin pianos conectados, empezar de nuevo dice «sin dispositivo», no «desconectado»', async () => {
+    let calls = 0;
+    const input = new MidiNoteInput(() => {
+      calls += 1;
+      return Promise.resolve(new FakeMidiAccess(calls === 1 ? [new FakeMidiPort('p1')] : []));
+    });
+    await input.start();
+    input.stop();
+    await input.start();
+    expect(input.getStatus().kind).toBe('sin-dispositivo');
+  });
+});

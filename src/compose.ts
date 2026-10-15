@@ -14,6 +14,8 @@ import {
   LocalStoragePreferencesStore,
   browserStorage,
 } from '@/adapters/storage/local-storage-preferences-store';
+import { InputManager } from '@/core/application/input-manager';
+import { bindInputsToPreferences } from '@/core/application/input-sync';
 import { PracticeSession } from '@/core/application/practice-session';
 import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
@@ -27,10 +29,13 @@ import type { NoteInput } from '@/core/ports/note-input';
 /**
  * Raíz de composición: el único lugar que conoce las implementaciones concretas.
  *
- * Entrada principal: el micrófono (escucha activa). Opcionales, por la dirección:
- * `?pc` (teclado del PC como piano, para desarrollo), `?midi` (piano MIDI), `?mic=off` (sin
- * micrófono, para pruebas de las otras entradas), `?seed=N` (notas reproducibles), `?debug`
- * (panel de latencia) y `?modo=notas|terceras|acordes&nivel=N` (ejercicio inicial).
+ * Entradas: la persona elige una (micrófono, piano MIDI o teclado del PC) y solo esa escucha; la
+ * elección se recuerda en las preferencias y el micrófono nunca se enciende solo.
+ *
+ * Modo de desarrollo: `?pc` (teclado del PC), `?midi` (piano MIDI) o `?mic=off` (sin micrófono)
+ * activan esas entradas a la vez, como antes, sin gestor ni preferencias de entrada. También:
+ * `?seed=N` (notas reproducibles), `?debug` (panel de latencia) y `?modo=notas|terceras|acordes&nivel=N`
+ * (ejercicio inicial).
  */
 export function composeApp(search: string = window.location.search) {
   const params = new URLSearchParams(search);
@@ -65,28 +70,25 @@ export function composeApp(search: string = window.location.search) {
   window.addEventListener('pagehide', () => microphone.stop());
   import.meta.hot?.dispose(() => microphone.stop());
 
-  const inputs: NoteInput[] = useMic ? [microphone] : [];
+  const keyTarget: KeyEventTarget = {
+    addEventListener: (type, listener) => window.addEventListener(type, listener as EventListener),
+    removeEventListener: (type, listener) =>
+      window.removeEventListener(type, listener as EventListener),
+  };
+  const keyboard = new ComputerKeyboardInput(keyTarget);
+  const midi = new MidiNoteInput(
+    typeof navigator.requestMIDIAccess === 'function'
+      ? () => navigator.requestMIDIAccess({ sysex: false }) as unknown as Promise<MidiAccessLike>
+      : undefined,
+  );
 
-  if (usePc) {
-    const keyTarget: KeyEventTarget = {
-      addEventListener: (type, listener) =>
-        window.addEventListener(type, listener as EventListener),
-      removeEventListener: (type, listener) =>
-        window.removeEventListener(type, listener as EventListener),
-    };
-    const keyboard = new ComputerKeyboardInput(keyTarget);
-    inputs.push(keyboard);
-    void keyboard.start();
-  }
-
-  if (useMidi) {
-    const midi = new MidiNoteInput(
-      typeof navigator.requestMIDIAccess === 'function'
-        ? () => navigator.requestMIDIAccess({ sysex: false }) as unknown as Promise<MidiAccessLike>
-        : undefined,
-    );
-    inputs.push(midi);
-    void midi.start();
+  const devMode = usePc || useMidi || !useMic;
+  const inputs: NoteInput[] = devMode
+    ? [...(useMic ? [microphone] : []), ...(usePc ? [keyboard] : []), ...(useMidi ? [midi] : [])]
+    : [microphone, midi, keyboard];
+  if (devMode) {
+    if (usePc) void keyboard.start();
+    if (useMidi) void midi.start();
   }
 
   const audio = new WebAudioOutput(() =>
@@ -96,6 +98,7 @@ export function composeApp(search: string = window.location.search) {
   );
   // Los navegadores solo dejan sonar tras un gesto: el primer clic (al terminar, para no mover
   // la pantalla a mitad de un clic) o la primera tecla activa el sonido.
+  let unlockArmed = false;
   const unlockOnGesture = () => {
     void audio
       .unlock()
@@ -107,10 +110,13 @@ export function composeApp(search: string = window.location.search) {
       })
       .catch(() => undefined);
   };
-  if (usePc) {
+  const armAudioUnlock = () => {
+    if (unlockArmed) return;
+    unlockArmed = true;
     window.addEventListener('click', unlockOnGesture);
     window.addEventListener('keydown', unlockOnGesture);
-  }
+  };
+  if (usePc) armAudioUnlock();
 
   const session = new PracticeSession({
     inputs,
@@ -118,25 +124,36 @@ export function composeApp(search: string = window.location.search) {
     clock,
     rng,
     ...(config ? { config } : {}),
-    ...(useMic ? { primarySource: 'microfono' as const } : {}),
+    ...(devMode && useMic ? { primarySource: 'microfono' as const } : {}),
   });
 
   // Notación, ayuda y ejercicio se recuerdan; `?modo=` fija el ejercicio sin guardarlo.
   bindSessionToPreferences(session, preferences, { exercise: config === undefined });
 
+  // Entrada elegida: solo esa escucha. Con el teclado del PC la app suena, y para eso hace falta un gesto.
+  let inputManager: InputManager | undefined;
+  if (!devMode) {
+    const manager = new InputManager(inputs, preferences.getSnapshot().input);
+    inputManager = manager;
+    const armIfKeyboard = () => {
+      if (manager.getSnapshot().selected === 'teclado-pc') armAudioUnlock();
+    };
+    manager.subscribe(armIfKeyboard);
+    bindInputsToPreferences(manager, session, preferences);
+    armIfKeyboard();
+    window.addEventListener('pagehide', () => manager.stopAll());
+  }
+
   return {
     session,
     preferences,
     inputs: inputs as readonly NoteInput[],
+    /** `undefined` en el modo de desarrollo (`?pc`, `?midi`, `?mic=off`): allí valen las entradas pedidas. */
+    inputManager,
     microphone: useMic ? microphone : undefined,
     audio,
     debug,
-    /** El teclado del PC es el único que hace sonar la app: solo entonces se muestra el estado del sonido. */
-    showSound: usePc,
-    pcKeysHint: usePc
-      ? config?.pool[0]?.hand === 'izquierda'
-        ? 'Teclado del PC: Z X C V B N M = Do3 Re3 Mi3 Fa3 Sol3 La3 Si3 · A S D F = Do4 Re4 Mi4 Fa4'
-        : 'Teclado del PC: A S D F G H J K L ; = Do4 Re4 Mi4 Fa4 Sol4 La4 Si4 Do5 Re5 Mi5'
-      : undefined,
+    /** En el modo de desarrollo, el sonido de la app solo se muestra con el teclado del PC. */
+    devShowSound: usePc,
   };
 }

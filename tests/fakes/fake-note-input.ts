@@ -3,7 +3,9 @@ import type { InputStatus, NoteInput, Unsubscribe } from '@/core/ports/note-inpu
 
 export class FakeNoteInput implements NoteInput {
   readonly source: InputSource;
-  private status: InputStatus = { kind: 'iniciando' };
+  startCalls = 0;
+  stopCalls = 0;
+  private status: InputStatus = { kind: 'inactivo' };
   private readonly handlers = new Set<(event: NoteEvent) => void>();
   private readonly statusHandlers = new Set<(status: InputStatus) => void>();
 
@@ -16,12 +18,14 @@ export class FakeNoteInput implements NoteInput {
   }
 
   start(): Promise<void> {
+    this.startCalls += 1;
     this.setStatus({ kind: 'conectado', deviceName: 'Falso' });
     return Promise.resolve();
   }
 
   stop(): void {
-    this.handlers.clear();
+    this.stopCalls += 1;
+    this.setStatus({ kind: 'inactivo' });
   }
 
   subscribe(handler: (event: NoteEvent) => void): Unsubscribe {

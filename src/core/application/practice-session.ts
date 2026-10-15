@@ -80,11 +80,13 @@ export class PracticeSession {
   private snapshot: SessionSnapshot;
   private feedbackCounter = 0;
   private lastSource: InputSource | null = null;
+  private primarySource: InputSource | null;
 
   constructor(deps: PracticeSessionDeps) {
     this.deps = deps;
     this.config = deps.config ?? LEVEL_1_CONFIG;
     this.audioSources = deps.audioSources ?? ['teclado-pc'];
+    this.primarySource = deps.primarySource ?? null;
     this.snapshot = {
       phase: 'inactiva',
       pauseReason: null,
@@ -158,6 +160,15 @@ export class PracticeSession {
     this.resumeRound();
   }
 
+  /**
+   * Cambia la entrada que se vigila: si se pierde, la ronda se pausa. Olvida la última usada, así no se
+   * sigue vigilando una entrada que ya se apagó.
+   */
+  setPrimarySource(source: InputSource | null): void {
+    this.primarySource = source;
+    this.lastSource = null;
+  }
+
   setNotation(notation: NotationMode): void {
     if (notation !== this.snapshot.notation) this.update({ notation });
   }
@@ -183,7 +194,7 @@ export class PracticeSession {
   }
 
   private handleStatus(input: NoteInput, status: InputStatus): void {
-    const watched = this.lastSource ?? this.deps.primarySource ?? null;
+    const watched = this.lastSource ?? this.primarySource;
     if (input.source !== watched) return;
     if (this.snapshot.phase === 'en-curso' && status.kind === 'desconectado') {
       this.update({ phase: 'pausada', pauseReason: 'desconexion', pausedSource: input.source });

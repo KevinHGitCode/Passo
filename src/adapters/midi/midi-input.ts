@@ -53,7 +53,7 @@ export class MidiNoteInput implements NoteInput {
   private readonly statusHandlers = new Set<(status: InputStatus) => void>();
   private readonly attached = new Map<string, Attachment>();
   private access: MidiAccessLike | null = null;
-  private status: InputStatus = { kind: 'iniciando' };
+  private status: InputStatus = { kind: 'inactivo' };
   private lastDeviceName: string | null = null;
   private startToken = 0;
 
@@ -95,6 +95,8 @@ export class MidiNoteInput implements NoteInput {
   stop(): void {
     this.startToken += 1;
     this.detachAll();
+    this.lastDeviceName = null;
+    this.setStatus({ kind: 'inactivo' });
   }
 
   subscribe(handler: (event: NoteEvent) => void): Unsubscribe {

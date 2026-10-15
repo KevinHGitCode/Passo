@@ -1,6 +1,6 @@
 # Fase 2 — Ajustes, terceras y acordes, manos y notas que caen
 
-Estado: **autorizada por Kevin; plan revisado por expertos; en construcción**.
+Estado: **construida y verificada (falta validarla con el piano real)**. Resultados, límites y lo aplazado al final de este documento.
 
 ## Qué pidió Kevin
 
@@ -72,14 +72,14 @@ modos, dedos, cascada y manos) y **2b** (varias notas por micrófono, como **BET
 | 7 | `ExerciseMode` con modos notas / terceras / acordes, niveles y mano; la UI no calcula teoría (recibe `hand`, `fingers`, `label`) | Backend/UI |
 | 8 | Preferencias: dominio puro `Preferences` + `parsePreferences` (validación, versión), puerto `PreferencesStore`, adaptador `localStorage`, servicio con `useSyncExternalStore` | Backend |
 | 9 | `InputManager` en `core/application`: entrada **exclusiva** (se apaga una antes de encender otra); el micrófono nunca arranca solo; `?pc`, `?midi`, `?mic=off` quedan como modo de desarrollo | Backend |
-| 10 | Panel ⚙: `aside` de 320 px a la derecha, **encima** del tablero (no lo empuja), sin atajo de letra (Ctrl+,); abrirlo pausa la ronda; en < 900 px es modal. Sustituye a `SettingsBar` y a los chips: la cabecera lleva una pastilla de entrada («● Micrófono ▮▮▯ Oigo: Do4») y el engranaje | UI |
-| 11 | Cascada = **cola** (el objetivo espera sobre la línea del teclado), no línea de tiempo: se mueve por pasos con transiciones CSS (320 ms), sin `requestAnimationFrame` ni re-render por fotograma | Backend/UI |
-| 12 | Cascada, teclado y mano comparten **una sola escala** (`viewBoxOf()`); el objetivo actual sólido y los 2 siguientes punteados; los grupos se unen con un «peine» | UI |
+| 10 | Panel ⚙: `aside` de 320 px a la derecha, **encima** del tablero (no lo empuja), sin atajo de letra (Ctrl+,); abrirlo pausa la ronda; en < 900 px es modal. Sustituye a `SettingsBar`. *Ajuste en E6:* los chips de estado (que ya solo muestran la entrada elegida) **suben a la cabecera, junto al engranaje**, en lugar de la pastilla nueva: gana la misma altura y conserva los avisos y los `data-testid` que ya estaban probados | UI |
+| 11 | Cascada = **cola** (el objetivo espera sobre la línea del teclado), no línea de tiempo: se mueve por pasos con transiciones CSS (320 ms), sin `requestAnimationFrame` ni re-render por fotograma. El estado lleva `upcoming` (los 2 siguientes, elegidos de antemano: la sucesión por semilla no cambia) | Backend/UI |
+| 12 | Cascada, teclado y mano comparten **una sola escala**: se dibujan **dentro del mismo SVG** del teclado (`viewBoxOf()` reserva filas arriba y abajo), así la alineación es exacta a cualquier tamaño (medida ≤ 0,5 px). El objetivo actual sólido y los 2 siguientes punteados; los grupos se unen con una barra («peine») | UI |
 | 13 | Manos: dígito en el bloque y mano fantasma **debajo** del teclado (5 cápsulas, solo las usadas rellenas); colores por mano seguros para daltonismo más forma (círculo / cuadrado redondeado) | UI |
 | 14 | Mensajes: «Casi: falta Sol» (neutro); «Sobró Re4. Do mayor es Do · Mi · Sol» (error); micrófono dudoso: «No oí bien las 3 notas. No cuenta como error» | UI |
 | 15 | Varias notas por micrófono (**BETA**, apagado por defecto): verificación dirigida con Goertzel por semitono, aumento de energía sobre el instante previo al ataque, cancelación de armónicos de las notas esperadas; extras = «dudoso» (no error) hasta validar con el Yamaha; mano izquierda por micrófono = solo presencia | Música/Backend |
 | 16 | Puerto `ExpectationSink`: la sesión le dice al micrófono qué notas se esperan; el verificador es puro (`chord-verifier.ts`) | Backend |
-| 17 | Alturas: sin fila de chips ni tira `Oigo` aparte; el teclado no se mueve (≤ 1 px) entre estados, con y sin cascada, a 1280×800 y 1366×650 | UI |
+| 17 | Alturas: sin fila de chips aparte (suben a la cabecera); el teclado no se mueve (≤ 1 px) entre estados, con y sin cascada, a 1280×800 y 1366×650. La tira «Oigo» del micrófono se mantiene (la usa la Fase 1) | UI |
 
 ## Etapas (cada una cierra con `npm run check`; commits pequeños)
 

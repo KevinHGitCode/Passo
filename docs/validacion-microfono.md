@@ -54,9 +54,59 @@ fueron **dudosas** y cuántos **ecos** se ignoraron. Anota esas cifras:
 La fase se da por validada si: **≥ 95 %** de las notas del nivel 1 se detectan, **0 falsos errores**,
 **0 errores de octava** entre Do4 y Sol4 y «alta» ≥ ~50 %. Si no, se ajustan los umbrales con tus datos.
 
+## 4. Fase 2: la nota «Mi» (octava)
+
+Contexto: con el Yamaha, el **Mi** tardaba en reconocerse (había que repetirlo o tocar otro Mi). La sospecha es
+una confusión de octava: el micrófono oía el 2.º armónico (Mi5) en lugar de la nota. La Fase 2 corrige esto en el
+seguimiento (si hay energía en f/2 **y** en 3f/2 que sobresalen del ruido, la nota es una octava más grave).
+
+| # | Paso | Resultado esperado |
+|---|---|---|
+| 15 | Toca el **Mi4** (el Mi de la posición de cinco dedos) 20 veces a suave, medio y fuerte | Cada toque cuenta a la primera. Cero «No te oí bien… una octava más arriba» |
+| 16 | Toca **Mi4 y, 1 segundo después, Mi5** (el Mi de una octava arriba) | Salen las dos notas. El Mi5 **no** se convierte en Mi4 |
+| 17 | Toca Mi3 y Sol3 (graves) | Pueden salir «No te oí bien»; lo importante es que no salga un error inventado |
+
+Si el Mi sigue fallando, anota lo que muestra «Oigo:» cuando falla y las cifras alta/media/dudosa/eco de `?debug`.
+
+## 5. Fase 2: terceras y acordes por micrófono (BETA)
+
+Con teclado del PC o con un piano MIDI, terceras y acordes son exactos. Con el micrófono dependen de oír **varias
+notas a la vez**, y eso solo se ha probado con audio sintético. Está **apagado por defecto**.
+
+**Cómo activarlo:** engranaje **Ajustes** (o `Ctrl+,`) → *Cómo toco* → *Micrófono* → interruptor **«Oír varias notas a la
+vez» (BETA)** → en *Qué practico* elige **Terceras** o **Acordes**. Abre la app con `?debug` al final de la dirección.
+
+| # | Paso | Resultado esperado |
+|---|---|---|
+| 18 | Terceras, nivel 1 (Do–Mi, Re–Fa, Mi–Sol): toca cada tercera bien, 10 veces | ≥ 90 % cuentan (tardan ~0,3 s en aparecer tras tocar). **0 «Incorrecto»** cuando tocaste bien |
+| 19 | Toca solo **una** de las dos notas | «Casi · Falta Mi4» (no es error) |
+| 20 | Toca la tercera pero con una tecla vecina en lugar de una de las notas | Debe faltar esa nota; **nunca** un error si solo falta |
+| 21 | Acordes, nivel 1 (Do y Sol mayor): toca el acorde bien, 10 veces cada uno | ≥ 90 % cuentan |
+| 22 | Toca el acorde **rodado** (una nota tras otra, unos 30 ms) | Cuenta si las tres suenan en la ventana |
+| 23 | Toca el acorde una octava más abajo o más arriba | No debería contar (o dar «No te oí bien»); si cuenta, anótalo |
+| 24 | Toca un acorde, espera 1 s y otro distinto | Cada uno se juzga solo; el anterior sigue sonando bajito pero no cuenta |
+| 25 | **Cazafalsos**: habla, aplaude, golpea la mesa, deja música baja | **0 acordes dados por buenos** |
+| 26 | Mano izquierda (acordes nivel 5): toca Do, Fa, Sol… una octava más abajo | Solo comprueba que suenan (en graves el altavoz casi no da la fundamental); puede aceptar otra octava: es un límite conocido |
+
+**Datos para ajustar los umbrales.** Tras unos acordes, abre la consola de Edge (`F12` → pestaña *Console*) y escribe:
+
+```js
+copy(JSON.stringify(window.__passoChords))
+```
+
+y pégalo en un archivo. Cada medición trae, por nota esperada: `suena` (si la dio por presente), `snr` (cuánto sobresale del
+ruido de la sala; para ser «presente» necesita ≥ 10), `pico` (cuánto sobresale de las notas vecinas; ≥ 3) y `subida` (cuánto
+aumentó tras el ataque; ≥ 1,8 si ya sonaba algo ahí). Lo más útil: **las mediciones de los acordes bien tocados que fallaron**
+(qué cifra se quedó corta) y **las de los que no debían contar**.
+
+**Se da por validada la beta si:** ≥ 90 % de los acordes bien tocados cuentan, ≤ 5 % de los incorrectos o ruidos se dan por
+buenos y no hay «Incorrecto» cuando falta una nota. Si no, queda como beta (apagada por defecto) y el plan B es el **arpegio**
+(las notas una tras otra, con el seguimiento de una sola voz, que ya funciona).
+
 ## Qué reportar
 
 - Modelo de portátil y navegador, y la distancia al piano.
 - Qué pasos fallaron, con el texto exacto que mostró la app.
 - Las cifras alta/media/dudosa/eco del panel `?debug` tras una ronda.
 - Si el micrófono dice «Windows aplica filtros» (aviso de «Mejoras de audio»).
+- Para el Mi y los acordes: el resultado de `copy(JSON.stringify(window.__passoChords))` y lo que mostró «Oigo:».

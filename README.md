@@ -3,7 +3,14 @@
 Aplicación para aprender piano corrigiendo al instante lo que no se te da bien.
 Nombre: **Passo** (paso a paso: no avanzas hasta que lo dominas).
 
-> Estado: **Fases 0 y 1 completadas** (la Fase 1 es la escucha activa por micrófono; pendiente de validar con el piano real). **Fase 2 en construcción** (ajustes, terceras y acordes, manos y notas que caen). Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
+> Estado: **Fases 0, 1 y 2 completadas** (la Fase 1 es la escucha activa por micrófono; la Fase 2 añade terceras y acordes, manos, notas que caen y un panel de ajustes). Pendiente de validar con el piano real: `docs/validacion-microfono.md`. Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
+
+## Cómo se usa hoy
+
+- **Engranaje «Ajustes»** (o `Ctrl+,`): elige la entrada (**micrófono**, piano **MIDI** o **teclado del PC**; solo escucha una), el ejercicio (**notas**, **terceras** o **acordes**, con su nivel), la notación (Do Re Mi / C D E), la ayuda y el tema. Todo se recuerda en el navegador. Abrirlo pausa la ronda.
+- El **micrófono** nunca se enciende solo: hay que pulsar «Activar micrófono». Con él solo hay ejercicios de notas, salvo que actives la **beta «Oír varias notas a la vez»**.
+- Cada objetivo muestra la **mano y los dedos**, la **cascada** de las dos notas siguientes sobre el teclado y la **mano fantasma** debajo.
+- Parámetros de la dirección (modo de desarrollo y pruebas): `?pc` (teclado del PC como piano), `?midi`, `?mic=off`, `?seed=N` (notas reproducibles), `?debug` (latencia y mediciones de acordes), `?modo=notas|terceras|acordes&nivel=N` (fija el ejercicio de esa visita sin guardarlo).
 
 ## 1. Problema
 

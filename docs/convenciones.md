@@ -10,8 +10,17 @@
 
 - Cada `note-on` con velocidad > 0 evalúa la tecla pulsada y cuenta como un intento.
 - Los `note-off` y los `note-on` con velocidad 0 se ignoran.
-- Si se pulsan varias teclas a la vez, cada una es un intento independiente.
+- Si se pulsan varias teclas a la vez, cada una es un intento independiente (objetivos de una nota).
 - Un error no avanza: la nota objetivo se mantiene hasta acertar.
+
+### Objetivos de varias notas (terceras y acordes, Fase 2)
+
+- El objetivo es un **conjunto de notas** (`Target`) con sus dedos, la mano y, si es un acorde, su nombre. Una nota sola es el caso particular.
+- Cada nota del conjunto que suena es un **avance** («Casi · Falta Sol4»): ni acierto ni error. Se acierta cuando **todas están pulsadas a la vez**; soltar una nota la quita.
+- Una **nota de más** es un error **al instante**. Varias notas equivocadas seguidas (≤ 120 ms entre sí y ≤ 300 ms desde la primera) cuentan **un solo error**. Que falten notas **no** es error.
+- Con el micrófono una nota ajena nunca es error: es «No te oí bien». Un micrófono de una sola voz no puede juzgar un acorde: con la beta de varias notas (ver abajo) lo hace el verificador de acordes.
+- Contenido: terceras N1 (Do–Mi, Re–Fa, Mi–Sol), N2 (las 7 de la escala de Do), N3 (mano izquierda); acordes A1 (Do y Sol mayor), A2 (+ Fa), A3 (+ La menor), A4 (+ Re y Mi menor), A5 (mano izquierda). Dedos (de grave a agudo): mano derecha terceras 1-3, 2-4, 3-5, 1-3, 2-4, 3-5, 1-3; acordes 1-3-5; mano izquierda en espejo (5-3, 4-2, 3-1… y 5-3-1).
+- La «mano fantasma» dibuja cinco dedos sobre teclas blancas contiguas con el dedo de la nota más grave apoyado en ella; la derecha va en cápsulas azules y la izquierda en cuadrados rosas (la forma distingue las manos aunque no se vea el color).
 
 ## Teclado del PC como piano (solo desarrollo y pruebas)
 
@@ -23,7 +32,7 @@ blancas:   A S D F G H J K L ; '
 notas:     C D E F G A B C D E F      (A = Do4 = MIDI 60)
 ```
 
-El nivel 1 (Do4–Sol4) usa las teclas `A S D F G`. Las combinaciones con Ctrl, Alt o Meta se ignoran para no chocar con atajos del navegador.
+El nivel 1 (Do4–Sol4) usa las teclas `A S D F G`. Para la **mano izquierda** hay una fila de abajo (solo blancas): `Z X C V B N M` = Do3 a Si3. Las combinaciones con Ctrl, Alt o Meta se ignoran para no chocar con atajos del navegador.
 
 ## Entrada por micrófono (escucha activa)
 
@@ -43,3 +52,9 @@ El nivel 1 (Do4–Sol4) usa las teclas `A S D F G`. Las combinaciones con Ctrl, 
 - El **eco** (la misma nota del intento anterior, acierto o error, dentro de 900 ms) se ignora.
 - El aviso de **teclado transpuesto** necesita ≥ 3 errores de la misma diferencia entre los 6 últimos intentos y ≥ 2 notas pedidas distintas.
 - Si el micrófono entrega silencio digital exacto más de 1,2 s se avisa («No llega sonido del micrófono»).
+
+### Octava del «Mi» y acordes por micrófono (Fase 2)
+
+- **Corrección de octava:** si hay energía en f/2 (≥ 0,05 de la de f) **y** en 3f/2 (≥ 0,02), y ambas sobresalen ≥ 4× del ruido de alrededor, f es el 2.º parcial de una nota una octava más grave y se corrige hacia abajo (nunca hacia arriba; con histéresis; no corrige si esa nota sonaba hace < 700 ms). Validado de **Si3** en adelante; en Mi3/Sol3 la corrección no es fiable.
+- **Acordes por micrófono (BETA, apagado por defecto):** la sesión le dice al micrófono qué notas se esperan y este las comprueba, **un ataque cada vez**: espera 40 ms tras el ataque (el golpe del martillo) y mide 170 ms; para cada nota esperada mide la energía en su frecuencia (±30 cents) y exige que supere ≥ 10× el ruido, que sobresalga ≥ 3× de las notas vecinas, que haya subido ≥ 1,8× respecto a antes del ataque y que no sea el 2.º armónico de la octava inferior. Las notas de más (no armónicos) se entregan con confianza «media», es decir, como dudosas (no error). En graves (< 190 Hz) solo se comprueba presencia (por la fundamental o por el 2.º y 3.er parcial) y no se distingue la octava.
+- `?debug` expone `window.__passoChords` con la evidencia de cada medición (ver `docs/validacion-microfono.md`).

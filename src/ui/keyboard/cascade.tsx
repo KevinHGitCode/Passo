@@ -1,7 +1,7 @@
 import type { Midi } from '@/core/domain/note';
 import type { Finger } from '@/core/domain/target';
 import { BLOCK_GAP, BLOCK_HEIGHT, slotTop } from './geometry';
-import type { KeyboardLayout } from './geometry';
+import type { KeyboardLayout, KeyLayout } from './geometry';
 
 /** Un objetivo que espera su turno: sus notas (una o varias) en una fila de la cascada. */
 export interface CascadeBlock {
@@ -18,6 +18,8 @@ export interface CascadeProps {
   readonly layout: KeyboardLayout;
   readonly blocks: readonly CascadeBlock[];
   readonly labelFor: (midi: Midi) => string;
+  /** Qué teclas se ven (en pantallas estrechas solo una parte del teclado); las demás notas no se dibujan. */
+  readonly isVisible?: ((midi: Midi) => boolean) | undefined;
 }
 
 /**
@@ -25,13 +27,13 @@ export interface CascadeProps {
  * punteadas, más arriba. Avanzar desplaza los bloques una fila con una transición CSS (sin
  * `requestAnimationFrame` ni redibujar por fotograma). Es decorativa: lo importante lo dice el texto.
  */
-export function Cascade({ layout, blocks, labelFor }: CascadeProps) {
+export function Cascade({ layout, blocks, labelFor, isVisible }: CascadeProps) {
   return (
     <g className="cascade" aria-hidden="true" pointerEvents="none" data-testid="cascade">
       {blocks.map((block) => {
         const keys = block.notes
           .map((midi) => layout.keys.find((key) => key.midi === midi))
-          .filter((key) => key !== undefined);
+          .filter((key): key is KeyLayout => key !== undefined && (isVisible?.(key.midi) ?? true));
         if (keys.length === 0) return null;
         const top = slotTop(0);
         const first = keys[0];

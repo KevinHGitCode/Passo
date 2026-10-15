@@ -207,6 +207,26 @@ describe('PianoKeyboard con cascada y mano', () => {
     }
   });
 
+  it('con la vista recortada (pantalla estrecha) no se dibujan las notas ni los dedos que quedan fuera', () => {
+    renderKeyboard({
+      viewWindow: { from: 60, to: 74 },
+      cascade: [
+        block(0, 0, [60, 64], [1, 3]),
+        block(1, 1, [76, 79], [1, 3]),
+        block(2, 2, [72, 77], [1, 5]),
+      ],
+      hand: handShape(targetOf([60, 64], { fingers: [1, 3], hand: 'derecha' })),
+    });
+    const drawn = [...document.querySelectorAll('.cascade__note')].map((item) =>
+      Number(item.getAttribute('data-midi')),
+    );
+    expect(drawn).toEqual([60, 64, 72]);
+    const fingers = [...document.querySelectorAll('.hand__finger')].map((item) =>
+      Number(item.getAttribute('data-midi')),
+    );
+    expect(fingers).toEqual([60, 62, 64, 65, 67]);
+  });
+
   it('la derecha usa cápsulas y la izquierda cuadrados redondeados (la forma distingue las manos)', () => {
     const right = handShape(targetOf([60], { fingers: [1], hand: 'derecha' }));
     const left = handShape(targetOf([55], { fingers: [5], hand: 'izquierda' }));

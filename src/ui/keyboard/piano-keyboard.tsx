@@ -97,6 +97,13 @@ export function PianoKeyboard({
     }
   }
 
+  /** ¿La tecla cae dentro de lo que se ve? (con la vista recortada en pantallas estrechas) */
+  const isVisible = (midi: Midi): boolean => {
+    const key = layout.keys.find((item) => item.midi === midi);
+    return (
+      key !== undefined && key.x >= viewX - 0.01 && key.x + key.width <= viewX + viewWidth + 0.01
+    );
+  };
   const box = viewBoxOf(viewX, viewWidth, {
     cascade: cascade !== undefined,
     hand: hand !== undefined,
@@ -157,8 +164,15 @@ export function PianoKeyboard({
           </g>
         );
       })}
-      {cascade && <Cascade layout={layout} blocks={cascade} labelFor={blockLabel ?? (() => '')} />}
-      {hand && <Hand layout={layout} shape={hand} />}
+      {cascade && (
+        <Cascade
+          layout={layout}
+          blocks={cascade}
+          labelFor={blockLabel ?? (() => '')}
+          isVisible={isVisible}
+        />
+      )}
+      {hand && <Hand layout={layout} shape={hand} isVisible={isVisible} />}
       {/* Anillos de nota oída: se dibujan al final para que ninguna tecla los tape. */}
       {ordered.map((key) =>
         visuals?.get(key.midi)?.heard ? (

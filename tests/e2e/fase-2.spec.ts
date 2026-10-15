@@ -726,6 +726,26 @@ test('Fase 2 · con el micrófono, sin la beta, terceras y acordes siguen bloque
   expect(await micCalls(page)).toBe(0);
 });
 
+test('Fase 2 · en un móvil la cascada y la mano caben sin desplazamiento horizontal', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  const page = await context.newPage();
+  await page.goto('/?seed=9&pc&mic=off&modo=acordes&nivel=4');
+  await page.getByTestId('start').click();
+  await expect(page.getByTestId('cascade').locator('.cascade__block')).toHaveCount(3);
+  await expect(page.getByTestId('hand').locator('.hand__finger')).toHaveCount(5);
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+  const { blocks } = await alignment(page);
+  for (const block of blocks) expect(block.dx).toBeLessThanOrEqual(0.5);
+  await beat(page, 600);
+  await f2Capture(page, '27-movil-cascada-y-mano');
+  await context.close();
+});
+
 for (const size of [
   { width: 1280, height: 800 },
   { width: 1366, height: 650 },

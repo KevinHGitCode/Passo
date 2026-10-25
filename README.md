@@ -3,7 +3,7 @@
 Aplicación para aprender piano corrigiendo al instante lo que no se te da bien.
 Nombre: **Passo** (paso a paso: no avanzas hasta que lo dominas).
 
-> Estado: **Fases 0, 1 y 2 completadas** (la Fase 1 es la escucha activa por micrófono; la Fase 2 añade terceras y acordes, manos, notas que caen y un panel de ajustes). Pendiente de validar con el piano real: `docs/validacion-microfono.md`. Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
+> Estado: **Fases 0, 1 y 2 completadas** (la Fase 1 es la escucha activa por micrófono; la Fase 2 añade terceras y acordes, manos, notas que caen y un panel de ajustes). Pendiente de validar con el piano real: `docs/validacion-microfono.md` (pasos 15–29 son de la Fase 2). Evidencias: `evidencias/fase-2/informe.md`. Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
 
 ## Cómo se usa hoy
 

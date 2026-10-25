@@ -1,6 +1,6 @@
 # Fase 2 — Ajustes, terceras y acordes, manos y notas que caen
 
-Estado: **construida y verificada (falta validarla con el piano real)**. Resultados, límites y lo aplazado al final de este documento.
+Estado: **completada y verificada (falta validarla con el piano real)**. Resultados, límites y lo aplazado, al final de este documento.
 
 ## Qué pidió Kevin
 
@@ -83,8 +83,8 @@ modos, dedos, cascada y manos) y **2b** (varias notas por micrófono, como **BET
 
 ## Etapas (cada una cierra con `npm run check`; commits pequeños)
 
-E0 octava «Mi» ✅ · E1 dominio multi-nota ✅ (modo notas idéntico, 405 pruebas) · E2 modos, dedos, terceras y acordes (teclado del PC/MIDI) ·
-E3 preferencias · E4 `InputManager` · E5 panel de ajustes · E6 cascada y manos · E7 verificador por micrófono (beta) · E8 evidencias y cierre.
+E0 octava «Mi» ✅ · E1 dominio multi-nota ✅ · E2 modos, dedos, terceras y acordes ✅ · E3 preferencias ✅ · E4 `InputManager` ✅ ·
+E5 panel de ajustes ✅ · E6 cascada y manos ✅ · E7 verificador por micrófono (beta) ✅ · E8 evidencias, expertos y cierre ✅.
 
 Plan B de E7 si no alcanza los umbrales: arpegio (notas una tras otra) con el seguimiento monofónico.
 
@@ -100,3 +100,43 @@ Plan B de E7 si no alcanza los umbrales: arpegio (notas una tras otra) con el se
 | Micrófono (beta) | Banco sintético: ≥ 95 % de acordes buenos, 0 falsos errores en las trampas; e2e con micrófono simulado |
 | e2e + video | Edge real, 3 de 3 corridas |
 | Real | Kevin con el Yamaha (octava del Mi, acordes beta) |
+
+## Resultados
+
+Evidencia completa y medidas en `evidencias/fase-2/informe.md`. En resumen: **37 de 37 pruebas e2e en Edge, 3 de 3 corridas**;
+**645 pruebas unitarias y de integración**; `npm run check` pasa; el teclado no se mueve (**0,000 px** en 20 estados a 1280×800 y 1366×650);
+bloques y dedos alineados con sus teclas a **≤ 0,5 px**.
+
+| Etapa | Qué quedó | Pruebas clave |
+|---|---|---|
+| E0 | Corrección de octava del «Mi» con umbrales medidos (f/2 ≥ 0,05, 3f/2 ≥ 0,02, SNR local ≥ 4); validada de Si3 en adelante | `tests/core/octave.test.ts` (matriz) |
+| E1 | `Target` (conjunto de notas con dedos, mano y nombre), avance «parcial», acierto con todas pulsadas, error al instante por nota de más (varias seguidas = 1) | `exercise.test.ts`, `exercise-groups.test.ts` |
+| E2 | Contenido: terceras N1–N3, acordes A1–A5; `?modo=&nivel=`; fila `Z X C V B N M` para la mano izquierda | `curriculum.test.ts`, `practice-groups.test.tsx`, e2e |
+| E3 | Preferencias validadas y persistentes (`passo.preferencias`), migración del tema antiguo, `localStorage` solo en `adapters/storage` (regla de ESLint) | `preferences.test.ts`, e2e |
+| E4 | Entradas exclusivas (el micrófono nunca arranca solo), `stop()` deja las entradas «inactivo», la sesión vigila la entrada elegida | `input-manager.test.ts`, e2e |
+| E5 | Panel ⚙ (a11y, `Ctrl+,`, `Esc`, modal en estrecho), pausa al abrirlo, volver al micrófono reinicia la bienvenida | `settings-panel.test.tsx`, e2e |
+| E6 | Cola de los 2 siguientes (misma sucesión por semilla), cascada y mano dentro del SVG del teclado, página entera cabe a 1366×650 | `cascade-hand.test.tsx`, `upcoming.test.ts`, `hand-shape.test.ts`, e2e |
+| E7 | Verificador de acordes por micrófono (BETA): Goertzel dirigido, oyente de ataques, puerto `ExpectationSink`, registro `__passoChords` | `chord-verifier.test.ts`, `chord-listener.test.ts`, `microphone-chords.test.ts`, e2e |
+
+### Decisiones del plan que cambiaron al construir
+
+- **#1 (umbrales de octava):** los del borrador (0,08) no corregían; se midieron (ver arriba).
+- **#3 y #4 (error de acorde):** al instante, sin esperar 150 ms (evita un temporizador y respeta «corrección inmediata»); la tolerancia al roce queda para el micrófono (nota ajena = «dudoso»).
+- **#10 (chips):** suben a la cabecera junto al engranaje (no hay pastilla nueva).
+- **#12 (escala común):** cascada, teclado y mano van **dentro del mismo SVG** (`viewBoxOf()`).
+- **#13 y #14:** las manos usan cápsulas (derecha) y cuadrados redondeados (izquierda), no círculos; los mensajes quedaron «Casi · Falta Mi4», «Sobró Fa4. Toca Sol · Si · Re» y «No te oí bien… no cuenta como error».
+- **Nuevas reglas** que salieron de la revisión de expertos: con el micrófono el ejercicio es siempre el de notas salvo la beta; pasar al micrófono con una ronda empezada vuelve a la bienvenida; abrir los ajustes pausa y cerrarlos reanuda solo lo que pausó el panel.
+
+## Límites conocidos
+
+- **La beta de acordes por micrófono no está validada con el piano real.** Apagada por defecto; plan B: arpegio con el seguimiento de una voz.
+- Graves (< 250 Hz, hasta Si3): los acordes por micrófono solo comprueban presencia (no distinguen octava ni vecinas); la corrección de octava no es fiable en Mi3/Sol3.
+- Con el Mi4 aún sonando > 700 ms, un Mi5 real podría leerse como Mi4. Un acorde totalmente equivocado no da mensaje.
+- Pantallas muy bajas (1024×600, zoom 125 %): la parte baja del teclado queda bajo el pliegue; propuesta: objetivo y mensaje en dos columnas.
+- La cascada es una **cola** (no una línea de tiempo con ritmo): el ritmo llega en la Fase 5.
+
+## Aplazado y deuda técnica
+
+- Archivado a petición de Kevin: teclado completo en móvil y selector de dispositivo de micrófono (`docs/archivado.md`).
+- Deuda: `PracticeSession` (≈ 360 líneas) mezcla ronda, vigilancia de entradas, política de sonido, estadísticas de escucha y expectativas: extraer `expectedNotes()`, las estadísticas y la política de sonido antes de añadir progreso y motor adaptativo (Fase 3 y 7). El verificador corre en el hilo principal (5–6 ms por ataque): llevarlo a un Worker si crece el rango. `rms()` del oyente copia con `slice` por bloque (se puede calcular sobre el anillo sin copiar).
+- Siguiente (con autorización de Kevin): **Fase 3 — núcleo de aprendizaje** (modos espera/estricto, niveles con negras, progreso guardado).

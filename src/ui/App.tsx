@@ -6,7 +6,7 @@ import type { AudioControl } from '@/core/ports/audio-control';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { NoteInput } from '@/core/ports/note-input';
 import { DebugPanel } from './debug/DebugPanel';
-import { useInputSelection } from './practice/hooks';
+import { useInputSelection, useSessionSnapshot } from './practice/hooks';
 import { PracticeScreen } from './practice/PracticeScreen';
 import { StatusZone } from './status/StatusZone';
 import { SettingsButton, SettingsPanel } from './settings/SettingsPanel';
@@ -48,6 +48,7 @@ export function App({
     wasOpen.current = settings.open;
   }, [settings.open]);
   const selected = useInputSelection(inputManager);
+  const { phase } = useSessionSnapshot(session);
 
   // Con gestor, la pantalla solo muestra la entrada elegida; sin gestor, las que se pidieron en la dirección.
   const activeInputs = selected === null ? inputs : inputs.filter((i) => i.source === selected);
@@ -83,6 +84,7 @@ export function App({
         inputs={inputs}
         inputManager={inputManager}
         microphone={microphone}
+        roundPaused={phase === 'pausada'}
       />
       {debug && (
         <DebugPanel

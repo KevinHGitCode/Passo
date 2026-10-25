@@ -45,6 +45,21 @@ describe('PracticeScreen · terceras', () => {
     expect(screen.getByTestId('welcome').textContent).toContain('Do–Mi, Re–Fa, Mi–Sol');
   });
 
+  it('la bienvenida explica la tercera sin confundir y trae la leyenda de dedos y de lo punteado', () => {
+    setup(config('terceras', 1));
+    const text = screen.getByTestId('welcome').textContent ?? '';
+    expect(text).toContain('una nota y la que está dos pasos más arriba');
+    expect(text).not.toContain('sin saltarte');
+    expect(text).toContain('1 (pulgar) al 5 (meñique)');
+    expect(text).toContain('Lo punteado');
+  });
+
+  it('el tablero se anuncia según el ejercicio', () => {
+    const { start } = setup(config('acordes', 1));
+    start();
+    expect(screen.getByLabelText('Práctica: toca este acorde')).toBeTruthy();
+  });
+
   it('la tarjeta muestra las dos notas, la mano y los dedos, y las dos teclas resaltadas', () => {
     const { start, midis, key } = setup(config('terceras', 1));
     start();
@@ -67,6 +82,7 @@ describe('PracticeScreen · terceras', () => {
     expect(chips[0]?.getAttribute('data-held')).toBe('true');
     expect(chips[1]?.getAttribute('data-held')).toBe('false');
     expect(screen.getByTestId('feedback').textContent).toContain('Casi');
+    expect(screen.getByTestId('feedback').dataset['tone']).toBe('partial');
     expect(screen.getByTestId('feedback').textContent).toContain('Falta');
     press(high);
     expect(screen.getByTestId('feedback').dataset['tone']).toBe('ok');

@@ -762,7 +762,7 @@
   color: var(--ok);
 }
 .target__chip[data-held='true']::after {
-  content: '✓';
+  content: '✓' / '';
   align-self: flex-start;
   margin-left: 4px;
   font-size: 0.32em;
@@ -906,5 +906,37 @@
   /* El contador ya dice cuánto falta: sin la barra cabe un teclado mayor. */
   .progress {
     display: none;
+  }
+}
+
+/* ---------- Revisión de la Fase 2 (expertos) ---------- */
+.feedback--partial {
+  background: var(--surface-2);
+  border-color: var(--accent);
+  color: var(--text);
+}
+.feedback--partial .feedback__icon {
+  background: var(--accent);
+  stroke: var(--on-accent);
+  stroke-width: 4;
+}
+.segmented__option span {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.welcome__text {
+  max-width: 62ch;
+}
+/* Pantallas de poca altura: menos aire para que quepan teclado, cascada y mano sin desplazarse. */
+@media (max-height: 700px) and (min-width: 600px) {
+  .app {
+    padding-top: 8px;
+    gap: 8px;
+  }
+  .board {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    gap: 6px;
   }
 }

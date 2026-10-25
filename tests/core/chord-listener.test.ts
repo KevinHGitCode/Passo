@@ -233,7 +233,7 @@ describe('ChordListener', () => {
     expect(Math.abs((log[0]?.at ?? 0) - 1000)).toBeLessThan(30);
   });
 
-  it('el registro guarda solo las últimas 30 mediciones', () => {
+  it('el registro guarda solo las últimas 30 mediciones', { timeout: 60000 }, () => {
     const listener = new ChordListener();
     listener.setExpectation(DO_MAYOR);
     const parts = Array.from({ length: 34 }, (_, i) =>

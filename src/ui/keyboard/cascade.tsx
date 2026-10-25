@@ -66,7 +66,7 @@ export function Cascade({ layout, blocks, labelFor, isVisible }: CascadeProps) {
                     className="cascade__rect"
                   />
                   <text
-                    x={key.x + key.width / 2}
+                    x={key.x + key.width / 2 - 2}
                     y={top + BLOCK_HEIGHT / 2 + 3}
                     textAnchor="middle"
                     className="cascade__name"

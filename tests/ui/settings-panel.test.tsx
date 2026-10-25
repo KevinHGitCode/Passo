@@ -112,6 +112,16 @@ describe('panel de ajustes · abrir y cerrar', () => {
     expect(session.getSnapshot().phase).toBe('pausada');
   });
 
+  it('el aviso de «ronda en pausa» solo sale si hay una ronda en pausa', () => {
+    const { session, openPanel } = setup({ stored: KEYBOARD });
+    openPanel();
+    expect(screen.queryByTestId('settings-pause-note')).toBeNull();
+    fireEvent.click(screen.getByTestId('settings-close'));
+    act(() => session.start());
+    openPanel();
+    expect(screen.getByTestId('settings-pause-note').textContent).toContain('en pausa');
+  });
+
   it('sin ronda (bienvenida) abrir y cerrar no cambia nada', () => {
     const { session, openPanel } = setup();
     openPanel();
@@ -322,6 +332,17 @@ describe('panel de ajustes · pantalla estrecha', () => {
     const backdrop = document.querySelector('.settings-backdrop') as HTMLElement;
     fireEvent.click(backdrop);
     expect(screen.queryByTestId('settings-panel')).toBeNull();
+  });
+
+  it('Mayús+Tab desde el título (que recibe el foco al abrir) no saca el foco del panel', () => {
+    narrow();
+    const { openPanel } = setup();
+    openPanel();
+    const panel = screen.getByTestId('settings-panel');
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Ajustes' }));
+    fireEvent.keyDown(panel, { key: 'Tab', shiftKey: true });
+    const focusable = panel.querySelectorAll<HTMLElement>('button, input:not([disabled])');
+    expect(document.activeElement).toBe(focusable[focusable.length - 1]);
   });
 
   it('en pantalla ancha no hay fondo y no es modal', () => {

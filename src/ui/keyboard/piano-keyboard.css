@@ -223,13 +223,12 @@
 .hand__finger--ghost rect {
   fill: none;
   stroke: var(--hand);
-  stroke-width: 1;
+  stroke-width: 1.4;
   stroke-dasharray: 3 2.5;
-  opacity: 0.55;
+  opacity: 0.85;
 }
 .hand__finger--ghost text {
   fill: var(--hand);
-  opacity: 0.7;
 }
 
 @media (prefers-reduced-motion: reduce) {

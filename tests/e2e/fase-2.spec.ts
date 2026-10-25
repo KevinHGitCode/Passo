@@ -746,6 +746,33 @@ test('Fase 2 · en un móvil la cascada y la mano caben sin desplazamiento horiz
   await context.close();
 });
 
+test('Fase 2 · a 1366×650 la página entera cabe sin desplazarse (teclado del PC y micrófono)', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: { width: 1366, height: 650 } });
+  const page = await context.newPage();
+  const overflow = () =>
+    page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+
+  await page.goto('/?seed=7&pc&mic=off&modo=acordes&nivel=4');
+  await page.getByTestId('start').click();
+  await expect(page.getByTestId('hand')).toBeVisible();
+  expect(await overflow(), 'teclado del PC').toBeLessThanOrEqual(1);
+  const handBottom = await page.evaluate(
+    () => (document.querySelector('[data-testid=hand]') as Element).getBoundingClientRect().bottom,
+  );
+  expect(handBottom).toBeLessThanOrEqual(650);
+
+  await page.addInitScript(FAKE_MIC_SCRIPT);
+  await page.goto('/?seed=7');
+  await page.getByTestId('activate-mic').click();
+  await listening(page);
+  await page.getByTestId('start').click();
+  await expect(page.getByTestId('hand')).toBeVisible();
+  expect(await overflow(), 'micrófono').toBeLessThanOrEqual(1);
+  await context.close();
+});
+
 for (const size of [
   { width: 1280, height: 800 },
   { width: 1366, height: 650 },

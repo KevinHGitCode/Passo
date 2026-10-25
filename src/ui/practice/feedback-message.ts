@@ -6,7 +6,7 @@ import { pitchesText } from './target-text';
 /** Espacio duro: evita que «2 semitonos» se parta en dos líneas. */
 const NBSP = ' ';
 
-export type FeedbackTone = 'ok' | 'error' | 'done' | 'neutral';
+export type FeedbackTone = 'ok' | 'error' | 'done' | 'neutral' | 'partial';
 
 export interface FeedbackMessage {
   readonly tone: FeedbackTone;
@@ -63,7 +63,7 @@ export function feedbackMessage(
       return { tone: 'ok', title: '¡Correcto!', detail: name(outcome.attempt.targetMidi) };
     case 'parcial':
       return {
-        tone: 'neutral',
+        tone: 'partial',
         title: 'Casi',
         detail: `${outcome.missing.length === 1 ? 'Falta' : 'Faltan'} ${outcome.missing.map(name).join(' · ')}`,
       };

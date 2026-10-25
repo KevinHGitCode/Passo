@@ -56,6 +56,8 @@ function Icon({ tone }: { readonly tone: FeedbackMessage['tone'] }) {
     <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" className="feedback__icon">
       {tone === 'error' ? (
         <path d="M6 6l12 12M18 6L6 18" />
+      ) : tone === 'partial' ? (
+        <path d="M6.5 12h.01M12 12h.01M17.5 12h.01" />
       ) : tone === 'neutral' ? (
         <path d="M9.5 9a2.5 2.5 0 1 1 3.6 2.2c-.8.5-1.1 1-1.1 2M12 17v.01" />
       ) : (
@@ -78,6 +80,7 @@ function liveMessage(snapshot: SessionSnapshot): string {
   if (feedback.outcome.kind === 'error') {
     return `${message.title}, error ${snapshot.errors}. ${message.detail}. Intenta de nuevo`;
   }
+  if (feedback.outcome.kind === 'parcial') return `${message.title}. ${message.detail}`;
   return `${message.title} ${message.detail}`;
 }
 
@@ -174,14 +177,17 @@ function welcomeTitle(mode: ExerciseMode): string {
   return 'Toca la nota que aparece';
 }
 
+const WELCOME_LEGEND =
+  ' Los dedos van del 1 (pulgar) al 5 (meñique). Lo punteado sobre el teclado es lo que viene después.';
+
 function welcomeText(mode: ExerciseMode, level: number): string {
   if (mode === 'terceras') {
-    return `Dos teclas a la vez, sin saltarte ninguna. Nivel ${level}: ${levelTitle(mode, level)}.`;
+    return `Dos teclas a la vez: una nota y la que está dos pasos más arriba. Nivel ${level}: ${levelTitle(mode, level)}.${WELCOME_LEGEND}`;
   }
   if (mode === 'acordes') {
-    return `Tres teclas a la vez. Nivel ${level}: ${levelTitle(mode, level)}.`;
+    return `Tres teclas a la vez. Nivel ${level}: ${levelTitle(mode, level)}.${WELCOME_LEGEND}`;
   }
-  return 'No avanzas hasta acertar. Nivel 1: de Do4 a Sol4, con la mano derecha.';
+  return `No avanzas hasta acertar. Nivel 1: de Do4 a Sol4, con la mano derecha.${WELCOME_LEGEND}`;
 }
 
 function levelTitle(mode: ExerciseMode, level: number): string {
@@ -279,7 +285,7 @@ export function PracticeScreen({
 
       <section
         className="board"
-        aria-label="Práctica: toca esta nota"
+        aria-label={`Práctica: ${promptText(mode).toLowerCase()}`}
         tabIndex={-1}
         ref={boardRef}
         data-phase={monitor.phase}

@@ -43,6 +43,8 @@ export interface SettingsPanelProps {
   /** Sin gestor (modo de desarrollo) la entrada no se puede cambiar desde aquí. */
   readonly inputManager?: InputManager | undefined;
   readonly microphone?: (NoteInput & InputMonitor) | undefined;
+  /** Hay una ronda en pausa mientras los ajustes están abiertos: se avisa. */
+  readonly roundPaused?: boolean | undefined;
 }
 
 function GearIcon() {
@@ -151,7 +153,9 @@ function trapTab(event: ReactKeyboardEvent<HTMLElement>): void {
   const first = focusable[0];
   const last = focusable[focusable.length - 1];
   if (!first || !last) return;
-  if (event.shiftKey && document.activeElement === first) {
+  // El título recibe el foco al abrir (tabindex −1): Mayús+Tab desde él también debe quedarse dentro.
+  const active = document.activeElement as HTMLElement | null;
+  if (event.shiftKey && (active === first || active === null || !focusable.includes(active))) {
     event.preventDefault();
     last.focus();
   } else if (!event.shiftKey && document.activeElement === last) {
@@ -171,6 +175,7 @@ export function SettingsPanel({
   inputs,
   inputManager,
   microphone,
+  roundPaused = false,
 }: SettingsPanelProps) {
   const prefs = useSyncExternalStore(preferences.subscribe, preferences.getSnapshot);
   const narrow = useIsNarrow(NARROW_MAX_WIDTH);
@@ -211,9 +216,11 @@ export function SettingsPanel({
             Cerrar
           </button>
         </header>
-        <p className="settings-panel__note">
-          La ronda está en pausa mientras los ajustes están abiertos.
-        </p>
+        {roundPaused && (
+          <p className="settings-panel__note" data-testid="settings-pause-note">
+            La ronda está en pausa mientras los ajustes están abiertos.
+          </p>
+        )}
 
         <fieldset className="settings-group">
           <legend>Cómo toco</legend>

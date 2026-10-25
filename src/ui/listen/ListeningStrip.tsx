@@ -45,7 +45,13 @@ export function ListeningStrip({ status, monitor, notation }: ListeningStripProp
       <MicIcon />
       {listening ? (
         <>
-          <div className="meter" data-testid="meter" aria-hidden="true">
+          <div
+            className="meter"
+            data-testid="meter"
+            data-level={monitor.level}
+            data-gate={monitor.gateLevel}
+            aria-hidden="true"
+          >
             <div
               className={`meter__fill${monitor.clipping ? ' meter__fill--clip' : ''}`}
               style={{ transform: `scaleX(${monitor.level})` }}

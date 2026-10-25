@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PracticeSession } from '@/core/application/practice-session';
 import type { AudioControl } from '@/core/ports/audio-control';
+import type { ChordLogSource } from '@/core/ports/chord-log';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import { useMonitor, useSessionSnapshot } from '../practice/hooks';
 import { latencyStats } from './latency';
@@ -24,7 +25,7 @@ export function DebugPanel({
 }: {
   readonly session: PracticeSession;
   readonly audio: AudioControl;
-  readonly microphone?: InputMonitor | undefined;
+  readonly microphone?: (InputMonitor & Partial<ChordLogSource>) | undefined;
 }) {
   const snapshot = useSessionSnapshot(session);
   const monitor = useMonitor(microphone);

@@ -45,7 +45,8 @@ export class InputManager {
       this.snapshot = { ...this.snapshot, selected: source };
       this.listeners.forEach((listener) => listener());
     }
-    if (source !== 'microfono' && !isRunning(chosen)) void chosen.start();
+    // Los adaptadores informan por su estado y no rechazan; si alguno lo hiciera, no debe romper la elección.
+    if (source !== 'microfono' && !isRunning(chosen)) void chosen.start().catch(() => undefined);
   }
 
   /** Enciende la entrada elegida (el micrófono solo desde un gesto: un botón). */

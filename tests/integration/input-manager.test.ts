@@ -93,6 +93,16 @@ describe('InputManager', () => {
     expect(midi.startCalls).toBe(2);
   });
 
+  it('si un adaptador rechazara al arrancar, elegirlo no rompe nada', async () => {
+    const rejecting = new FakeNoteInput('midi');
+    rejecting.start = () => Promise.reject(new Error('fallo'));
+    const { mic, pc } = inputs();
+    const manager = new InputManager([mic, rejecting, pc], 'microfono');
+    expect(() => manager.select('midi')).not.toThrow();
+    await Promise.resolve();
+    expect(manager.getSnapshot().selected).toBe('midi');
+  });
+
   it('stopAll apaga todas', () => {
     const { mic, midi, pc } = inputs();
     const manager = new InputManager([mic, midi, pc], 'teclado-pc');

@@ -4,6 +4,7 @@ import type { Midi } from '@/core/domain/note';
 import type { NoteEvent } from '@/core/domain/note-event';
 import { NoteTracker } from '@/core/domain/note-tracker';
 import type { Clock } from '@/core/ports/clock';
+import type { ChordLogSource } from '@/core/ports/chord-log';
 import type { ExpectationSink } from '@/core/ports/expectation-sink';
 import { SILENT_MONITOR } from '@/core/ports/input-monitor';
 import type { InputMonitor, ListenPhase, MonitorSnapshot } from '@/core/ports/input-monitor';
@@ -98,7 +99,7 @@ interface Capture {
  * Escucha activa: oye el instrumento por el micrófono y convierte el audio en eventos de nota.
  * El audio nunca sale del navegador: solo se calculan nivel, altura y ataques.
  */
-export class MicrophoneInput implements NoteInput, InputMonitor, ExpectationSink {
+export class MicrophoneInput implements NoteInput, InputMonitor, ExpectationSink, ChordLogSource {
   readonly source = 'microfono';
   private readonly deps: MicrophoneDeps;
   private readonly handlers = new Set<(event: NoteEvent) => void>();
@@ -304,14 +305,17 @@ export class MicrophoneInput implements NoteInput, InputMonitor, ExpectationSink
       const analysis = analyzeFrame(window, consumed, sampleRate, endAt, gap);
       const monophonic = this.tracker.push(analysis);
       const state = this.tracker.getState();
+      // Un hueco corto de audio deja el anillo discontinuo: el oyente de acordes olvida lo anterior.
+      if (gap) this.emitAll(this.chords.reset(at));
       const chord = this.chords.push(window.subarray(window.length - consumed), sampleRate, endAt, {
         noiseRms: state.noiseFloor,
         tuningCents: state.tuningOffsetCents ?? 0,
+        listening: state.phase === 'escuchando',
       });
       // Con un acorde esperado las notas las dice el verificador (el seguimiento de una voz solo
       // confundiría); durante la calibración todavía no se sabe cuánto ruido hay y no se mide.
       if (this.chords.isActive()) {
-        if (state.phase === 'escuchando') this.emitAll(chord);
+        this.emitAll(chord);
       } else {
         this.emitAll(monophonic);
       }

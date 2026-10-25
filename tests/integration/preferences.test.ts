@@ -128,24 +128,6 @@ describe('bindSessionToPreferences', () => {
     });
   });
 
-  it('lo que cambia en la sesión se guarda como preferencia', () => {
-    const store = new FakePreferencesStore(WITH_KEYBOARD);
-    const preferences = new PreferencesService(store);
-    const session = makeSession();
-    bindSessionToPreferences(session, preferences, { exercise: true });
-
-    session.setNotation('americana');
-    session.setHelp(false);
-    session.configure(roundConfigFor('terceras', 2) as RoundConfig);
-    expect(preferences.getSnapshot()).toMatchObject({
-      notation: 'americana',
-      help: false,
-      mode: 'terceras',
-    });
-    expect(preferences.getSnapshot().levels.terceras).toBe(2);
-    expect(new PreferencesService(store).getSnapshot().mode).toBe('terceras');
-  });
-
   it('lo que cambia en las preferencias se aplica a la sesión, también con una ronda en curso', () => {
     const preferences = new PreferencesService(new FakePreferencesStore(WITH_KEYBOARD));
     const session = makeSession();
@@ -159,28 +141,54 @@ describe('bindSessionToPreferences', () => {
     expect(snapshot.exercise?.target.notes).toHaveLength(2);
   });
 
-  it('con `exercise: false` el ejercicio lo fija la sesión y no se guarda', () => {
-    const store = new FakePreferencesStore(WITH_KEYBOARD);
-    const preferences = new PreferencesService(store);
+  it('con `exercise: false` el ejercicio lo fija la sesión y las preferencias no lo cambian', () => {
+    const preferences = new PreferencesService(new FakePreferencesStore(WITH_KEYBOARD));
     const session = makeSession(roundConfigFor('acordes', 5) as RoundConfig);
     bindSessionToPreferences(session, preferences, { exercise: false });
 
     expect(session.getSnapshot()).toMatchObject({ mode: 'acordes', level: 5 });
-    session.setNotation('americana');
-    expect(preferences.getSnapshot().notation).toBe('americana');
-    expect(preferences.getSnapshot().mode).toBe('notas');
-    expect(preferences.getSnapshot().levels.acordes).toBe(1);
+    preferences.update({ mode: 'terceras', notation: 'americana' });
+    expect(session.getSnapshot()).toMatchObject({
+      mode: 'acordes',
+      level: 5,
+      notation: 'americana',
+    });
   });
 
-  it('no hay bucles: un cambio produce un solo guardado', () => {
+  it('el flujo es de un solo sentido: aplicar una preferencia no la vuelve a guardar', () => {
     const store = new FakePreferencesStore(WITH_KEYBOARD);
     const preferences = new PreferencesService(store);
     const session = makeSession();
     bindSessionToPreferences(session, preferences, { exercise: true });
-    session.setNotation('americana');
+    preferences.update({ notation: 'americana' });
     expect(store.saves).toHaveLength(1);
     preferences.update({ help: false });
     expect(store.saves).toHaveLength(2);
+  });
+
+  it('restablecer con el puente conectado deja todo de fábrica (sin valores viejos que vuelvan)', () => {
+    const store = new FakePreferencesStore(WITH_KEYBOARD);
+    const preferences = new PreferencesService(store);
+    const session = makeSession();
+    bindSessionToPreferences(session, preferences, { exercise: true });
+    preferences.update({
+      notation: 'americana',
+      help: false,
+      mode: 'terceras',
+      levels: { terceras: 2 },
+    });
+    expect(session.getSnapshot()).toMatchObject({ mode: 'terceras', level: 2 });
+
+    preferences.reset();
+    expect(preferences.getSnapshot()).toEqual(DEFAULT_PREFERENCES);
+    expect(preferences.getSnapshot().levels.terceras).toBe(1);
+    expect(session.getSnapshot()).toMatchObject({
+      notation: 'latina',
+      help: true,
+      mode: 'notas',
+      level: 1,
+    });
+    expect(new PreferencesService(store).getSnapshot()).toEqual(DEFAULT_PREFERENCES);
   });
 
   it('al soltar el puente dejan de sincronizarse', () => {
@@ -188,9 +196,7 @@ describe('bindSessionToPreferences', () => {
     const session = makeSession();
     const unbind = bindSessionToPreferences(session, preferences, { exercise: true });
     unbind();
-    session.setNotation('americana');
-    expect(preferences.getSnapshot().notation).toBe('latina');
-    preferences.update({ help: false });
-    expect(session.getSnapshot().help).toBe(true);
+    preferences.update({ notation: 'americana' });
+    expect(session.getSnapshot().notation).toBe('latina');
   });
 });

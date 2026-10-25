@@ -3,6 +3,7 @@ import type { InputManager } from '@/core/application/input-manager';
 import type { PracticeSession } from '@/core/application/practice-session';
 import type { PreferencesService } from '@/core/application/preferences-service';
 import type { AudioControl } from '@/core/ports/audio-control';
+import type { ChordLogSource } from '@/core/ports/chord-log';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { NoteInput } from '@/core/ports/note-input';
 import { DebugPanel } from './debug/DebugPanel';
@@ -22,7 +23,7 @@ export interface AppProps {
   readonly inputManager?: InputManager | undefined;
   readonly audio: AudioControl;
   /** Entrada por micrófono con su monitor (nivel, nota oída). */
-  readonly microphone?: (NoteInput & InputMonitor) | undefined;
+  readonly microphone?: (NoteInput & InputMonitor & Partial<ChordLogSource>) | undefined;
   readonly debug?: boolean;
   /** Modo de desarrollo: muestra el estado del sonido de la app (solo suena con el teclado del PC). */
   readonly devShowSound?: boolean;

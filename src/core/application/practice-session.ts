@@ -128,13 +128,20 @@ export class PracticeSession {
 
   /** Empieza una ronda nueva (también sirve para repetir tras terminar). */
   start(): void {
+    this.begin(null);
+  }
+
+  /** Ronda nueva; con `paused` nace en pausa con ese motivo (en un solo cambio, sin parpadeo). */
+  private begin(
+    paused: { reason: SessionSnapshot['pauseReason']; source: InputSource | null } | null,
+  ): void {
     const exercise = startRound(this.config, this.deps.rng, this.deps.clock.now());
     this.update({
       mode: this.config.mode,
       level: this.config.level,
-      phase: 'en-curso',
-      pauseReason: null,
-      pausedSource: null,
+      phase: paused ? 'pausada' : 'en-curso',
+      pauseReason: paused ? paused.reason : null,
+      pausedSource: paused ? paused.source : null,
       exercise,
       feedback: null,
       pressed: [],
@@ -153,10 +160,12 @@ export class PracticeSession {
    */
   configure(config: RoundConfig): void {
     this.config = config;
-    const { phase } = this.snapshot;
-    if (phase === 'en-curso' || phase === 'pausada') {
-      this.start();
-      if (phase === 'pausada') this.pause();
+    const { phase, pauseReason, pausedSource } = this.snapshot;
+    if (phase === 'en-curso') {
+      this.begin(null);
+    } else if (phase === 'pausada') {
+      // Sigue en pausa por el mismo motivo (p. ej. una entrada perdida se sigue esperando).
+      this.begin({ reason: pauseReason, source: pausedSource });
     } else {
       this.update({ mode: config.mode, level: config.level });
     }
@@ -187,6 +196,15 @@ export class PracticeSession {
 
   resume(): void {
     if (this.snapshot.phase !== 'pausada') return;
+    // Si la entrada vigilada se perdió mientras estaba en pausa (con los ajustes abiertos nadie lo
+    // vio), no se reanuda: se espera a que vuelva, como en cualquier otra desconexión.
+    const watched = this.lastSource ?? this.primarySource;
+    const input =
+      watched === null ? undefined : this.deps.inputs.find((item) => item.source === watched);
+    if (input?.getStatus().kind === 'desconectado') {
+      this.update({ pauseReason: 'desconexion', pausedSource: watched });
+      return;
+    }
     this.resumeRound();
   }
 

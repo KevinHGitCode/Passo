@@ -1,9 +1,9 @@
-import { ChordListener } from '@/core/domain/chord-listener';
+import { ChordListener, DEFAULT_LISTENER_CONFIG } from '@/core/domain/chord-listener';
 import type { ListenContext } from '@/core/domain/chord-listener';
 import type { NoteEvent } from '@/core/domain/note-event';
 import { SAMPLE_RATE, concat, mix, noise, pianoNote, silence } from '../support/synth';
 
-const CONTEXT: ListenContext = { noiseRms: 0.002, tuningCents: 0 };
+const CONTEXT: ListenContext = { noiseRms: 0.002, tuningCents: 0, listening: true };
 const DO_MAYOR = [60, 64, 67];
 
 interface Heard {
@@ -233,15 +233,58 @@ describe('ChordListener', () => {
     expect(Math.abs((log[0]?.at ?? 0) - 1000)).toBeLessThan(30);
   });
 
-  it('el registro guarda solo las últimas 30 mediciones', { timeout: 60000 }, () => {
+  it('el registro conserva exactamente las últimas mediciones (su tamaño es configurable)', () => {
+    const listener = new ChordListener({ ...DEFAULT_LISTENER_CONFIG, logSize: 3 });
+    listener.setExpectation(DO_MAYOR);
+    const parts = Array.from({ length: 6 }, (_, i) => chordAt(DO_MAYOR, 0.2, 1.4, { seed: i + 1 }));
+    run(listener, withRoom(concat(...parts)));
+    const log = listener.getLog();
+    expect(log).toHaveLength(3);
+    const times = log.map((item) => item.at);
+    expect(times).toEqual([...times].sort((x, y) => x - y));
+    // Son las tres últimas: los ataques de los acordes 4.º, 5.º y 6.º (a 0,2 s dentro de cada trozo de 1,4 s).
+    [4400, 5800, 7200].forEach((expected, i) =>
+      expect(Math.abs((times[i] ?? 0) - expected)).toBeLessThan(40),
+    );
+  });
+
+  it('el registro por defecto guarda 30 y se entrega como copia (no se puede alterar desde fuera)', () => {
+    expect(DEFAULT_LISTENER_CONFIG.logSize).toBe(30);
     const listener = new ChordListener();
     listener.setExpectation(DO_MAYOR);
-    const parts = Array.from({ length: 34 }, (_, i) =>
-      chordAt(DO_MAYOR, 0.2, 1.2, { seed: i + 1 }),
-    );
-    run(listener, withRoom(concat(...parts)));
-    expect(listener.getLog().length).toBeLessThanOrEqual(30);
-    expect(listener.getLog().length).toBeGreaterThan(20);
+    run(listener, withRoom(chordAt(DO_MAYOR, 1, 2.5)));
+    const log = listener.getLog() as unknown as unknown[];
+    log.length = 0;
+    expect(listener.getLog()).toHaveLength(1);
+  });
+
+  it('durante la calibración no mide ni deja rastro: después mide con normalidad', () => {
+    const listener = new ChordListener();
+    listener.setExpectation(DO_MAYOR);
+    const signal = withRoom(chordAt(DO_MAYOR, 0.3, 3));
+    const chunk = 1024;
+    const heard: Heard[] = [];
+    for (let start = 0; start < signal.length; start += chunk) {
+      const end = Math.min(signal.length, start + chunk);
+      const endMs = (end / SAMPLE_RATE) * 1000;
+      // Los primeros 1,2 s el micrófono todavía calibra.
+      const context = { ...CONTEXT, listening: endMs > 1200 };
+      for (const event of listener.push(signal.subarray(start, end), SAMPLE_RATE, endMs, context)) {
+        heard.push({ event, deliveredAt: endMs });
+      }
+    }
+    expect(heard).toEqual([]);
+    expect(listener.getLog()).toHaveLength(0);
+    expect(ons(run(listener, withRoom(chordAt(DO_MAYOR, 1, 2.5, { seed: 4 }))))).toEqual(DO_MAYOR);
+  });
+
+  it('las notas de más se entregan antes que las esperadas (la sesión puede pasar al siguiente objetivo)', () => {
+    const listener = new ChordListener();
+    listener.setExpectation(DO_MAYOR);
+    const heard = run(listener, withRoom(chordAt([...DO_MAYOR, 74], 1, 2.5)));
+    const order = heard.map((item) => item.event.note);
+    expect(order[0]).toBe(74);
+    expect(order.slice(1)).toEqual(DO_MAYOR);
   });
 
   it('reset olvida el audio y suelta lo que sonaba', () => {

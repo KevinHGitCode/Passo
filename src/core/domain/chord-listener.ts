@@ -23,6 +23,8 @@ export interface ChordListenerConfig {
   readonly cooldownMs: number;
   /** La línea base («antes del ataque») termina este tiempo antes de él, en ms. */
   readonly preGapMs: number;
+  /** Cuántas mediciones recientes se guardan para validar con un piano real. */
+  readonly logSize: number;
 }
 
 export const DEFAULT_LISTENER_CONFIG: ChordListenerConfig = {
@@ -34,6 +36,7 @@ export const DEFAULT_LISTENER_CONFIG: ChordListenerConfig = {
   minGate: 0.003,
   cooldownMs: 150,
   preGapMs: 20,
+  logSize: 30,
 };
 
 export interface ListenContext {
@@ -41,6 +44,8 @@ export interface ListenContext {
   readonly noiseRms: number;
   /** Afinación estimada del teclado en cents (0 si no se sabe). */
   readonly tuningCents: number;
+  /** El micrófono ya sabe cuánto ruido hay (terminó de calibrarse): antes de eso no se mide ningún acorde. */
+  readonly listening: boolean;
 }
 
 /** Lo que se midió en un ataque: para validar el verificador con un piano real (`?debug`). */
@@ -58,8 +63,6 @@ export interface ChordMeasurement {
   }[];
   readonly extras: readonly Midi[];
 }
-
-const LOG_SIZE = 30;
 
 interface Pending {
   readonly onsetAbs: number;
@@ -98,7 +101,7 @@ export class ChordListener {
 
   /** Las últimas mediciones (de la más antigua a la más reciente). */
   getLog(): readonly ChordMeasurement[] {
-    return this.log;
+    return [...this.log];
   }
 
   /** Qué notas se esperan ahora; `null` (o menos de dos notas) apaga la verificación. */
@@ -148,7 +151,8 @@ export class ChordListener {
       this.pending = null;
     }
     this.append(samples);
-    if (this.expected === null) {
+    if (this.expected === null || !context.listening) {
+      // Sin acorde esperado o durante la calibración solo se guarda el audio (para tener «lo de antes»).
       this.nextBlock = this.written;
       return [];
     }
@@ -247,18 +251,20 @@ export class ChordListener {
       })),
       extras: verdict.extras,
     });
-    if (this.log.length > LOG_SIZE) this.log.shift();
+    if (this.log.length > this.config.logSize) this.log.shift();
     const events: NoteEvent[] = this.releaseAll(onsetAt);
     const heard: Midi[] = [];
+    // Las notas de más van **antes**: si el acorde queda completo la sesión pasa al siguiente objetivo
+    // y una nota de más (dudosa) no debe llegarle a él.
+    for (const extra of verdict.extras) {
+      events.push(this.on(extra, onsetAt, 'media'));
+      heard.push(extra);
+    }
     for (const note of verdict.notes) {
       if (!note.present) continue;
       const strong = note.snr >= 2 * this.config.verifier.minSnr;
       events.push(this.on(note.midi, onsetAt, strong ? 'alta' : 'media'));
       heard.push(note.midi);
-    }
-    for (const extra of verdict.extras) {
-      events.push(this.on(extra, onsetAt, 'media'));
-      heard.push(extra);
     }
     this.sounding = heard;
     return events;

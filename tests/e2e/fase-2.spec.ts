@@ -611,6 +611,20 @@ function micChord(page: Page, midis: readonly number[], ms = 900, amp = 0.14): P
   );
 }
 
+/** Espera a que el medidor baje de la puerta de ruido (el acorde anterior dejó de sonar): una condición, no un tiempo. */
+const silent = (page: Page) =>
+  expect
+    .poll(
+      () =>
+        page
+          .getByTestId('meter')
+          .evaluate(
+            (el) => Number(el.getAttribute('data-level')) < Number(el.getAttribute('data-gate')),
+          ),
+      { timeout: 10_000 },
+    )
+    .toBe(true);
+
 const listening = (page: Page) =>
   expect(page.getByTestId('listen')).toHaveAttribute('data-phase', 'escuchando', { timeout: 8000 });
 
@@ -650,7 +664,7 @@ test('Fase 2 · terceras por micrófono (beta): oye las dos notas a la vez y avi
     await expect(page.getByTestId('counters')).toContainText('Errores 0');
     await expect(page.getByTestId('counters')).toContainText('Terceras 0/12');
     await f2Capture(page, '24-tercera-microfono-falta-una');
-    await page.waitForTimeout(1300);
+    await silent(page);
   });
 
   await test.step('Las dos notas a la vez completan la tercera', async () => {
@@ -661,7 +675,7 @@ test('Fase 2 · terceras por micrófono (beta): oye las dos notas a la vez y avi
         timeout: 5000,
       });
       await expect(page.getByTestId('counters')).toContainText('Errores 0');
-      await page.waitForTimeout(1300);
+      await silent(page);
     }
     await f2Capture(page, '25-tercera-microfono-acierto');
   });
@@ -669,7 +683,7 @@ test('Fase 2 · terceras por micrófono (beta): oye las dos notas a la vez y avi
   await test.step('Una nota de más (lejana) no cuenta como error: es dudosa', async () => {
     const target = await targetMidis(page);
     await micChord(page, [...target, 77]);
-    await expect(page.getByTestId('counters')).toContainText(/Terceras (3|4)\/12/, {
+    await expect(page.getByTestId('counters')).toContainText('Terceras 4/12', {
       timeout: 5000,
     });
     await expect(page.getByTestId('counters')).toContainText('Errores 0');
@@ -693,7 +707,7 @@ test('Fase 2 · acordes por micrófono (beta): un acorde de tres notas', async (
     expect(target).toHaveLength(3);
     await micChord(page, target);
     await expect(page.getByTestId('counters')).toContainText(`Acordes ${n}/12`, { timeout: 5000 });
-    await page.waitForTimeout(1300);
+    await silent(page);
   }
   await expect(page.getByTestId('counters')).toContainText('Errores 0');
 

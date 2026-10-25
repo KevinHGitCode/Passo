@@ -107,8 +107,4 @@ describe('MicrophoneInput · acordes (beta)', () => {
     h.advance(3300);
     expect(ons(events)).toEqual(DO_MAYOR);
   });
-
-  it('el audio de un acorde no sale del navegador: el adaptador no tiene red ni grabación (lo vigila ESLint)', () => {
-    expect(typeof MicrophoneInput.prototype.setExpectation).toBe('function');
-  });
 });

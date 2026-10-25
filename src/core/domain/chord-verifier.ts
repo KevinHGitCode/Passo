@@ -18,6 +18,10 @@ export interface ChordVerifierConfig {
   readonly minRise: number;
   /** La energía una octava por debajo no puede superar esta fracción de la de la nota (sería su 2.º armónico). */
   readonly maxSubharmonic: number;
+  /** Si una nota una octava más grave sonara, tendría un 3.er parcial en 1,5·f: ahí no puede haber más de esta fracción de la energía de la nota. */
+  readonly maxLowerOdd: number;
+  /** La energía **nueva** en un semitono vecino que no se espera no puede superar esta fracción de la de la nota (si no, la nota es fuga del vecino). */
+  readonly maxNeighbor: number;
   /** Una nota de más debe tener al menos esta fracción de la energía de la más débil de las esperadas. */
   readonly extraRelative: number;
   /** …y esta relación con el ruido. */
@@ -33,11 +37,13 @@ export const DEFAULT_CHORD_CONFIG: ChordVerifierConfig = {
   minSnr: 10,
   minPeak: 3,
   minRise: 1.8,
-  maxSubharmonic: 0.6,
+  maxSubharmonic: 0.3,
+  maxLowerOdd: 0.25,
+  maxNeighbor: 0.5,
   extraRelative: 0.5,
   extraMinSnr: 12,
   harmonicToleranceCents: 45,
-  lenientBelowHz: 190,
+  lenientBelowHz: 250,
 };
 
 export interface VerifyInput {
@@ -51,6 +57,8 @@ export interface VerifyInput {
   readonly tuningCents?: number;
   /** RMS del ruido de la sala (de la calibración); 0 si no se sabe. */
   readonly noiseRms?: number;
+  /** Notas esperadas que ya se dieron por presentes en la medición anterior de este mismo acorde: si siguen sonando no hace falta que vuelvan a subir. */
+  readonly held?: readonly Midi[];
 }
 
 export interface NoteEvidence {
@@ -97,16 +105,17 @@ function median(values: readonly number[]): number {
     : ((sorted[middle - 1] as number) + (sorted[middle] as number)) / 2;
 }
 
-/** ¿`frequency` coincide (con tolerancia) con un armónico 2.º–6.º de alguna nota esperada? */
+/** ¿`frequency` coincide (con tolerancia) con un armónico de alguna nota esperada (del `first` al 6.º)? */
 function isHarmonicOf(
   frequency: number,
   expected: readonly Midi[],
   toleranceCents: number,
-  tuningCents: number,
+  first = 2,
 ): boolean {
   for (const note of expected) {
-    const base = midiToFrequency(note) * 2 ** (tuningCents / 1200);
-    for (let harmonic = 2; harmonic <= 6; harmonic++) {
+    // Frecuencia y parciales en el mismo marco (sin afinación): la desafinación mueve a todos por igual.
+    const base = midiToFrequency(note);
+    for (let harmonic = first; harmonic <= 6; harmonic++) {
       const cents = Math.abs(1200 * Math.log2(frequency / (harmonic * base)));
       if (cents <= toleranceCents) return true;
     }
@@ -137,12 +146,14 @@ export function verifyChord(
     if (pre) before.set(midi, amplitudeOf(pre, sampleRate, frequency, tuning));
   }
   const level = (midi: Midi): number => after.get(midi) ?? 0;
+  /** Lo que ha aparecido con el ataque: lo que ya sonaba antes (un acorde anterior) no cuenta. */
+  const fresh = (midi: Midi): number => Math.max(0, level(midi) - (before.get(midi) ?? 0));
 
   const peakness = (midi: Midi, ignore: readonly Midi[]): number => {
     const around = [-3, -2, 2, 3]
       .map((delta) => midi + delta)
       .filter((neighbour) => !ignore.includes(neighbour) && after.has(neighbour))
-      .map(level);
+      .map(fresh);
     const reference = Math.max(median(around), noiseAmp);
     return level(midi) / reference;
   };
@@ -162,6 +173,36 @@ export function verifyChord(
     return Math.max(noiseAmp, median(around));
   };
 
+  /** La energía de la nota puede ser fuga de un semitono vecino que se toca de verdad (y no se esperaba). */
+  const neighbourLeak = (midi: Midi): boolean =>
+    [-1, 1].some(
+      (delta) =>
+        !expected.includes(midi + delta) && fresh(midi + delta) > config.maxNeighbor * level(midi),
+    );
+
+  /**
+   * ¿Será esta nota una octava más grave de lo que parece? Si sonara la nota de abajo (f/2) tendría su
+   * 3.er parcial en 1,5·f y su 5.º en 2,5·f aunque el altavoz no dé la fundamental. Hace falta **que se
+   * vean los dos** (uno solo puede ser otra nota: Re5 está en 1,5·Sol4); si otra nota esperada tiene un
+   * parcial justo ahí (Sol4 es 1,5·Do4) esa comprobación no dice nada y, sin las dos, no se afirma nada.
+   */
+  const lowerOctaveSuspected = (midi: Midi): boolean => {
+    if (level(midi) === 0) return false;
+    const verdicts: boolean[] = [];
+    for (const [factor, limit] of [
+      [1.5, config.maxLowerOdd],
+      [2.5, config.maxLowerOdd * 0.4],
+    ] as const) {
+      const frequency = midiToFrequency(midi) * factor;
+      if (frequency >= nyquist * 0.9) continue;
+      if (isHarmonicOf(frequency, expected, config.harmonicToleranceCents, 1)) continue;
+      verdicts.push(amplitudeOf(post, sampleRate, frequency, tuning) / level(midi) > limit);
+    }
+    // Con solo una de las dos comprobaciones posible no se afirma nada (podría ser otra nota).
+    return verdicts.length === 2 && verdicts.every(Boolean);
+  };
+
+  const held = input.held ?? [];
   const notes: NoteEvidence[] = expected.map((midi) => {
     const amplitude = level(midi);
     const snr = amplitude / noiseAmp;
@@ -178,14 +219,18 @@ export function verifyChord(
         ? amplitudeOf(post, sampleRate, frequency, tuning) / bandNoise(frequency)
         : 0;
     };
+    // Una nota que ya se dio por presente en la medición anterior de este acorde no tiene que volver a subir.
+    const struck = rise >= config.minRise || held.includes(midi);
     const present = lenient
-      ? rise >= config.minRise &&
+      ? struck &&
         (heard(1) >= config.minSnr ||
           (heard(2) >= config.minSnr && heard(3) >= 0.7 * config.minSnr))
       : snr >= config.minSnr &&
         peak >= config.minPeak &&
-        rise >= config.minRise &&
-        level(midi - 12) <= config.maxSubharmonic * amplitude;
+        struck &&
+        !neighbourLeak(midi) &&
+        level(midi - 12) <= config.maxSubharmonic * amplitude &&
+        !lowerOctaveSuspected(midi);
     return { midi, present, amplitude, snr, peak, rise };
   });
 
@@ -198,13 +243,29 @@ export function verifyChord(
     if (expected.some((note) => Math.abs(note - midi) <= 1)) continue;
     const frequency = midiToFrequency(midi);
     if (frequency >= nyquist * 0.9 || frequency < config.lenientBelowHz) continue;
-    if (isHarmonicOf(frequency, expected, config.harmonicToleranceCents, tuning)) continue;
+    if (isHarmonicOf(frequency, expected, config.harmonicToleranceCents)) continue;
     const amplitude = level(midi);
     if (amplitude / noiseAmp < config.extraMinSnr) continue;
     if (amplitude < config.extraRelative * weakest) continue;
     if (peakness(midi, [...expected, midi - 1, midi + 1]) < config.minPeak) continue;
     if (riseOf(midi) < config.minRise) continue;
     extras.push(midi);
+  }
+  // Un vecino pegado a una esperada que suena mucho más que ella: es lo que se tocó en su lugar.
+  for (const note of expected) {
+    for (const delta of [-1, 1]) {
+      const neighbour = note + delta;
+      if (expected.includes(neighbour) || extras.includes(neighbour)) continue;
+      if (midiToFrequency(neighbour) < config.lenientBelowHz) continue;
+      const energy = fresh(neighbour);
+      if (
+        energy / noiseAmp >= config.extraMinSnr &&
+        energy >= config.extraRelative * weakest &&
+        energy > 2 * level(note)
+      ) {
+        extras.push(neighbour);
+      }
+    }
   }
   return { notes, extras };
 }

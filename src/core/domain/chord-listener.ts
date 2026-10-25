@@ -90,6 +90,8 @@ export class ChordListener {
   private pending: Pending | null = null;
   private sounding: readonly Midi[] = [];
   private readonly log: ChordMeasurement[] = [];
+  /** Notas esperadas que dieron por presentes en la última medición (mientras no cambie el acorde esperado). */
+  private carried: readonly Midi[] = [];
 
   constructor(config: ChordListenerConfig = DEFAULT_LISTENER_CONFIG) {
     this.config = config;
@@ -114,6 +116,7 @@ export class ChordListener {
       next.every((note, i) => note === this.expected?.[i]);
     if (same) return;
     this.expected = next;
+    this.carried = [];
     // Un cambio de objetivo descarta la medida pendiente y no hereda notas de la anterior.
     this.pending = null;
     this.nextBlock = this.written;
@@ -129,6 +132,7 @@ export class ChordListener {
     this.nextBlock = 0;
     this.cooldownUntil = 0;
     this.pending = null;
+    this.carried = [];
     return this.releaseAll(at);
   }
 
@@ -200,9 +204,14 @@ export class ChordListener {
     // Se examinan solo bloques completos que tengan detrás la línea base (que aún esté en la memoria).
     let block = Math.max(this.nextBlock, this.written - this.ring.length + BASELINE);
     while (block + BLOCK <= this.written) {
+      // Sin lo anterior (tras un reinicio por un hueco de audio) no se puede saber si es un ataque o algo que ya sonaba.
+      if (block < BASELINE) {
+        block += BLOCK;
+        continue;
+      }
       const level = this.rms(block, BLOCK);
-      const before = block >= BASELINE ? this.rms(block - BASELINE, BASELINE) : 0;
-      if (level >= gate && (before === 0 || level >= this.config.attackRatio * before)) {
+      const before = this.rms(block - BASELINE, BASELINE);
+      if (level >= gate && level >= this.config.attackRatio * before) {
         this.pending = {
           onsetAbs: block,
           readyAbs: block + msToSamples(this.config.skipMs) + msToSamples(this.config.windowMs),
@@ -235,6 +244,7 @@ export class ChordListener {
         expected,
         tuningCents: context.tuningCents,
         noiseRms: context.noiseRms,
+        held: this.carried,
       },
       this.config.verifier,
     );
@@ -267,6 +277,7 @@ export class ChordListener {
       heard.push(note.midi);
     }
     this.sounding = heard;
+    this.carried = verdict.notes.filter((note) => note.present).map((note) => note.midi);
     return events;
   }
 

@@ -724,7 +724,10 @@ test('Fase 2 · acordes por micrófono (beta): un acorde de tres notas', async (
   expect(log.length).toBeGreaterThanOrEqual(2);
   for (const measure of log.slice(0, 2)) {
     expect(measure.esperado).toHaveLength(3);
-    expect(measure.notas.every((note) => note.suena && note.snr > 10)).toBe(true);
+    expect(
+      measure.notas.every((note) => note.suena && note.snr > 10),
+      JSON.stringify(log),
+    ).toBe(true);
   }
   await f2Capture(page, '26-acorde-microfono');
 });

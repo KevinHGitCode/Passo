@@ -142,6 +142,27 @@ describe('ChordListener', () => {
     expect(ons(heard)).toEqual(DO_MAYOR);
   });
 
+  it('un acorde que se completa añadiendo la nota que faltaba, con las otras todavía sonando, cuenta entero', () => {
+    const listener = new ChordListener();
+    listener.setExpectation(DO_MAYOR);
+    const first = chordAt([60, 67], 1, 4.5);
+    const second = chordAt([64], 2.6, 4.5, { seed: 9 });
+    const heard = run(listener, withRoom(mix([{ signal: first }, { signal: second }])));
+    const sequence = heard.map((item) => `${item.event.type}:${item.event.note}`);
+    expect(sequence).toEqual(['on:60', 'on:67', 'off:60', 'off:67', 'on:60', 'on:64', 'on:67']);
+  });
+
+  it('cambiar el acorde esperado olvida lo que se daba por sonando', () => {
+    const listener = new ChordListener();
+    listener.setExpectation(DO_MAYOR);
+    const first = chordAt([60, 67], 1, 2.2);
+    run(listener, withRoom(first));
+    listener.setExpectation([64, 67, 71]);
+    const heard = run(listener, withRoom(chordAt([64], 1, 2.2, { seed: 5 })));
+    // Mi menor esperado: el Sol (67) ya no se arrastra de la medición anterior.
+    expect(ons(heard)).toEqual([64]);
+  });
+
   it('un acorde pulsado de nuevo tras apagarse se vuelve a oír', () => {
     const listener = new ChordListener();
     listener.setExpectation(DO_MAYOR);
@@ -160,8 +181,8 @@ describe('ChordListener', () => {
   it('una nota de más clara se entrega con confianza «media» (la sesión la tratará como dudosa)', () => {
     const listener = new ChordListener();
     listener.setExpectation(DO_MAYOR);
-    const heard = run(listener, withRoom(chordAt([...DO_MAYOR, 74], 1, 2.5)));
-    const extra = heard.find((item) => item.event.note === 74);
+    const heard = run(listener, withRoom(chordAt([...DO_MAYOR, 77], 1, 2.5)));
+    const extra = heard.find((item) => item.event.note === 77);
     expect(extra?.event).toMatchObject({ type: 'on', confidence: 'media' });
     expect(ons(heard).filter((note) => DO_MAYOR.includes(note))).toEqual(DO_MAYOR);
   });
@@ -281,10 +302,35 @@ describe('ChordListener', () => {
   it('las notas de más se entregan antes que las esperadas (la sesión puede pasar al siguiente objetivo)', () => {
     const listener = new ChordListener();
     listener.setExpectation(DO_MAYOR);
-    const heard = run(listener, withRoom(chordAt([...DO_MAYOR, 74], 1, 2.5)));
+    const heard = run(listener, withRoom(chordAt([...DO_MAYOR, 77], 1, 2.5)));
     const order = heard.map((item) => item.event.note);
-    expect(order[0]).toBe(74);
+    expect(order[0]).toBe(77);
     expect(order.slice(1)).toEqual(DO_MAYOR);
+  });
+
+  it('tras un reinicio (hueco de audio) un acorde que ya sonaba no se toma por un ataque nuevo', () => {
+    const listener = new ChordListener();
+    listener.setExpectation(DO_MAYOR);
+    const signal = withRoom(chordAt(DO_MAYOR, 0.3, 4));
+    const chunk = 1024;
+    const heard: Heard[] = [];
+    let reset = false;
+    for (let start = 0; start < signal.length; start += chunk) {
+      const end = Math.min(signal.length, start + chunk);
+      const endMs = (end / SAMPLE_RATE) * 1000;
+      if (!reset && endMs > 1500) {
+        reset = true;
+        heard.push(...listener.reset(endMs).map((event) => ({ event, deliveredAt: endMs })));
+      }
+      for (const event of listener.push(signal.subarray(start, end), SAMPLE_RATE, endMs, CONTEXT)) {
+        heard.push({ event, deliveredAt: endMs });
+      }
+    }
+    // El acorde se oyó una vez (a los 0,3 s); el reinicio a 1,5 s no crea una segunda medición.
+    expect(heard.filter((item) => item.event.type === 'on').map((item) => item.event.note)).toEqual(
+      [...DO_MAYOR, ...DO_MAYOR.map(() => 0).slice(0, 0)],
+    );
+    expect(listener.getLog()).toHaveLength(1);
   });
 
   it('reset olvida el audio y suelta lo que sonaba', () => {

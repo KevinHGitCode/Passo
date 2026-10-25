@@ -32,6 +32,10 @@ interface Scenario {
   readonly knownCents?: number;
   /** Notas de un acorde anterior que todavía suenan (bajo) antes del ataque. */
   readonly previous?: readonly number[];
+  /** Volumen del acorde anterior (1 = el de las notas nuevas). */
+  readonly previousGain?: number;
+  /** Notas que la medición anterior de este acorde dio por presentes. */
+  readonly held?: readonly number[];
   readonly seed?: number;
 }
 
@@ -60,6 +64,7 @@ function render(scenario: Scenario) {
     { signal: silence(total) },
     ...previous.map((midi, i) => ({
       signal: pianoNote(midi, { ms: total, seed: 50 + i, amplitude: 0.2, t60: 4 }),
+      gain: scenario.previousGain ?? 1,
     })),
   ]);
   let signal = mix([{ signal: chord }, { signal: old }]);
@@ -73,12 +78,12 @@ function render(scenario: Scenario) {
   const preEnd = onset - samplesFor(20);
   const pre = noisy.slice(preEnd - N, preEnd);
   const post = noisy.slice(onset + samplesFor(SKIP_MS), onset + samplesFor(SKIP_MS) + N);
-  return { pre, post, noiseRms, tuningCents: scenario.knownCents ?? 0 };
+  return { pre, post, noiseRms, tuningCents: scenario.knownCents ?? 0, held: scenario.held ?? [] };
 }
 
 function verify(expected: readonly number[], scenario: Scenario): ChordVerdict {
-  const { pre, post, noiseRms, tuningCents } = render(scenario);
-  return verifyChord({ post, pre, sampleRate: SAMPLE_RATE, expected, noiseRms, tuningCents });
+  const { pre, post, noiseRms, tuningCents, held } = render(scenario);
+  return verifyChord({ post, pre, sampleRate: SAMPLE_RATE, expected, noiseRms, tuningCents, held });
 }
 
 const presentOf = (verdict: ChordVerdict) =>
@@ -201,6 +206,98 @@ describe('verifyChord · notas de más', () => {
       });
       expect(verdict.extras, chord.join('-')).toEqual([]);
     }
+  });
+});
+
+describe('verifyChord · el semitono vecino no es la nota esperada', () => {
+  const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
+  // [esperadas, tocadas, la esperada que falta]: la tecla de al lado en lugar de la correcta.
+  const cases: [string, number[], number[], number][] = [
+    ['Mi–Sol tocando Fa–Sol', [64, 67], [65, 67], 64],
+    ['Re–Fa tocando Re–Mi', [62, 65], [62, 64], 65],
+    ['Si–Re tocando Do–Re', [71, 74], [72, 74], 71],
+    ['Do–Mi tocando Do–Re#', [60, 64], [60, 63], 64],
+    ['Sol–Si–Re tocando Fa#–Si–Re', [67, 71, 74], [66, 71, 74], 67],
+    ['Do–Mi–Sol tocando Do–Fa–Sol', [60, 64, 67], [60, 65, 67], 64],
+  ];
+
+  for (const [name, expected, played, missing] of cases) {
+    it(`${name}: la nota que falta no se da por buena (0 de 8 falsos aciertos)`, () => {
+      let leaks = 0;
+      let flaggedExtra = 0;
+      for (const seed of SEEDS) {
+        const verdict = verify(expected, { played, seed });
+        if (verdict.notes.find((note) => note.midi === missing)?.present) leaks += 1;
+        if (verdict.extras.some((extra) => !expected.includes(extra))) flaggedExtra += 1;
+      }
+      expect(leaks).toBe(0);
+      // Y además se señala la nota vecina que sí sonó como «de más».
+      expect(flaggedExtra).toBeGreaterThanOrEqual(6);
+    });
+  }
+
+  it('las notas tocadas de verdad junto a una vecina de más siguen sin colarse como completas', () => {
+    const verdict = verify([64, 67], { played: [64, 65, 67] });
+    expect(chordComplete(verdict) && verdict.extras.length === 0).toBe(false);
+  });
+});
+
+describe('verifyChord · una octava más grave con un altavoz sin graves', () => {
+  it('Do–Mi–Sol una octava abajo no completa el acorde (paso alto de 250 Hz y fundamental débil)', () => {
+    let accepted = 0;
+    for (let seed = 1; seed <= 8; seed++) {
+      const verdict = verify(DO_MAYOR, {
+        played: [48, 52, 55],
+        highpassHz: 250,
+        fundamentalGain: 0.3,
+        seed,
+      });
+      if (chordComplete(verdict)) accepted += 1;
+    }
+    expect(accepted).toBe(0);
+  });
+
+  it('con las fundamentales intactas tampoco', () => {
+    expect(chordComplete(verify(DO_MAYOR, { played: [48, 52, 55] }))).toBe(false);
+  });
+
+  it('y una nota que cae en 1,5 veces otra del acorde (Re5 sobre Sol4) no tumba al Sol4 de verdad', () => {
+    const verdict = verify(DO_MAYOR, { played: [...DO_MAYOR, 74] });
+    expect(presentOf(verdict)).toEqual(DO_MAYOR);
+  });
+});
+
+describe('verifyChord · acorde que se completa con las notas anteriores todavía sonando', () => {
+  it('sin saber lo anterior, las notas que siguen sonando (sin subir) faltan; sabiéndolo, cuentan', () => {
+    const base = { played: [64], previous: [60, 67] };
+    const without = verify(DO_MAYOR, base);
+    expect(without.notes.filter((note) => !note.present).map((note) => note.midi)).toEqual([
+      60, 67,
+    ]);
+    const withHeld = verify(DO_MAYOR, { ...base, held: [60, 67] });
+    expect(chordComplete(withHeld)).toBe(true);
+  });
+
+  it('lo que se arrastra no inventa notas: si una no suena, sigue faltando', () => {
+    const verdict = verify(DO_MAYOR, { played: [64], previous: [60], held: [60, 67] });
+    expect(verdict.notes.find((note) => note.midi === 67)?.present).toBe(false);
+  });
+});
+
+describe('verifyChord · con el acorde anterior aún sonando fuerte', () => {
+  it('Sol mayor sonando y luego Re menor (a media fuerza) se reconoce: lo que ya sonaba no cuenta como vecino', () => {
+    let complete = 0;
+    for (let seed = 1; seed <= 8; seed++) {
+      const verdict = verify(RE_MENOR, {
+        played: RE_MENOR,
+        gains: [0.5, 0.5, 0.5],
+        previous: SOL_MAYOR,
+        previousGain: 5,
+        seed,
+      });
+      if (chordComplete(verdict)) complete += 1;
+    }
+    expect(complete).toBeGreaterThanOrEqual(7);
   });
 });
 

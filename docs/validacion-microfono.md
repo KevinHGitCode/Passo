@@ -63,7 +63,7 @@ seguimiento (si hay energía en f/2 **y** en 3f/2 que sobresalen del ruido, la n
 | # | Paso | Resultado esperado |
 |---|---|---|
 | 15 | Toca el **Mi4** (el Mi de la posición de cinco dedos) 20 veces a suave, medio y fuerte | Cada toque cuenta a la primera. Cero «No te oí bien… una octava más arriba» |
-| 16 | Toca **Mi4 y, 1 segundo después, Mi5** (el Mi de una octava arriba) | Salen las dos notas. El Mi5 **no** se convierte en Mi4 |
+| 16 | Toca **Mi4, suéltalo y, 1 segundo después, Mi5** (el Mi de una octava arriba) | Salen las dos notas. El Mi5 **no** se convierte en Mi4. Repite **con el Mi4 todavía pulsado** (más de 1 s): si aquí el Mi5 sale como Mi4, anótalo (límite conocido) |
 | 17 | Toca Mi3 y Sol3 (graves) | Pueden salir «No te oí bien»; lo importante es que no salga un error inventado |
 
 Si el Mi sigue fallando, anota lo que muestra «Oigo:» cuando falla y las cifras alta/media/dudosa/eco de `?debug`.
@@ -80,13 +80,16 @@ vez» (BETA)** → en *Qué practico* elige **Terceras** o **Acordes**. Abre la 
 |---|---|---|
 | 18 | Terceras, nivel 1 (Do–Mi, Re–Fa, Mi–Sol): toca cada tercera bien, 10 veces | ≥ 90 % cuentan (tardan ~0,3 s en aparecer tras tocar). **0 «Incorrecto»** cuando tocaste bien |
 | 19 | Toca solo **una** de las dos notas | «Casi · Falta Mi4» (no es error) |
-| 20 | Toca la tercera pero con una tecla vecina en lugar de una de las notas | Debe faltar esa nota; **nunca** un error si solo falta |
+| 20 | **Vecinas**: toca Fa–Sol cuando se pide Mi–Sol, Re–Mi cuando se pide Re–Fa, Do–Re cuando se pide Si–Re (la tecla de al lado en lugar de la correcta) | **0 de 10 cuentan**. Debe faltar la nota correcta (y puede decir «Oí Fa4 de más»). Si una cuenta, anótala con su `snr`/`pico` |
 | 21 | Acordes, nivel 1 (Do y Sol mayor): toca el acorde bien, 10 veces cada uno | ≥ 90 % cuentan |
 | 22 | Toca el acorde **rodado** (una nota tras otra, unos 30 ms) | Cuenta si las tres suenan en la ventana |
 | 23 | Toca el acorde una octava más abajo o más arriba | No debería contar (o dar «No te oí bien»); si cuenta, anótalo |
 | 24 | Toca un acorde, espera 1 s y otro distinto | Cada uno se juzga solo; el anterior sigue sonando bajito pero no cuenta |
 | 25 | **Cazafalsos**: habla, aplaude, golpea la mesa, deja música baja | **0 acordes dados por buenos** |
-| 26 | Mano izquierda (acordes nivel 5): toca Do, Fa, Sol… una octava más abajo | Solo comprueba que suenan (en graves el altavoz casi no da la fundamental); puede aceptar otra octava: es un límite conocido |
+| 26 | Mano izquierda (acordes nivel 5 y terceras nivel 3): toca bien y luego una octava más arriba | Solo comprueba que suenan (en graves el altavoz casi no da la fundamental); puede aceptar otra octava y no distingue bien semitonos vecinos: es un límite conocido |
+| 27 | **Octava abajo**: con un acorde de la mano derecha pedido (p. ej. Do–Mi–Sol), toca el mismo acorde una octava más grave | **0 de 10 cuentan** (en el piano del E263 el altavoz casi no da los graves: es el error más típico) |
+| 28 | **Completar con las otras pulsadas**: pide Do–Mi–Sol, toca solo Do y Sol y, sin soltarlos, añade el Mi | Cuenta entero (no debe decir «Faltan Do · Sol» al añadir el Mi) |
+| 29 | **Cambio rápido**: dos acordes seguidos, el segundo a los 400 ms y luego a los 800 ms del primero (sin esperar a que se apague) | A 800 ms cada uno cuenta; a 400 ms puede fallar: anota cuál |
 
 **Datos para ajustar los umbrales.** Tras unos acordes, abre la consola de Edge (`F12` → pestaña *Console*) y escribe:
 
@@ -99,8 +102,9 @@ ruido de la sala; para ser «presente» necesita ≥ 10), `pico` (cuánto sobres
 aumentó tras el ataque; ≥ 1,8 si ya sonaba algo ahí). Lo más útil: **las mediciones de los acordes bien tocados que fallaron**
 (qué cifra se quedó corta) y **las de los que no debían contar**.
 
-**Se da por validada la beta si:** ≥ 90 % de los acordes bien tocados cuentan, ≤ 5 % de los incorrectos o ruidos se dan por
-buenos y no hay «Incorrecto» cuando falta una nota. Si no, queda como beta (apagada por defecto) y el plan B es el **arpegio**
+**Se da por validada la beta si:** ≥ 90 % de los acordes bien tocados cuentan, **0 %** de los de vecinas (paso 20) y de octava abajo
+(paso 27) se dan por buenos, ≤ 5 % del resto de incorrectos o ruidos se dan por buenos y no hay «Incorrecto» cuando falta una nota.
+`__passoChords` no guarda **qué tocaste** en cada medición: apunta, en orden, lo que tocaste en cada una (por ejemplo «1: Fa–Sol por Mi–Sol»). Si no, queda como beta (apagada por defecto) y el plan B es el **arpegio**
 (las notas una tras otra, con el seguimiento de una sola voz, que ya funciona).
 
 ## Qué reportar

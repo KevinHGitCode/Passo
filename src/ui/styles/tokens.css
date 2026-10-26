@@ -51,6 +51,42 @@
   --radius: 14px;
   --radius-sm: 9px;
   --space: 16px;
+
+  /*
+   * Tokens por rol del juego (camino, lecciones, estrellas). Los componentes del juego usan solo
+   * estos: un tema distinto (p. ej. el «B», sobrio) cambia estos valores, no los componentes.
+   */
+  --font-display:
+    'Nunito Variable', 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --radius-card: 18px;
+  --btn-depth-size: 4px;
+  --accent-soft: #cfd8ff;
+  --accent-depth: #2742b0;
+  --on-ok: #ffffff;
+  --ok-depth: #06553f;
+  --neutral-depth: #d5dbe5;
+  --warn: #b37c00;
+  --warn-strong: #5c3f00;
+  --warn-soft: #fff0c9;
+  --star: #f5b301;
+  --star-edge: #b37c00;
+  --star-off: #e5e9f0;
+  --star-off-edge: #6b7686;
+  --streak: #e8590c;
+  --streak-soft: #ffe4d5;
+  --streak-strong: #8a2b06;
+  --xp: #f5b301;
+  --xp-soft: #fff0c9;
+  --xp-strong: #7a5200;
+  --node-locked: #e5e9f0;
+  --node-locked-depth: #c3cad6;
+  --node-locked-ink: #5b6676;
+  --node-review: #e8590c;
+  --node-review-depth: #b03f06;
+  --node-review-ink: #ffffff;
+  --node-exam: #f5b301;
+  --node-exam-depth: #b37c00;
+  --node-exam-ink: #4a3200;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -90,6 +126,34 @@
     --hand-right: #63bdf0;
     --hand-left: #e58cc0;
     --hand-on: #0b1020;
+
+    --accent-soft: #2a3566;
+    --accent-depth: #5468d4;
+    --on-ok: #04231a;
+    --ok-depth: #1f9d74;
+    --neutral-depth: #0b0f15;
+    --warn: #f0c15a;
+    --warn-strong: #ffe08a;
+    --warn-soft: #3a2f0a;
+    --star: #ffc83d;
+    --star-edge: #c28a00;
+    --star-off: #2d3543;
+    --star-off-edge: #8693a8;
+    --streak: #ff9d66;
+    --streak-soft: #3d2415;
+    --streak-strong: #ffc09b;
+    --xp: #ffc83d;
+    --xp-soft: #3a2f0a;
+    --xp-strong: #ffe08a;
+    --node-locked: #232a36;
+    --node-locked-depth: #121720;
+    --node-locked-ink: #8e9aae;
+    --node-review: #ff9d66;
+    --node-review-depth: #c26a35;
+    --node-review-ink: #1d0f05;
+    --node-exam: #ffc83d;
+    --node-exam-depth: #c28a00;
+    --node-exam-ink: #3a2a00;
   }
 }
 
@@ -129,4 +193,32 @@
   --hand-right: #63bdf0;
   --hand-left: #e58cc0;
   --hand-on: #0b1020;
+
+  --accent-soft: #2a3566;
+  --accent-depth: #5468d4;
+  --on-ok: #04231a;
+  --ok-depth: #1f9d74;
+  --neutral-depth: #0b0f15;
+  --warn: #f0c15a;
+  --warn-strong: #ffe08a;
+  --warn-soft: #3a2f0a;
+  --star: #ffc83d;
+  --star-edge: #c28a00;
+  --star-off: #2d3543;
+  --star-off-edge: #8693a8;
+  --streak: #ff9d66;
+  --streak-soft: #3d2415;
+  --streak-strong: #ffc09b;
+  --xp: #ffc83d;
+  --xp-soft: #3a2f0a;
+  --xp-strong: #ffe08a;
+  --node-locked: #232a36;
+  --node-locked-depth: #121720;
+  --node-locked-ink: #8e9aae;
+  --node-review: #ff9d66;
+  --node-review-depth: #c26a35;
+  --node-review-ink: #1d0f05;
+  --node-exam: #ffc83d;
+  --node-exam-depth: #c28a00;
+  --node-exam-ink: #3a2a00;
 }

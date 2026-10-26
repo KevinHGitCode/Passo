@@ -1,6 +1,12 @@
 import { detectTransposition, evaluate, LEVEL_1_CONFIG, startRound } from '../domain/exercise';
 import type { ExerciseMode } from '../domain/curriculum';
-import type { ExerciseState, Outcome, RoundConfig, RoundSummary } from '../domain/exercise';
+import type {
+  Attempt,
+  ExerciseState,
+  Outcome,
+  RoundConfig,
+  RoundSummary,
+} from '../domain/exercise';
 import type { Midi, NotationMode } from '../domain/note';
 import type { InputSource, NoteEvent } from '../domain/note-event';
 import type { Rng } from '../domain/rng';
@@ -43,6 +49,14 @@ export interface SessionSnapshot {
   readonly listenStats: ListenStats;
 }
 
+/** Una ronda terminada: lo que necesita quien la puntúa (una lección, por ejemplo). */
+export interface CompletedRound {
+  /** La configuración con la que se jugó (se compara por identidad con la que se pidió). */
+  readonly config: RoundConfig;
+  readonly attempts: readonly Attempt[];
+  readonly summary: RoundSummary;
+}
+
 export interface ListenStats {
   readonly alta: number;
   readonly media: number;
@@ -82,6 +96,7 @@ export class PracticeSession {
   private config: RoundConfig;
   private readonly audioSources: readonly InputSource[];
   private readonly listeners = new Set<() => void>();
+  private readonly roundListeners = new Set<(round: CompletedRound) => void>();
   private readonly subscriptions: Unsubscribe[] = [];
   private snapshot: SessionSnapshot;
   private feedbackCounter = 0;
@@ -124,6 +139,15 @@ export class PracticeSession {
   subscribe = (listener: () => void): Unsubscribe => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  };
+
+  /**
+   * Avisa cada vez que se termina una ronda, **una sola vez** por ronda (a diferencia de observar el
+   * estado, que obliga a deduplicar). Los avisos llegan después de actualizar el estado.
+   */
+  subscribeRounds = (listener: (round: CompletedRound) => void): Unsubscribe => {
+    this.roundListeners.add(listener);
+    return () => this.roundListeners.delete(listener);
   };
 
   /** Empieza una ronda nueva (también sirve para repetir tras terminar). */
@@ -235,6 +259,7 @@ export class PracticeSession {
   dispose(): void {
     this.subscriptions.splice(0).forEach((unsubscribe) => unsubscribe());
     this.listeners.clear();
+    this.roundListeners.clear();
   }
 
   /** Al reanudar, la nota se "muestra" de nuevo: el tiempo en pausa no cuenta como reacción. */
@@ -317,6 +342,23 @@ export class PracticeSession {
       transposition: detectTransposition(result.state.attempts),
       listenStats,
     });
+    if (result.outcome.kind === 'ronda-completa') {
+      this.announceRound({
+        config: result.state.config,
+        attempts: result.state.attempts,
+        summary: result.outcome.summary,
+      });
+    }
+  }
+
+  private announceRound(round: CompletedRound): void {
+    for (const listener of [...this.roundListeners]) {
+      try {
+        listener(round);
+      } catch {
+        // Quien puntúa la ronda no debe poder romper la práctica.
+      }
+    }
   }
 
   private countListening(event: NoteEvent, outcome: Outcome['kind']): ListenStats {

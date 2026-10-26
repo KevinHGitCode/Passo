@@ -1,41 +1,23 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
-import type { PracticeSession, SessionSnapshot } from '@/core/application/practice-session';
+import type { PracticeSession } from '@/core/application/practice-session';
 import { findLevel } from '@/core/domain/curriculum';
 import type { ExerciseMode } from '@/core/domain/curriculum';
 import type { RoundSummary } from '@/core/domain/exercise';
-import { noteName, octaveOf, pitchName } from '@/core/domain/note';
+import { octaveOf, pitchName } from '@/core/domain/note';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { NoteInput } from '@/core/ports/note-input';
-import type { Midi, NotationMode } from '@/core/domain/note';
-import { handShape } from '@/core/domain/hand-shape';
+import type { NotationMode } from '@/core/domain/note';
 import type { Hand } from '@/core/domain/target';
 import { hintText } from '../listen/listen-messages';
 import { ListeningStrip } from '../listen/ListeningStrip';
 import { MicPanel } from '../listen/MicPanel';
-import { windowAround } from '../keyboard/geometry';
-import type { CascadeBlock } from '../keyboard/cascade';
-import { PianoKeyboard } from '../keyboard/piano-keyboard';
-import { feedbackMessage, formatSeconds } from './feedback-message';
+import { liveMessage, pauseText, transpositionText, useBoardModel } from './board-model';
+import { formatSeconds } from './feedback-message';
 import type { FeedbackMessage } from './feedback-message';
-import {
-  useInputStatus,
-  useIsNarrow,
-  useMonitor,
-  useRecentFeedback,
-  useSessionSnapshot,
-} from './hooks';
-import { buildKeyVisuals } from './key-visuals';
+import { PracticeKeyboard } from './PracticeKeyboard';
 import { countLabel, notesText, promptText, targetDetail } from './target-text';
 import './practice.css';
-
-/** Rango del teclado en pantalla: Do3 a Do6 (el nivel 1 usa Do4–Sol4). */
-export const KEYBOARD_FROM = 48;
-export const KEYBOARD_TO = 84;
-
-/** En pantallas estrechas se muestran 9 teclas blancas (de Do a Re de la octava siguiente). */
-const NARROW_SPAN_SEMITONES = 14;
-const NARROW_MAX_WIDTH = 899;
 
 export interface PracticeScreenProps {
   readonly session: PracticeSession;
@@ -65,36 +47,6 @@ function Icon({ tone }: { readonly tone: FeedbackMessage['tone'] }) {
       )}
     </svg>
   );
-}
-
-/** Texto para lectores de pantalla. Incluye el nº de errores para que dos errores iguales se anuncien. */
-function liveMessage(snapshot: SessionSnapshot): string {
-  const { exercise, feedback, notation } = snapshot;
-  if (snapshot.phase === 'pausada') return `Ronda en pausa. ${pauseText(snapshot)}`;
-  if (!exercise) return '';
-  const target = notesText(exercise.target.notes, notation);
-  if (!feedback) return `Toca ${target}`;
-  const message = feedbackMessage(feedback.outcome, notation);
-  if (feedback.outcome.kind === 'acierto') return `${message.title} Ahora toca ${target}`;
-  if (feedback.outcome.kind === 'dudoso') return `${message.title}. ${message.detail}`;
-  if (feedback.outcome.kind === 'error') {
-    return `${message.title}, error ${snapshot.errors}. ${message.detail}. Intenta de nuevo`;
-  }
-  if (feedback.outcome.kind === 'parcial') return `${message.title}. ${message.detail}`;
-  return `${message.title} ${message.detail}`;
-}
-
-function pauseText(snapshot: SessionSnapshot): string {
-  if (snapshot.pauseReason !== 'desconexion') return 'Pulsa continuar cuando quieras.';
-  return snapshot.pausedSource === 'microfono'
-    ? 'Se perdió el micrófono. Reactívalo para seguir.'
-    : 'Se desconectó el piano. Vuelve a conectarlo para seguir.';
-}
-
-function transpositionText(semitones: number): string {
-  const count = Math.abs(semitones);
-  const amount = count === 12 ? 'una octava' : `${count} ${count === 1 ? 'semitono' : 'semitonos'}`;
-  return `Parece que tu teclado está transpuesto ${amount} (${semitones > 0 ? 'más agudo' : 'más grave'}). Revisa «Transpose» en el piano.`;
 }
 
 function Summary({
@@ -202,20 +154,11 @@ export function PracticeScreen({
   microphone,
   canStartWithoutMic = true,
 }: PracticeScreenProps) {
-  const snapshot = useSessionSnapshot(session);
-  const recent = useRecentFeedback(snapshot.feedback);
-  const narrow = useIsNarrow(NARROW_MAX_WIDTH);
+  const board = useBoardModel(session, microphone);
   const boardRef = useRef<HTMLElement>(null);
-  const micStatus = useInputStatus(microphone);
-  const monitor = useMonitor(microphone);
-  const micReady = micStatus?.kind === 'conectado' && monitor.phase === 'escuchando';
-  const micConnected = micStatus?.kind === 'conectado';
-
+  const { snapshot, recent, message, micStatus, monitor, micReady, targetNotes, mode, roundSize } =
+    board;
   const { exercise, notation, phase, help } = snapshot;
-  const targetNotes = exercise?.target.notes ?? null;
-  const mode = exercise?.config.mode ?? snapshot.mode;
-  const roundSize = exercise?.config.roundSize ?? 0;
-  const message = recent ? feedbackMessage(recent.outcome, notation) : null;
 
   // Al cambiar de fase el botón pulsado desaparece y el foco se perdería: lo llevamos al tablero.
   const previousPhase = useRef(phase);
@@ -226,48 +169,6 @@ export function PracticeScreen({
       boardRef.current?.focus({ preventScroll: true });
     }
   }, [phase]);
-
-  // En la prueba rápida de la bienvenida se resalta el Do central.
-  const onboardingTarget = phase === 'inactiva' && microphone && micReady ? [60] : [];
-  const visuals = buildKeyVisuals({
-    targets: phase === 'en-curso' ? (targetNotes ?? []) : onboardingTarget,
-    heard: micConnected ? (monitor.heard?.midi ?? null) : null,
-    help,
-    pressed: snapshot.pressed,
-    feedback: recent,
-  });
-  /**
-   * Con ayuda: nombre en cada tecla blanca. Sin ayuda: solo los Do como punto de referencia.
-   * Las teclas negras solo se rotulan cuando son parte de un resultado.
-   */
-  const labelFor = (midi: Midi): string | undefined => {
-    const isC = midi % 12 === 0;
-    const hasFeedback = visuals.get(midi)?.feedback !== undefined;
-    const isBlack = [1, 3, 6, 8, 10].includes(midi % 12);
-    if (hasFeedback || (isC && phase !== 'inactiva')) return noteName(midi, notation);
-    if (help && phase !== 'inactiva' && !isBlack) return pitchName(midi, notation);
-    return undefined;
-  };
-  // La cola de notas y la mano solo se ven con una ronda en marcha (o en pausa); el espacio se reserva siempre.
-  const playing = exercise !== null && (phase === 'en-curso' || phase === 'pausada');
-  const cascade: CascadeBlock[] = playing
-    ? [exercise.target, ...exercise.upcoming].map((target, slot) => ({
-        id: exercise.completedTargets + slot,
-        slot,
-        notes: target.notes,
-        fingers: target.fingers,
-      }))
-    : [];
-  const hand = playing ? handShape(exercise.target) : null;
-  const viewWindow = narrow
-    ? windowAround(
-        targetNotes?.[0] ?? 60,
-        KEYBOARD_FROM,
-        KEYBOARD_TO,
-        NARROW_SPAN_SEMITONES,
-        targetNotes?.[targetNotes.length - 1],
-      )
-    : undefined;
 
   return (
     <main className="app">
@@ -443,23 +344,7 @@ export function PracticeScreen({
           <ListeningStrip status={micStatus} monitor={monitor} notation={notation} />
         )}
 
-        <div className="keyboard-wrap">
-          <PianoKeyboard
-            from={KEYBOARD_FROM}
-            to={KEYBOARD_TO}
-            visuals={visuals}
-            labelFor={labelFor}
-            viewWindow={viewWindow}
-            cascade={cascade}
-            blockLabel={(midi) => noteName(midi, notation)}
-            hand={hand}
-            ariaLabel={
-              targetNotes !== null && phase === 'en-curso'
-                ? `Teclado de piano de ${noteName(KEYBOARD_FROM, notation)} a ${noteName(KEYBOARD_TO, notation)}. ${targetNotes.length === 1 ? 'Nota' : 'Notas'} a tocar: ${notesText(targetNotes, notation)}`
-                : `Teclado de piano de ${noteName(KEYBOARD_FROM, notation)} a ${noteName(KEYBOARD_TO, notation)}`
-            }
-          />
-        </div>
+        <PracticeKeyboard board={board} />
         {!microphone && showPcKeys && (
           <p className="pc-hint" data-testid="pc-hint">
             {pcKeysText(findLevel(snapshot.mode, snapshot.level)?.hand ?? 'derecha')}

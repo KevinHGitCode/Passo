@@ -8,6 +8,7 @@ import { useIsNarrow, useSessionSnapshot } from '../practice/hooks';
 import { CaminoScreen } from '../screens/CaminoScreen';
 import { LessonScreen } from '../screens/LessonScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
+import { usePlayContext } from '../screens/use-play-context';
 import { SettingsButton, SettingsPanel } from '../settings/SettingsPanel';
 import { useSettingsPanel } from '../settings/use-settings-panel';
 import { useTheme } from '../theme/use-theme';
@@ -26,16 +27,32 @@ export interface ShellProps extends AppProps {
 /** Debajo de este ancho la navegación pasa a una barra inferior y los ajustes a la cabecera. */
 const NARROW_MAX_WIDTH = 899;
 
+const noop = (): void => undefined;
+
 function Screen({
   route,
   shell,
+  openSettings,
 }: {
   readonly route: Route;
   readonly shell: ShellProps;
+  readonly openSettings: () => void;
 }): ReactNode {
+  const play = usePlayContext(shell.preferences, shell.inputManager, shell.inputs);
+  const { notation } = useSyncExternalStore(
+    shell.preferences.subscribe,
+    shell.preferences.getSnapshot,
+  );
   switch (route.name) {
     case 'camino':
-      return <CaminoScreen />;
+      return (
+        <CaminoScreen
+          progress={shell.progress}
+          play={play}
+          notation={notation}
+          onOpenSettings={openSettings}
+        />
+      );
     case 'leccion':
       return <LessonScreen lessonId={route.lessonId} flow={shell.lessonFlow} />;
     case 'progreso':
@@ -85,7 +102,7 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
         </aside>
       )}
       <main className="game-main" id="contenido">
-        <Screen route={route} shell={shell} />
+        <Screen route={route} shell={shell} openSettings={settings.open ? noop : settings.toggle} />
       </main>
       {narrow ? <GameNav route={route} bottom /> : null}
       <SettingsPanel

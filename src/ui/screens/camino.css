@@ -1,0 +1,273 @@
+/* ---------- Camino de aprendizaje ---------- */
+.camino {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 32px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.camino__main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.camino__side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-self: start;
+  position: sticky;
+  top: 24px;
+}
+.camino__chips {
+  display: none;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 900;
+}
+.chip--streak {
+  background: var(--streak-soft);
+  color: var(--streak-strong);
+}
+.chip--streak svg {
+  color: var(--streak);
+}
+.chip--xp {
+  background: var(--xp-soft);
+  color: var(--xp-strong);
+}
+.chip--xp svg {
+  color: var(--xp);
+}
+
+.camino__warn,
+.camino__note {
+  margin: 0;
+  padding: 12px 16px;
+  border: 2px solid var(--warn);
+  border-radius: 14px;
+  background: var(--warn-soft);
+  color: var(--warn-strong);
+  font-weight: 700;
+}
+.camino__note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+.camino__note p {
+  margin: 0;
+}
+
+/* ---------- Unidades ---------- */
+.units {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.unit__banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: var(--radius-card);
+  background: var(--accent);
+  box-shadow: 0 var(--btn-depth-size) 0 var(--accent-depth);
+  color: var(--on-accent);
+}
+.unit__kicker {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.unit__title {
+  margin: 2px 0 0;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+.unit__summary {
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+.unit__count {
+  flex: none;
+  margin: 0;
+  padding: 6px 12px;
+  border: 2px solid currentColor;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.path {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  margin: 0;
+  padding: 56px 0 8px;
+  list-style: none;
+}
+.path__item {
+  display: flex;
+  justify-content: center;
+  transform: translateX(var(--shift, 0));
+}
+
+/* ---------- Tarjetas laterales ---------- */
+.card {
+  padding: 16px 18px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.card__title {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.card__big {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+.card__big svg {
+  flex: none;
+  color: var(--streak);
+}
+.card__big--text {
+  font-size: 20px;
+}
+.card__note {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.week {
+  display: flex;
+  justify-content: space-between;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.week__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.week__dot {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-2);
+}
+.week__day[data-practiced='true'] .week__dot {
+  border-color: var(--streak);
+  background: var(--streak);
+}
+.week__day[data-today='true'] .week__dot {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.week__label {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.week__day[data-today='true'] .week__label {
+  color: var(--text);
+}
+
+.bar {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--meter-track);
+}
+.bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ok);
+  transition: width 240ms ease;
+}
+.bar__fill--xp {
+  background: var(--accent);
+}
+
+.weak {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+.weak__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--err-soft);
+  color: var(--err-strong);
+  font-weight: 900;
+}
+.weak__value {
+  font-size: 14px;
+}
+
+/* La columna de la derecha solo cabe en pantallas anchas; antes, las fichas suben arriba. */
+@media (max-width: 1179px) {
+  .camino {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .camino__side {
+    display: none;
+  }
+  .camino__chips {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 599px) {
+  .path__item {
+    transform: translateX(calc(var(--shift, 0px) * 0.6));
+  }
+  .unit__title {
+    font-size: 19px;
+  }
+}

@@ -36,17 +36,17 @@ export function useRouteLifecycle(route: Route, session: PracticeSession, flow: 
 /**
  * Pone el título de la página y, al navegar, lleva el foco al encabezado de la pantalla nueva
  * (`[data-route-heading]`): así un lector de pantalla anuncia dónde estás. No se mueve el foco al
- * cargar la página la primera vez.
+ * cargar la página la primera vez (ni cuando React repite el efecto en desarrollo): solo si la
+ * pantalla es distinta de la última anunciada.
  */
 export function useRouteAnnouncer(route: Route): void {
-  const first = useRef(true);
+  const announced = useRef<string | null>(null);
   const key = routeKey(route);
   useEffect(() => {
     document.title = `${routeTitle(route)} · Passo`;
-    if (first.current) {
-      first.current = false;
-      return;
-    }
+    const before = announced.current;
+    announced.current = key;
+    if (before === null || before === key) return;
     document.querySelector<HTMLElement>('[data-route-heading]')?.focus({ preventScroll: true });
     // Solo cuando cambia la pantalla (la clave), no por la identidad del objeto.
     // eslint-disable-next-line react-hooks/exhaustive-deps

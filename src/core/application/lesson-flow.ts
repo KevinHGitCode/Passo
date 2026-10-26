@@ -36,6 +36,11 @@ export interface LessonFlowDeps {
   readonly progress: ProgressService;
   /** Con qué entradas se puede tocar ahora y si la beta de varias notas está activa. */
   readonly playContext: () => PlayContext;
+  /**
+   * Busca una lección por su identificador. Por defecto, las del camino; la composición añade la
+   * lección de repaso que se arma al momento con los puntos débiles.
+   */
+  readonly resolveLesson?: (lessonId: string) => Lesson | null;
 }
 
 const FREE: LessonFlowSnapshot = { status: 'libre', lessonId: null, outcome: null };
@@ -53,6 +58,7 @@ export class LessonFlow {
   private readonly session: PracticeSession;
   private readonly progress: ProgressService;
   private readonly playContext: () => PlayContext;
+  private readonly resolveLesson: (lessonId: string) => Lesson | null;
   private snapshot: LessonFlowSnapshot = FREE;
   private lesson: Lesson | null = null;
   private config: RoundConfig | null = null;
@@ -64,6 +70,7 @@ export class LessonFlow {
     this.session = deps.session;
     this.progress = deps.progress;
     this.playContext = deps.playContext;
+    this.resolveLesson = deps.resolveLesson ?? findLesson;
     this.subscriptions.push(this.session.subscribe(() => this.onSession()));
     this.subscriptions.push(this.session.subscribeRounds((round) => this.onRound(round)));
   }
@@ -83,7 +90,7 @@ export class LessonFlow {
    * con su resultado a la vista no cambia nada (así vale desde un efecto aunque React lo repita).
    */
   prepare(lessonId: string): void {
-    const lesson = findLesson(lessonId);
+    const lesson = this.resolveLesson(lessonId);
     if (lesson === null) {
       this.leave();
       return;

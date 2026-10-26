@@ -3,7 +3,8 @@ import { PracticeSession } from '@/core/application/practice-session';
 import { ProgressService } from '@/core/application/progress-service';
 import { LEVEL_1_CONFIG } from '@/core/domain/exercise';
 import { findLesson, lessonConfig } from '@/core/domain/lessons';
-import type { PlayContext } from '@/core/domain/lessons';
+import type { Lesson, PlayContext } from '@/core/domain/lessons';
+import { REVIEW_LESSON_ID, reviewLesson } from '@/core/domain/review';
 import { starsOf } from '@/core/domain/progress';
 import { createSeededRng } from '@/core/domain/rng';
 import { FakeCalendar } from '../fakes/fake-calendar';
@@ -11,7 +12,10 @@ import { FakeClock } from '../fakes/fake-clock';
 import { FakeNoteInput } from '../fakes/fake-note-input';
 import { FakeProgressStore } from '../fakes/fake-progress-store';
 
-function setup(context: PlayContext = { sources: ['teclado-pc'], polyphonicMic: false }) {
+function setup(
+  context: PlayContext = { sources: ['teclado-pc'], polyphonicMic: false },
+  resolveLesson?: (lessonId: string) => Lesson | null,
+) {
   const clock = new FakeClock(1000);
   const input = new FakeNoteInput('teclado-pc');
   const session = new PracticeSession({
@@ -25,7 +29,12 @@ function setup(context: PlayContext = { sources: ['teclado-pc'], polyphonicMic: 
   const calendar = new FakeCalendar('2026-10-26');
   const progress = new ProgressService(store, calendar);
   let playContext = context;
-  const flow = new LessonFlow({ session, progress, playContext: () => playContext });
+  const flow = new LessonFlow({
+    session,
+    progress,
+    playContext: () => playContext,
+    ...(resolveLesson ? { resolveLesson } : {}),
+  });
   return {
     clock,
     input,
@@ -298,6 +307,25 @@ describe('LessonFlow', () => {
       pool: lessonConfig(lesson as NonNullable<typeof lesson>).pool,
       roundSize: 20,
     });
+  });
+
+  it('una lección armada al momento (repaso) se resuelve aparte, da experiencia y no deja estrellas', () => {
+    const weak = Array.from({ length: 8 }, (_, i) => ({ ok: i > 5, ms: 1000 }));
+    const lesson = reviewLesson({ '62': weak, '64': weak, '65': weak });
+    const ctx = setup(undefined, (id) => (id === REVIEW_LESSON_ID ? lesson : findLesson(id)));
+    ctx.flow.prepare(REVIEW_LESSON_ID);
+    expect(ctx.flow.getSnapshot()).toMatchObject({ status: 'lista', lessonId: REVIEW_LESSON_ID });
+    ctx.flow.begin();
+    playRound(ctx);
+    expect(ctx.flow.getSnapshot().status).toBe('resultado');
+    expect(ctx.flow.getSnapshot().outcome?.gains.xp).toBe(70);
+    expect(ctx.progress.getSnapshot().state.lessons).toEqual({});
+  });
+
+  it('sin resolver propio, un identificador desconocido no existe', () => {
+    const ctx = setup();
+    ctx.flow.prepare(REVIEW_LESSON_ID);
+    expect(ctx.flow.getSnapshot().status).toBe('libre');
   });
 
   it('dejar de escuchar y liberar', () => {

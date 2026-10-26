@@ -25,7 +25,9 @@ import { bindSessionToPreferences } from '@/core/application/preferences-sync';
 import { ProgressService } from '@/core/application/progress-service';
 import { isExerciseMode } from '@/core/domain/curriculum';
 import { roundConfigFor } from '@/core/domain/exercise';
-import type { PlayContext } from '@/core/domain/lessons';
+import { findLesson } from '@/core/domain/lessons';
+import type { Lesson, PlayContext } from '@/core/domain/lessons';
+import { REVIEW_LESSON_ID, reviewLesson } from '@/core/domain/review';
 import { createSeededRng } from '@/core/domain/rng';
 import type { Rng } from '@/core/domain/rng';
 import type { Clock } from '@/core/ports/clock';
@@ -150,7 +152,10 @@ export function composeApp(search: string = window.location.search) {
       polyphonicMic: preferences.getSnapshot().polyphonicMic,
     };
   };
-  const lessonFlow = new LessonFlow({ session, progress, playContext });
+  // Las lecciones del camino y, aparte, el repaso que se arma al momento con los puntos débiles.
+  const resolveLesson = (id: string): Lesson | null =>
+    id === REVIEW_LESSON_ID ? reviewLesson(progress.getSnapshot().state.keys) : findLesson(id);
+  const lessonFlow = new LessonFlow({ session, progress, playContext, resolveLesson });
 
   // Notación, ayuda y ejercicio se recuerdan; `?modo=` fija el ejercicio sin guardarlo. Una lección en
   // curso manda sobre el ejercicio: al salir de ella se restaura el de las preferencias.

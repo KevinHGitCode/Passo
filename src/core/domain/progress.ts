@@ -18,6 +18,10 @@ import type { Streak } from './streak';
 /** Se sube cuando cambia la forma de lo guardado. Una versión mayor solo se lee, no se pisa. */
 export const PROGRESS_VERSION = 1;
 
+/** Meta de práctica de cada día, en minutos de tiempo activo. */
+export const DAILY_GOAL_MINUTES = 5;
+/** Un repaso armado al momento da la mitad de experiencia: no se puede repetir para sumar sin fin. */
+const DYNAMIC_XP_FACTOR = 0.5;
 export const MAX_DAILY_DAYS = 90;
 export const MAX_HISTORY = 50;
 const MAX_XP = 100_000_000;
@@ -281,15 +285,18 @@ export function applyResult(
   day: string,
 ): { state: Progress; gains: ResultGains } {
   const { lesson, score, attempts } = result;
-  const previous = state.lessons[lesson.id];
+  const dynamic = lesson.dynamic === true;
+  const previous = dynamic ? undefined : state.lessons[lesson.id];
   const previousStars = (previous?.stars ?? 0) as Stars;
   const previousPlays = previous?.plays ?? 0;
   const accuracy = Math.round(score.accuracy * 1000);
   const rhythm = Math.round(score.notesPerMinute * 10);
 
   const stars = Math.max(previousStars, score.stars) as Stars;
-  const newStars = Math.max(0, score.stars - previousStars);
-  const xp = Math.round(score.baseXp * repeatFactor(previousPlays)) + XP_PER_NEW_STAR * newStars;
+  const newStars = dynamic ? 0 : Math.max(0, score.stars - previousStars);
+  const xp = dynamic
+    ? Math.round(score.baseXp * DYNAMIC_XP_FACTOR)
+    : Math.round(score.baseXp * repeatFactor(previousPlays)) + XP_PER_NEW_STAR * newStars;
 
   const record: LessonRecord = {
     stars,
@@ -317,10 +324,12 @@ export function applyResult(
     ...state,
     xp: Math.min(MAX_XP, state.xp + xp),
     streak,
-    lessons: { ...state.lessons, [lesson.id]: record },
+    lessons: dynamic ? state.lessons : { ...state.lessons, [lesson.id]: record },
     keys: addSamples(state.keys, samplesOf(attempts)),
     daily: { ...state.daily, [day]: daily },
-    history: [...state.history, { day, lesson: lesson.id, accuracy, rhythm }],
+    history: dynamic
+      ? state.history
+      : [...state.history, { day, lesson: lesson.id, accuracy, rhythm }],
   });
 
   return {

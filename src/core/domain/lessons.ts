@@ -38,6 +38,11 @@ export interface Lesson {
   readonly roundSize: number;
   /** Notas por minuto para la 3.ª estrella (con piano MIDI o teclado del PC); `null`: no se exige. */
   readonly rhythmGoal: number | null;
+  /**
+   * Lección armada al momento (el repaso de tus puntos débiles): no está en el camino, no tiene
+   * estrellas ni se guarda como lección; sí da experiencia y alimenta las estadísticas por tecla.
+   */
+  readonly dynamic?: boolean;
 }
 
 export interface Unit {

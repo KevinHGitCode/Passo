@@ -78,7 +78,8 @@ describe('el camino de lecciones', () => {
       );
     expect(fingersByNote('u1-3')).toEqual({ 60: 1, 62: 2, 64: 3, 65: 4, 67: 5 });
     expect(fingersByNote('u2-3')).toEqual({ 53: 5, 55: 4, 57: 3, 59: 2, 60: 1 });
-    expect(fingersByNote('u3-1')).toEqual({ 67: 1, 69: 2, 71: 3, 72: 4, 74: 5 });
+    expect(fingersByNote('u3-1')).toEqual({ 62: 1, 64: 2, 65: 3, 67: 4, 69: 5 });
+    expect(fingersByNote('u3-3')).toEqual({ 67: 1, 69: 2, 71: 3, 72: 4, 74: 5 });
   });
 
   it('las lecciones que mezclan posiciones no muestran dedos (la mano se mueve)', () => {
@@ -110,7 +111,7 @@ describe('el camino de lecciones', () => {
     for (const lesson of findUnit('u1')?.lessons ?? []) expect(lesson.rhythmGoal).toBeNull();
     expect(findUnit('u2')?.lessons.map((lesson) => lesson.rhythmGoal)).toEqual([12, 12, 15, 18]);
     expect(findUnit('u3')?.lessons.map((lesson) => lesson.rhythmGoal)).toEqual([
-      14, 14, 14, 14, 18, 22,
+      14, 14, 14, 14, 18, 20,
     ]);
     expect(findUnit('u6')?.lessons[0]?.rhythmGoal).toBe(16);
     expect(findUnit('u6')?.lessons[3]?.rhythmGoal).toBe(18);
@@ -132,6 +133,7 @@ describe('el camino de lecciones', () => {
       level: LESSON_LEVEL,
       pool: lesson.pool,
       roundSize: 20,
+      coverage: true,
     });
   });
 });
@@ -178,7 +180,7 @@ describe('estado de cada lección en el camino', () => {
     expect(access.get('u1-4')).toBe('abierta');
     expect(access.get('u2-1')).toBe('bloqueada');
     expect(access.get('u2-4')).toBe('bloqueada');
-    expect(currentLesson(access)?.id).toBe('u1-1');
+    expect(currentLesson(access, stars({}))?.id).toBe('u1-1');
   });
 
   it('completar una lección (1 estrella) abre la siguiente', () => {
@@ -186,7 +188,7 @@ describe('estado de cada lección en el camino', () => {
     expect(access.get('u1-1')).toBe('hecha');
     expect(access.get('u1-2')).toBe('abierta');
     expect(access.get('u1-3')).toBe('bloqueada');
-    expect(currentLesson(access)?.id).toBe('u1-2');
+    expect(currentLesson(access, stars({ 'u1-1': 1 }))?.id).toBe('u1-2');
   });
 
   it('completar todas las lecciones de una unidad abre la siguiente', () => {
@@ -204,7 +206,8 @@ describe('estado de cada lección en el camino', () => {
     expect(access.get('u1-3')).toBe('abierta');
     expect(access.get('u2-1')).toBe('abierta');
     expect(access.get('u2-2')).toBe('bloqueada');
-    expect(currentLesson(access)?.id).toBe('u1-1');
+    // La unidad saltada con la prueba queda abierta pero ya no es «la siguiente»: sigue la unidad 2.
+    expect(currentLesson(access, stars({ 'u1-4': 2 }))?.id).toBe('u2-1');
   });
 
   it('con 1 sola estrella en la prueba, sin hacer las demás, la unidad siguiente sigue cerrada', () => {
@@ -223,8 +226,84 @@ describe('estado de cada lección en el camino', () => {
     expect(access.get('u6-2')).toBe('bloqueada');
   });
 
+  it('las unidades 2 y 3 se abren al terminar la 1: lo que el micrófono no oye en la 2 no frena la 3', () => {
+    const doneUnitOne = { 'u1-1': 1, 'u1-2': 1, 'u1-3': 1, 'u1-4': 1 };
+    const access = lessonAccessMap(stars(doneUnitOne));
+    expect(access.get('u2-1')).toBe('abierta');
+    expect(access.get('u3-1')).toBe('abierta');
+    expect(access.get('u4-1')).toBe('bloqueada');
+    expect(access.get('u5-1')).toBe('bloqueada');
+  });
+
+  it('la unidad 4 pide la 3, y la 5 pide la 2 y la 4', () => {
+    const unit = (id: string, count: number) =>
+      Object.fromEntries(Array.from({ length: count }, (_, i) => [`${id}-${i + 1}`, 1]));
+    const base = { ...unit('u1', 4), ...unit('u3', 6) };
+    expect(lessonAccessMap(stars(base)).get('u4-1')).toBe('abierta');
+    // Con la 3 y la 4 hechas pero no la 2, la 5 sigue cerrada.
+    const withoutTwo = { ...base, ...unit('u4', 6) };
+    expect(lessonAccessMap(stars(withoutTwo)).get('u5-1')).toBe('bloqueada');
+    expect(lessonAccessMap(stars({ ...withoutTwo, ...unit('u2', 4) })).get('u5-1')).toBe('abierta');
+  });
+
+  it('cada unidad solo pide unidades anteriores (no hay ciclos)', () => {
+    const seen = new Set<string>();
+    for (const unit of UNITS) {
+      for (const id of unit.requires) expect(seen.has(id), `${unit.id} pide ${id}`).toBe(true);
+      seen.add(unit.id);
+    }
+  });
+
+  it('los identificadores guardados no cambian (si se reordena una lección, las estrellas de otra se confundirían)', () => {
+    expect(LESSONS.map((lesson) => lesson.id)).toEqual([
+      'u1-1',
+      'u1-2',
+      'u1-3',
+      'u1-4',
+      'u2-1',
+      'u2-2',
+      'u2-3',
+      'u2-4',
+      'u3-1',
+      'u3-2',
+      'u3-3',
+      'u3-4',
+      'u3-5',
+      'u3-6',
+      'u4-1',
+      'u4-2',
+      'u4-3',
+      'u4-4',
+      'u4-5',
+      'u4-6',
+      'u5-1',
+      'u5-2',
+      'u5-3',
+      'u5-4',
+      'u6-1',
+      'u6-2',
+      'u6-3',
+      'u6-4',
+      'u6-5',
+      'u6-6',
+      'u6-7',
+      'u6-8',
+    ]);
+    // Y el contenido de cada identificador tampoco: títulos de las lecciones de notas nuevas.
+    expect(
+      LESSONS.filter((lesson) => lesson.unitId === 'u3').map((lesson) => lesson.title),
+    ).toEqual([
+      'Posición de Re',
+      'Posición de Mi',
+      'Posición de Sol',
+      'Posición de La',
+      'Repaso: las cuatro posiciones',
+      'Prueba: Do4 a Re5',
+    ]);
+  });
+
   it('con todo hecho no queda lección actual', () => {
     const all = Object.fromEntries(LESSONS.map((lesson) => [lesson.id, 3]));
-    expect(currentLesson(lessonAccessMap(stars(all)))).toBeNull();
+    expect(currentLesson(lessonAccessMap(stars(all)), stars(all))).toBeNull();
   });
 });

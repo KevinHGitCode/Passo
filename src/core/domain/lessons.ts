@@ -53,6 +53,11 @@ export interface Unit {
   readonly summary: string;
   /** No frena el camino: se puede dejar para más tarde (terceras y acordes con micrófono). */
   readonly optional: boolean;
+  /**
+   * Unidades que hay que terminar antes de abrir esta (por avance). No es una fila única: la 3 solo pide
+   * la 1, para que una nota que el micrófono no oye bien (las graves de la 2) no frene el camino.
+   */
+  readonly requires: readonly string[];
   readonly lessons: readonly Lesson[];
 }
 
@@ -104,7 +109,7 @@ function levelPool(mode: ExerciseMode, level: number): readonly Target[] {
 // ─── Ritmo objetivo (notas/min) ─────────────────────────────────────────────────────────────────
 
 const RHYTHM_BASIC: Readonly<Record<LessonKind, number>> = { nueva: 12, repaso: 15, prueba: 18 };
-const RHYTHM_MOVING: Readonly<Record<LessonKind, number>> = { nueva: 14, repaso: 18, prueba: 22 };
+const RHYTHM_MOVING: Readonly<Record<LessonKind, number>> = { nueva: 14, repaso: 18, prueba: 20 };
 const RHYTHM_THIRDS = 16;
 const RHYTHM_CHORDS = 18;
 
@@ -177,6 +182,7 @@ const U6_SPECS: readonly LessonSpec[] = [
 export const UNITS: readonly Unit[] = [
   {
     id: 'u1',
+    requires: [],
     number: 1,
     title: 'Mano derecha: Do a Sol',
     summary: 'Cinco teclas, cinco dedos: la posición de Do.',
@@ -195,6 +201,7 @@ export const UNITS: readonly Unit[] = [
   },
   {
     id: 'u2',
+    requires: ['u1'],
     number: 2,
     title: 'Mano izquierda: el Do central',
     summary: 'El pulgar en Do4 y el meñique en Fa3.',
@@ -212,6 +219,7 @@ export const UNITS: readonly Unit[] = [
   },
   {
     id: 'u3',
+    requires: ['u1'],
     number: 3,
     title: 'Mover la mano',
     summary: 'Otras posiciones sobre las teclas blancas.',
@@ -219,10 +227,10 @@ export const UNITS: readonly Unit[] = [
     lessons: lessonsOf(
       'u3',
       [
-        { kind: 'nueva', title: 'Posición de Sol', pool: RIGHT_G },
         { kind: 'nueva', title: 'Posición de Re', pool: RIGHT_D },
-        { kind: 'nueva', title: 'Posición de La', pool: RIGHT_A },
         { kind: 'nueva', title: 'Posición de Mi', pool: RIGHT_E },
+        { kind: 'nueva', title: 'Posición de Sol', pool: RIGHT_G },
+        { kind: 'nueva', title: 'Posición de La', pool: RIGHT_A },
         { kind: 'repaso', title: 'Repaso: las cuatro posiciones', pool: U3_REVIEW },
         { kind: 'prueba', title: 'Prueba: Do4 a Re5', pool: U3_EXAM },
       ],
@@ -231,6 +239,7 @@ export const UNITS: readonly Unit[] = [
   },
   {
     id: 'u4',
+    requires: ['u3'],
     number: 4,
     title: 'Notas de acorde',
     summary: 'Las notas de Do, Sol, Fa y La menor, de una en una (dedos 1-3-5).',
@@ -258,6 +267,7 @@ export const UNITS: readonly Unit[] = [
   },
   {
     id: 'u5',
+    requires: ['u2', 'u4'],
     number: 5,
     title: 'Las dos manos',
     summary: 'De Fa3 a Sol4: la izquierda abajo y la derecha arriba.',
@@ -279,6 +289,7 @@ export const UNITS: readonly Unit[] = [
   },
   {
     id: 'u6',
+    requires: ['u5'],
     number: 6,
     title: 'Terceras y acordes',
     summary: 'Dos y tres teclas a la vez. Con micrófono necesitas la beta de varias notas.',
@@ -312,6 +323,8 @@ export function lessonConfig(lesson: Lesson): RoundConfig {
     level: LESSON_LEVEL,
     pool: lesson.pool,
     roundSize: lesson.roundSize,
+    // Cobertura de notas, salvo en el repaso armado al momento (sus teclas débiles se repiten a propósito).
+    coverage: lesson.dynamic !== true,
   };
 }
 
@@ -357,8 +370,9 @@ export const SKIP_STARS = 2;
  */
 export function lessonAccessMap(starsOf: (lessonId: string) => number): Map<string, LessonAccess> {
   const access = new Map<string, LessonAccess>();
-  let reached = true;
+  const cleared = new Set<string>();
   for (const unit of UNITS) {
+    const reached = unit.requires.every((id) => cleared.has(id));
     const exam = unit.lessons.find((lesson) => lesson.kind === 'prueba');
     const examPassed = exam !== undefined && starsOf(exam.id) >= SKIP_STARS;
     unit.lessons.forEach((lesson, index) => {
@@ -375,12 +389,27 @@ export function lessonAccessMap(starsOf: (lessonId: string) => number): Map<stri
           lesson.kind === 'prueba');
       access.set(lesson.id, open ? 'abierta' : 'bloqueada');
     });
-    reached = unit.lessons.every((lesson) => starsOf(lesson.id) >= 1) || examPassed;
+    if (unit.lessons.every((lesson) => starsOf(lesson.id) >= 1) || examPassed) cleared.add(unit.id);
   }
   return access;
 }
 
-/** La primera lección abierta sin hacer: dónde sigue el camino. `null` si todo está hecho. */
-export function currentLesson(access: ReadonlyMap<string, LessonAccess>): Lesson | null {
-  return LESSONS.find((lesson) => access.get(lesson.id) === 'abierta') ?? null;
+/**
+ * La primera lección abierta sin hacer: dónde sigue el camino. Las lecciones de una unidad que ya se
+ * saltó con la prueba (≥ 2 estrellas) quedan abiertas pero no son «la siguiente». `null` si todo está hecho.
+ */
+export function currentLesson(
+  access: ReadonlyMap<string, LessonAccess>,
+  starsOf: (lessonId: string) => number,
+): Lesson | null {
+  const skipped = new Set(
+    UNITS.filter((unit) => {
+      const exam = unit.lessons.find((lesson) => lesson.kind === 'prueba');
+      return exam !== undefined && starsOf(exam.id) >= SKIP_STARS;
+    }).map((unit) => unit.id),
+  );
+  return (
+    LESSONS.find((lesson) => access.get(lesson.id) === 'abierta' && !skipped.has(lesson.unitId)) ??
+    null
+  );
 }

@@ -329,7 +329,7 @@ export function CaminoScreen({ progress, play, notation, onOpenSettings }: Camin
   const [explanation, setExplanation] = useState<Explanation | null>(null);
   const today = progress.today();
   const access = lessonAccessMap(starsOf(state));
-  const current = currentLesson(access);
+  const current = currentLesson(access, starsOf(state));
   const firstVisit = Object.keys(state.lessons).length === 0;
   const streak = currentStreak(state, today);
   const practicedToday = (state.daily[today]?.lessons ?? 0) > 0;

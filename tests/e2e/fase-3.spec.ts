@@ -100,15 +100,15 @@ test('Fase 3 · una lección de principio a fin: se guarda, desbloquea la siguie
 
   for (let hits = 3; hits <= 10; hits++) await solve(page, hits, 10);
 
-  await test.step('Resultado: 2 estrellas, experiencia y lo que más costó', async () => {
+  await test.step('Resultado: 3 estrellas (un fallo de 10 deja 90 %), experiencia y lo que más costó', async () => {
     await expect(page.getByTestId('result')).toBeVisible();
     await expect(page.getByRole('heading', { level: 1, name: '¡Lección completa!' })).toBeFocused();
-    await expect(page.getByRole('img', { name: '2 de 3 estrellas' })).toBeVisible();
+    await expect(page.getByRole('img', { name: '3 de 3 estrellas' })).toBeVisible();
     await expect(page.getByTestId('result-accuracy')).toHaveText('90 %');
-    // 9 objetivos a la primera (90) + 1 a la segunda (5) + 2 estrellas nuevas (20).
-    await expect(page.getByTestId('result-xp')).toContainText('+115');
+    // 9 objetivos a la primera (90) + 1 a la segunda (5) + 3 estrellas nuevas (30).
+    await expect(page.getByTestId('result-xp')).toContainText('+125');
     await expect(page.getByTestId('result-hard')).toContainText('Lo que más costó');
-    await expect(page.getByTestId('result-retry')).toHaveText('Repetir para la 3.ª ★');
+    await expect(page.getByTestId('result-retry')).toHaveText('Repetir');
     await page.waitForTimeout(600);
     await f3Capture(page, '06-resultado');
   });
@@ -118,7 +118,7 @@ test('Fase 3 · una lección de principio a fin: se guarda, desbloquea la siguie
     await expect(page).toHaveURL(/#\/$/);
     await expect(page.getByTestId('node-u1-1')).toHaveAttribute('data-state', 'hecha');
     await expect(page.getByTestId('node-u1-1').getByRole('img')).toHaveAccessibleName(
-      '2 de 3 estrellas',
+      '3 de 3 estrellas',
     );
     await expect(page.getByTestId('node-u1-2')).toHaveAttribute('data-state', 'actual');
     await expect(page.getByText('1 día seguidos')).toBeVisible();
@@ -132,7 +132,7 @@ test('Fase 3 · una lección de principio a fin: se guarda, desbloquea la siguie
     await expect(page.getByTestId('node-u1-2')).toHaveAttribute('data-state', 'actual');
     const saved = await page.evaluate(() => window.localStorage.getItem('passo.progreso'));
     expect(saved).toContain('"u1-1"');
-    expect(JSON.parse(saved ?? '{}').xp).toBe(115);
+    expect(JSON.parse(saved ?? '{}').xp).toBe(125);
   });
   await saveVideo(page, '01-leccion-completa.webm');
 });

@@ -66,8 +66,10 @@ export async function seedProgress(page: Page, seed: SeedProgress): Promise<void
     daily: seed.daily ?? {},
     history: (seed.history ?? []).map((entry) => ({ day, ...entry })),
   };
+  // Se siembra una sola vez por pestaña: si la prueba borra el progreso, recargar no lo vuelve a sembrar.
   await page.addInitScript((json) => {
-    if (!window.localStorage.getItem('passo.progreso')) {
+    if (!window.sessionStorage.getItem('passo.e2e.sembrado')) {
+      window.sessionStorage.setItem('passo.e2e.sembrado', '1');
       window.localStorage.setItem('passo.progreso', json);
     }
   }, JSON.stringify(value));

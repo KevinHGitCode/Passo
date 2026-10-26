@@ -45,6 +45,23 @@ export interface LessonFlowDeps {
   readonly resolveLesson?: (lessonId: string) => Lesson | null;
 }
 
+/** Lo ganado cuando no se pudo anotar el resultado. */
+function unsaved(stars: ResultGains['stars']): ResultGains {
+  return {
+    xp: 0,
+    previousStars: 0,
+    stars,
+    newStars: 0,
+    previousPlays: 0,
+    bestAccuracy: false,
+    bestRhythm: false,
+    streak: 0,
+    streakIncreased: false,
+    levelBefore: 1,
+    levelAfter: 1,
+  };
+}
+
 const FREE: LessonFlowSnapshot = { status: 'libre', lessonId: null, lesson: null, outcome: null };
 
 /**
@@ -165,7 +182,13 @@ export class LessonFlow {
     const lesson = this.lesson;
     const score = scoreLesson(round.attempts, lesson);
     const roundId = `${lesson.id}#${this.rounds}`;
-    const gains = this.progress.record({ lesson, score, attempts: round.attempts }, roundId);
+    let gains: ResultGains;
+    try {
+      gains = this.progress.record({ lesson, score, attempts: round.attempts }, roundId);
+    } catch {
+      // Si guardar falla, la persona ve igualmente su resultado (sin lo ganado).
+      gains = unsaved(score.stars);
+    }
     this.set({
       status: 'resultado',
       lessonId: lesson.id,

@@ -6,6 +6,8 @@ import type { StorageLike } from './local-storage-preferences-store';
 export const PROGRESS_KEY = 'passo.progreso';
 /** Copia de lo que no se pudo leer: así un fallo nunca destruye en silencio lo que había. */
 export const PROGRESS_CORRUPT_KEY = 'passo.progreso.corrupto';
+/** Clave de prueba para saber si el navegador deja guardar. */
+export const PROGRESS_PROBE_KEY = 'passo.progreso.sonda';
 
 /** Guarda el progreso en el navegador de la persona; nada sale del equipo. */
 export class LocalStorageProgressStore implements ProgressStore {
@@ -24,6 +26,37 @@ export class LocalStorageProgressStore implements ProgressStore {
     } catch {
       this.keepCorruptCopy(text);
       return null;
+    }
+  }
+
+  canSave(): boolean {
+    if (!this.storage) return false;
+    try {
+      this.storage.setItem(PROGRESS_PROBE_KEY, '1');
+      this.storage.removeItem?.(PROGRESS_PROBE_KEY);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Lo guardado que no tiene la forma esperada (no es un JSON dañado, pero tampoco un progreso). */
+  keepCopy(raw: unknown): void {
+    try {
+      this.keepCorruptCopy(JSON.stringify(raw));
+    } catch {
+      // Un valor que no se puede escribir no se conserva.
+    }
+  }
+
+  clear(): boolean {
+    if (!this.storage?.removeItem) return false;
+    try {
+      this.storage.removeItem(PROGRESS_KEY);
+      this.storage.removeItem(PROGRESS_CORRUPT_KEY);
+      return true;
+    } catch {
+      return false;
     }
   }
 

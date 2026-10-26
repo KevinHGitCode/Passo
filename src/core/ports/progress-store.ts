@@ -6,4 +6,10 @@ export interface ProgressStore {
   load(): unknown;
   /** Guarda el progreso. Devuelve `false` si no se pudo (cuota llena, almacenamiento bloqueado). */
   save(progress: Progress): boolean;
+  /** ¿Se puede guardar aquí? (una sonda: ventana privada o almacenamiento bloqueado dicen que no). */
+  canSave?(): boolean;
+  /** Conserva aparte lo guardado que no se reconoce, para no perderlo al guardar encima. */
+  keepCopy?(raw: unknown): void;
+  /** Borra todo lo guardado (el progreso y la copia de lo no reconocido). */
+  clear?(): boolean;
 }

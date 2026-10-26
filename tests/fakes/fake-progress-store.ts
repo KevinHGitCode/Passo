@@ -24,3 +24,25 @@ export class FakeProgressStore implements ProgressStore {
     return true;
   }
 }
+
+/** Almacén con sonda, copia aparte y borrado (como el del navegador). */
+export class FakeCapableProgressStore extends FakeProgressStore {
+  /** Con `false`, la sonda dice que no se puede guardar. */
+  available = true;
+  readonly copies: unknown[] = [];
+  clears = 0;
+
+  canSave(): boolean {
+    return this.available;
+  }
+
+  keepCopy(raw: unknown): void {
+    this.copies.push(raw);
+  }
+
+  clear(): boolean {
+    this.clears += 1;
+    this.stored = null;
+    return true;
+  }
+}

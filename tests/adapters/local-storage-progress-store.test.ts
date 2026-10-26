@@ -3,6 +3,7 @@ import {
   LocalStorageProgressStore,
   PROGRESS_CORRUPT_KEY,
   PROGRESS_KEY,
+  PROGRESS_PROBE_KEY,
 } from '@/adapters/storage/local-storage-progress-store';
 import type { StorageLike } from '@/adapters/storage/local-storage-preferences-store';
 import { EMPTY_PROGRESS, PROGRESS_VERSION, parseProgress } from '@/core/domain/progress';
@@ -17,6 +18,9 @@ class MemoryStorage implements StorageLike {
   setItem(key: string, value: string): void {
     if (this.failWrites) throw new DOMException('cuota llena', 'QuotaExceededError');
     this.data.set(key, value);
+  }
+  removeItem(key: string): void {
+    this.data.delete(key);
   }
 }
 
@@ -74,6 +78,51 @@ describe('LocalStorageProgressStore', () => {
     storage.data.set(PROGRESS_KEY, 'roto {');
     storage.failWrites = true;
     expect(new LocalStorageProgressStore(storage).load()).toBeNull();
+  });
+});
+
+describe('LocalStorageProgressStore · sonda, copia y borrado', () => {
+  it('la sonda dice que se puede guardar y no deja basura', () => {
+    const storage = new MemoryStorage();
+    expect(new LocalStorageProgressStore(storage).canSave()).toBe(true);
+    expect(storage.data.has(PROGRESS_PROBE_KEY)).toBe(false);
+  });
+
+  it('la sonda dice que no con la cuota llena o sin almacenamiento', () => {
+    const full = new MemoryStorage();
+    full.failWrites = true;
+    expect(new LocalStorageProgressStore(full).canSave()).toBe(false);
+    expect(new LocalStorageProgressStore(undefined).canSave()).toBe(false);
+  });
+
+  it('conserva aparte lo que no tiene la forma de un progreso, sin pisar la primera copia', () => {
+    const storage = new MemoryStorage();
+    const store = new LocalStorageProgressStore(storage);
+    store.keepCopy({ version: 'uno' });
+    store.keepCopy({ otra: 'cosa' });
+    expect(storage.data.get(PROGRESS_CORRUPT_KEY)).toBe('{"version":"uno"}');
+  });
+
+  it('un valor imposible de escribir no rompe la copia', () => {
+    const circular: Record<string, unknown> = {};
+    circular['self'] = circular;
+    expect(() =>
+      new LocalStorageProgressStore(new MemoryStorage()).keepCopy(circular),
+    ).not.toThrow();
+  });
+
+  it('borrar quita el progreso y la copia aparte', () => {
+    const storage = new MemoryStorage();
+    storage.data.set(PROGRESS_KEY, '{"version":1}');
+    storage.data.set(PROGRESS_CORRUPT_KEY, 'roto {');
+    expect(new LocalStorageProgressStore(storage).clear()).toBe(true);
+    expect(storage.data.size).toBe(0);
+  });
+
+  it('sin almacenamiento, o sin removeItem, borrar dice que no pudo', () => {
+    expect(new LocalStorageProgressStore(undefined).clear()).toBe(false);
+    const noRemove: StorageLike = { getItem: () => null, setItem: () => undefined };
+    expect(new LocalStorageProgressStore(noRemove).clear()).toBe(false);
   });
 });
 

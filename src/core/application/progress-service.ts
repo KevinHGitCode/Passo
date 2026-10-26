@@ -1,5 +1,5 @@
 import { applyResult, parseProgress } from '../domain/progress';
-import type { LessonResult, Progress, ProgressStatus, ResultGains } from '../domain/progress';
+import type { LessonResult, ParsedProgress, Progress, ResultGains } from '../domain/progress';
 import { EMPTY_PROGRESS } from '../domain/progress';
 import type { Calendar } from '../ports/calendar';
 import type { Unsubscribe } from '../ports/note-input';
@@ -27,10 +27,11 @@ export class ProgressService {
   constructor(store: ProgressStore, calendar: Calendar) {
     this.store = store;
     this.calendar = calendar;
-    const parsed = parseProgress(this.read());
+    const parsed = this.parse();
     this.snapshot = {
       state: parsed.state,
-      saved: parsed.status !== 'version-mayor',
+      // Sin sonda se supone que sí se puede; con ella, la primera visita ya avisa si no.
+      saved: parsed.status !== 'version-mayor' && this.canSave(),
       readOnly: parsed.status === 'version-mayor',
     };
   }
@@ -73,8 +74,9 @@ export class ProgressService {
 
   /** Borra todo el progreso (con confirmación en la interfaz). */
   reset(): void {
-    const saved = this.snapshot.readOnly ? false : this.save(EMPTY_PROGRESS);
-    this.snapshot = { state: EMPTY_PROGRESS, saved, readOnly: this.snapshot.readOnly };
+    // Borrar es una orden de la persona: también quita lo guardado de una versión nueva y la copia aparte.
+    const saved = this.wipe();
+    this.snapshot = { state: EMPTY_PROGRESS, saved, readOnly: false };
     this.recent.clear();
     this.listeners.forEach((listener) => listener());
   }
@@ -82,12 +84,44 @@ export class ProgressService {
   /** Lo último guardado (otra pestaña pudo cambiarlo); si no hay nada legible, lo que hay en memoria. */
   private freshState(): Progress {
     if (this.snapshot.readOnly) return this.snapshot.state;
-    const parsed = parseProgress(this.read());
-    return this.isUsable(parsed.status) ? parsed.state : this.snapshot.state;
+    const parsed = this.parse();
+    if (parsed.status === 'version-mayor') {
+      // Otra pestaña, con una versión nueva, guardó después de cargar: no se pisa.
+      this.snapshot = { ...this.snapshot, saved: false, readOnly: true };
+      return this.snapshot.state;
+    }
+    return parsed.status === 'ok' ? parsed.state : this.snapshot.state;
   }
 
-  private isUsable(status: ProgressStatus): boolean {
-    return status === 'ok';
+  /** Lee y valida lo guardado; lo que no se reconoce se conserva aparte antes de poder pisarlo. */
+  private parse(): ParsedProgress {
+    const raw = this.read();
+    const parsed = parseProgress(raw);
+    if (parsed.status === 'vacio' && raw !== null && raw !== undefined) {
+      try {
+        this.store.keepCopy?.(raw);
+      } catch {
+        // Sin espacio para la copia: se sigue sin ella.
+      }
+    }
+    return parsed;
+  }
+
+  private canSave(): boolean {
+    try {
+      return this.store.canSave ? this.store.canSave() : true;
+    } catch {
+      return false;
+    }
+  }
+
+  private wipe(): boolean {
+    try {
+      if (this.store.clear) return this.store.clear();
+    } catch {
+      return false;
+    }
+    return this.save(EMPTY_PROGRESS);
   }
 
   private read(): unknown {

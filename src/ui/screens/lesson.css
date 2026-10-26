@@ -1,5 +1,5 @@
 /* ---------- Lección (pantalla a pantalla completa, sin navegación) ---------- */
-.game-main--lesson {
+.game-main.game-main--lesson {
   padding: 0;
 }
 .lesson {
@@ -71,8 +71,8 @@
   padding: 0 4px;
 }
 .lesson__name {
-  flex: 1 1 200px;
-  margin: 0;
+  flex: 0 1 auto;
+  margin: 0 auto 0 0;
   font-size: 18px;
   font-weight: 900;
 }
@@ -125,16 +125,22 @@
   background: var(--bg);
   color: var(--text);
 }
+/* El escenario solo recibe el foco por código (al empezar): no lleva anillo, como el tablero. */
 .lesson__stage:focus {
   outline: none;
 }
-.lesson__stage:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
+/* En pantallas estrechas el teclado enseña solo una ventana de 9 teclas: lo que cae fuera se recorta dentro del escenario. */
+.lesson .keyboard-wrap {
+  overflow: hidden;
 }
 /* El teclado se encoge en pantallas bajas para que la lección quepa sin desplazar. */
 .lesson .piano {
   max-height: clamp(220px, calc(100vh - 340px), 470px);
+}
+
+/* Antes de empezar hay más texto arriba: el teclado se encoge un poco más. */
+.lesson[data-status='lista'] .piano {
+  max-height: clamp(200px, calc(100vh - 480px), 380px);
 }
 
 .lesson-target {
@@ -427,6 +433,36 @@
   width: 100%;
   margin-top: auto;
   padding-top: 20px;
+}
+
+/* Pantallas bajas (portátil con la barra del navegador): todo más compacto para que la lección quepa sin desplazar. */
+@media (max-height: 760px) and (min-width: 600px) {
+  .lesson {
+    gap: 6px;
+    padding: 6px 12px;
+  }
+  .lesson__top {
+    min-height: 44px;
+  }
+  .lesson__stage {
+    gap: 4px;
+    padding: 8px 14px;
+  }
+  .lesson-target {
+    min-height: 48px;
+  }
+  .lesson .target__name {
+    font-size: 44px;
+  }
+  .lesson__answer {
+    min-height: 56px;
+  }
+  .lesson__answer .game-answer {
+    padding: 8px 14px;
+  }
+  .lesson .pc-hint {
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 899px) {

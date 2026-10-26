@@ -96,7 +96,10 @@ function LessonIntro({
   return (
     <div className="lesson-intro" data-testid="lesson-intro">
       <p className="lesson-intro__kind">{lessonKindText(lesson)}</p>
-      <h2 className="lesson-intro__title">{lesson.title}</h2>
+      {/* El título ya está arriba (encabezado de la pantalla): aquí es solo visual. */}
+      <p className="lesson-intro__title" aria-hidden="true">
+        {lesson.title}
+      </p>
       <p className="lesson-intro__text">
         {lesson.roundSize} {countLabel(lesson.mode).toLowerCase()} · 3.ª estrella:{' '}
         {thirdStarGoalText(lesson, source)}

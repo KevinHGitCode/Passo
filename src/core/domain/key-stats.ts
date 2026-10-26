@@ -143,3 +143,19 @@ export function slowestKeys(history: KeyHistory, minSamples = 3): KeyStat[] {
     .filter((stat) => stat.samples >= minSamples)
     .sort((a, b) => b.medianMs - a.medianMs);
 }
+
+/** Cómo se pinta una tecla en el mapa de calor. */
+export type HeatLevel = 'fuerte' | 'buena' | 'media' | 'debil' | 'sin-datos';
+
+export const HEAT_STRONG = 0.95;
+export const HEAT_GOOD = 0.85;
+export const HEAT_MID = 0.7;
+
+/** Con menos de `MIN_SAMPLES` muestras la tecla sale gris («sin datos»), no roja. */
+export function heatLevel(stat: KeyStat): HeatLevel {
+  if (stat.samples < MIN_SAMPLES) return 'sin-datos';
+  if (stat.accuracy >= HEAT_STRONG) return 'fuerte';
+  if (stat.accuracy >= HEAT_GOOD) return 'buena';
+  if (stat.accuracy >= HEAT_MID) return 'media';
+  return 'debil';
+}

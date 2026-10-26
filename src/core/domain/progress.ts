@@ -248,6 +248,41 @@ export function weekActivity(state: Progress, today: string): WeekDay[] {
   });
 }
 
+/** Las cifras del resumen de progreso. */
+export interface ProgressSummary {
+  /** Precisión media de las últimas lecciones, de 0 a 1; `null` sin datos. */
+  readonly accuracy: number | null;
+  /** Ritmo medio (notas por minuto) de las últimas lecciones; `null` sin datos. */
+  readonly notesPerMinute: number | null;
+  /** Tiempo activo total guardado (los últimos 90 días), en milisegundos. */
+  readonly totalMs: number;
+  /** Días con al menos una lección terminada. */
+  readonly practiceDays: number;
+  /** Lecciones del historial reciente que entran en las medias. */
+  readonly lessons: number;
+}
+
+/** Cuántas de las últimas lecciones entran en las medias (lo reciente dice más que lo antiguo). */
+export const SUMMARY_WINDOW = 10;
+
+export function progressSummary(state: Progress): ProgressSummary {
+  const recent = state.history.slice(-SUMMARY_WINDOW);
+  const average = (pick: (entry: HistoryEntry) => number): number | null =>
+    recent.length === 0
+      ? null
+      : recent.reduce((sum, entry) => sum + pick(entry), 0) / recent.length;
+  const accuracy = average((entry) => entry.accuracy);
+  const rhythm = average((entry) => entry.rhythm);
+  const days = Object.values(state.daily);
+  return {
+    accuracy: accuracy === null ? null : accuracy / 1000,
+    notesPerMinute: rhythm === null ? null : rhythm / 10,
+    totalMs: days.reduce((sum, day) => sum + day.ms, 0),
+    practiceDays: days.filter((day) => day.lessons > 0).length,
+    lessons: recent.length,
+  };
+}
+
 export function currentStreak(state: Progress, today: string): number {
   return streakAt(state.streak, today);
 }

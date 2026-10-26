@@ -10,6 +10,7 @@ import {
   minutesOn,
   parseProgress,
   serializeProgress,
+  progressSummary,
   starsOf,
   weekActivity,
 } from '@/core/domain/progress';
@@ -317,5 +318,41 @@ describe('actividad de la semana', () => {
   it('un día con tiempo pero sin lecciones no cuenta como practicado', () => {
     const week = weekActivity(state, '2026-10-30');
     expect(week[4]?.practiced).toBe(false);
+  });
+});
+
+describe('resumen del progreso', () => {
+  it('sin datos no hay medias y el tiempo es cero', () => {
+    expect(progressSummary(EMPTY_PROGRESS)).toEqual({
+      accuracy: null,
+      notesPerMinute: null,
+      totalMs: 0,
+      practiceDays: 0,
+      lessons: 0,
+    });
+  });
+
+  it('promedia las últimas diez lecciones y suma el tiempo de los días', () => {
+    const history = Array.from({ length: 12 }, (_, i) => ({
+      day: DAY,
+      lesson: 'u1-1',
+      accuracy: i < 2 ? 100 : 900,
+      rhythm: 200,
+    }));
+    const state: Progress = {
+      ...EMPTY_PROGRESS,
+      history,
+      daily: {
+        '2026-10-25': { ms: 60_000, lessons: 2 },
+        '2026-10-26': { ms: 30_000, lessons: 0 },
+      },
+    };
+    const summary = progressSummary(state);
+    // Las dos primeras (100) quedan fuera de la ventana de 10.
+    expect(summary.accuracy).toBeCloseTo(0.9, 6);
+    expect(summary.notesPerMinute).toBeCloseTo(20, 6);
+    expect(summary.lessons).toBe(10);
+    expect(summary.totalMs).toBe(90_000);
+    expect(summary.practiceDays).toBe(1);
   });
 });

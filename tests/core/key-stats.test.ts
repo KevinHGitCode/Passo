@@ -3,6 +3,7 @@ import {
   MIN_SAMPLES,
   addSamples,
   globalMedianMs,
+  heatLevel,
   keyStat,
   samplesOf,
   slowestKeys,
@@ -137,5 +138,23 @@ describe('teclas débiles', () => {
       '64': many(2, ok(9000)),
     };
     expect(slowestKeys(history).map((stat) => stat.key)).toEqual(['62', '60']);
+  });
+});
+
+describe('mapa de calor', () => {
+  const level = (samples: KeySample[]) => heatLevel(keyStat('60', samples));
+
+  it('con menos de 5 muestras la tecla sale sin datos', () => {
+    expect(level(many(4, miss()))).toBe('sin-datos');
+    expect(level([])).toBe('sin-datos');
+  });
+
+  it('según el acierto (con más peso a lo reciente): fuerte, buena, media y débil', () => {
+    expect(level(many(10, ok()))).toBe('fuerte');
+    // Un fallo en mitad de la ventana: ~92 %.
+    expect(level([...many(4, ok()), miss(), ...many(5, ok())])).toBe('buena');
+    // Un fallo en el último intento pesa mucho: ~81 %.
+    expect(level([...many(9, ok()), miss()])).toBe('media');
+    expect(level([...many(8, miss()), ...many(2, ok())])).toBe('debil');
   });
 });

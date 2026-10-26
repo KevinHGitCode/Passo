@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import type { LessonFlow } from '@/core/application/lesson-flow';
 import type { PracticeSession } from '@/core/application/practice-session';
+import type { NoteInput } from '@/core/ports/note-input';
 import { parseRoute, routeKey, routeTitle } from './routes';
 import type { Route } from './routes';
 
@@ -18,11 +19,16 @@ export function useRoute(): Route {
 }
 
 /**
- * Al cambiar de pantalla: sale de la lección si ya no estás en ella y vacía la sesión al dejar la
- * práctica libre (las entradas siguen vivas: si no, contarían notas sin pantalla). Es idempotente,
+ * Al cambiar de pantalla: sale de la lección si ya no estás en ella, vacía la sesión al dejar la
+ * práctica libre y apaga el micrófono al salir de ambas (las demás entradas siguen vivas). Es idempotente,
  * así vale aunque React repita el efecto.
  */
-export function useRouteLifecycle(route: Route, session: PracticeSession, flow: LessonFlow): void {
+export function useRouteLifecycle(
+  route: Route,
+  session: PracticeSession,
+  flow: LessonFlow,
+  microphone?: NoteInput,
+): void {
   const previous = useRef<Route['name'] | null>(null);
   const name = route.name;
   useEffect(() => {
@@ -30,7 +36,10 @@ export function useRouteLifecycle(route: Route, session: PracticeSession, flow: 
     previous.current = name;
     if (name !== 'leccion') flow.leave();
     if (before === 'practica' && name !== 'practica') session.reset();
-  }, [name, session, flow]);
+    // El micrófono solo escucha donde hay una pantalla que lo usa: al salir de la lección o de la
+    // práctica se apaga (la luz del equipo no debe quedar encendida); la lección pide un gesto para volver.
+    if ((before === 'leccion' || before === 'practica') && name !== before) microphone?.stop();
+  }, [name, session, flow, microphone]);
 }
 
 /**

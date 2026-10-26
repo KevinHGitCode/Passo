@@ -257,6 +257,15 @@ function LessonView({
   const state = useSyncExternalStore(progress.subscribe, progress.getSnapshot).state;
   const streak = currentStreak(state, progress.today());
 
+  // Si la página se oculta (móvil bloqueado, otra pestaña) la ronda se pausa: ese tiempo no cuenta.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) session.pause();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [session]);
+
   // Al entrar en la lección el foco va a su título (un lector de pantalla anuncia dónde estás).
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });

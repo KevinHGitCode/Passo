@@ -56,7 +56,7 @@ export function LessonResult({
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
   }, []);
-  const { state } = useSyncExternalStore(progress.subscribe, progress.getSnapshot);
+  const { state, saved } = useSyncExternalStore(progress.subscribe, progress.getSnapshot);
   const percent = Math.round(score.accuracy * 100);
   const missed = score.summary.mostMissed;
   const slowest = score.summary.slowest;
@@ -178,6 +178,13 @@ export function LessonResult({
           </p>
         </div>
       </section>
+
+      {!saved ? (
+        <p className="result__unsaved" role="status" data-testid="no-guarda">
+          Este resultado no se ha podido guardar: tu navegador no deja guardar datos (¿ventana
+          privada?). Se pierde al cerrar la pestaña.
+        </p>
+      ) : null}
 
       <footer className="result__actions">
         <GameButton variant="secondary" onClick={() => flow.retry()} data-testid="result-retry">

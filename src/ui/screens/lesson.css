@@ -484,3 +484,15 @@
     max-height: none;
   }
 }
+
+.result__unsaved {
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 10px 14px;
+  border: 2px solid var(--warn);
+  border-radius: 14px;
+  background: var(--warn-soft);
+  color: var(--warn-strong);
+  font-weight: 700;
+  text-align: center;
+}

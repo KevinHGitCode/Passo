@@ -13,6 +13,7 @@ import { Shell } from '@/ui/shell/Shell';
 import { FakeAudioControl } from '../fakes/fake-audio-control';
 import { FakeCalendar } from '../fakes/fake-calendar';
 import { FakeClock } from '../fakes/fake-clock';
+import { FakeMicInput } from '../fakes/fake-mic-input';
 import { FakeNoteInput } from '../fakes/fake-note-input';
 import { FakePreferencesStore } from '../fakes/fake-preferences-store';
 import { FakeProgressStore } from '../fakes/fake-progress-store';
@@ -44,7 +45,7 @@ beforeEach(() => {
 function setup(options: { hash?: string; narrow?: boolean; stored?: unknown } = {}) {
   if (options.narrow !== undefined) mockViewport(options.narrow);
   window.location.hash = options.hash ?? '';
-  const mic = new FakeNoteInput('microfono');
+  const mic = new FakeMicInput();
   const pc = new FakeNoteInput('teclado-pc');
   const inputs = [mic, pc];
   const preferences = new PreferencesService(
@@ -75,6 +76,7 @@ function setup(options: { hash?: string; narrow?: boolean; stored?: unknown } = 
       inputs={inputs}
       inputManager={manager}
       audio={new FakeAudioControl()}
+      microphone={mic}
       progress={progress}
       lessonFlow={lessonFlow}
     />,
@@ -84,7 +86,7 @@ function setup(options: { hash?: string; narrow?: boolean; stored?: unknown } = 
       window.location.hash = hash;
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
-  return { session, preferences, lessonFlow, progress, pc, go };
+  return { session, preferences, lessonFlow, progress, pc, mic, go };
 }
 
 describe('el marco del juego', () => {
@@ -214,5 +216,42 @@ describe('la práctica libre', () => {
     expect(lessonFlow.getSnapshot().status).toBe('libre');
     expect(session.getSnapshot()).toMatchObject({ mode: 'terceras', level: 2, phase: 'inactiva' });
     expect(preferences.getSnapshot().mode).toBe('terceras');
+  });
+});
+
+describe('el micrófono solo escucha donde hay pantalla que lo use', () => {
+  /** Paradas del micrófono desde que se montó la pantalla (el gestor de entradas ya apaga las no elegidas). */
+  const stopsAfter = (mic: { stops: number }) => {
+    const base = mic.stops;
+    return () => mic.stops - base;
+  };
+
+  it('al salir de una lección se apaga', () => {
+    const { mic, go } = setup({ hash: '#/leccion/u1-1' });
+    const stops = stopsAfter(mic);
+    go('#/');
+    expect(stops()).toBe(1);
+  });
+
+  it('al salir de la práctica libre se apaga', () => {
+    const { mic, go } = setup({ hash: '#/practica' });
+    const stops = stopsAfter(mic);
+    go('#/progreso');
+    expect(stops()).toBe(1);
+  });
+
+  it('pasar de una lección a otra no lo apaga', () => {
+    const { mic, go } = setup({ hash: '#/leccion/u1-1' });
+    const stops = stopsAfter(mic);
+    go('#/leccion/u1-2');
+    expect(stops()).toBe(0);
+  });
+
+  it('entre el camino y el progreso no hace falta apagarlo (ya está apagado)', () => {
+    const { mic, go } = setup({ hash: '#/' });
+    const stops = stopsAfter(mic);
+    go('#/progreso');
+    go('#/');
+    expect(stops()).toBe(0);
   });
 });

@@ -5,7 +5,7 @@ import type { ProgressService } from '@/core/application/progress-service';
 import type { PlayContext } from '@/core/domain/lessons';
 import { App } from '../App';
 import type { AppProps } from '../App';
-import { useIsNarrow, useSessionSnapshot } from '../practice/hooks';
+import { useIsNarrow } from '../practice/hooks';
 import { CaminoScreen } from '../screens/CaminoScreen';
 import { LessonScreen } from '../screens/LessonScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
@@ -94,7 +94,8 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
     wasOpen.current = settings.open;
   }, [settings.open]);
   const narrow = useIsNarrow(NARROW_MAX_WIDTH);
-  const { phase } = useSessionSnapshot(session);
+  // Solo la fase: no se vuelve a dibujar el marco con cada pulsación.
+  const phase = useSyncExternalStore(session.subscribe, () => session.getSnapshot().phase);
   const lessonActive = useSyncExternalStore(lessonFlow.subscribe, lessonFlow.isActive);
   const play = usePlayContext(preferences, inputManager, inputs);
 
@@ -172,7 +173,7 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
 export function Shell(props: ShellProps) {
   const route = useRoute();
   useTheme(props.preferences);
-  useRouteLifecycle(route, props.session, props.lessonFlow);
+  useRouteLifecycle(route, props.session, props.lessonFlow, props.microphone);
   useRouteAnnouncer(route);
 
   if (route.name === 'practica') {

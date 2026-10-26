@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { StrictMode } from 'react';
+import type { ReactNode } from 'react';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
 import { LessonFlow } from '@/core/application/lesson-flow';
@@ -32,6 +34,10 @@ interface SetupOptions {
   play?: PlayContext;
   mic?: boolean;
   stored?: unknown;
+  /** Con `<StrictMode>` React repite los efectos (como en desarrollo). */
+  strict?: boolean;
+  /** El almacén no deja guardar. */
+  failSaves?: boolean;
 }
 
 function setup(options: SetupOptions = {}) {
@@ -46,22 +52,28 @@ function setup(options: SetupOptions = {}) {
     config: LEVEL_1_CONFIG,
   });
   const store = new FakeProgressStore(options.stored ?? null);
+  if (options.failSaves) store.failSaves = true;
   const progress = new ProgressService(store, new FakeCalendar('2026-10-26'));
   const play = options.play ?? KEYBOARD;
   const flow = new LessonFlow({ session, progress, playContext: () => play });
   const onOpenSettings = vi.fn();
+  const Wrapper = options.strict
+    ? StrictMode
+    : ({ children }: { children: ReactNode }) => <>{children}</>;
   render(
-    <LessonScreen
-      lessonId={options.lessonId ?? 'u2-1'}
-      flow={flow}
-      session={session}
-      progress={progress}
-      play={play}
-      microphone={mic}
-      canStartWithoutMic={play.sources.some((source) => source !== 'microfono')}
-      gear={<button type="button">Ajustes</button>}
-      onOpenSettings={onOpenSettings}
-    />,
+    <Wrapper>
+      <LessonScreen
+        lessonId={options.lessonId ?? 'u2-1'}
+        flow={flow}
+        session={session}
+        progress={progress}
+        play={play}
+        microphone={mic}
+        canStartWithoutMic={play.sources.some((source) => source !== 'microfono')}
+        gear={<button type="button">Ajustes</button>}
+        onOpenSettings={onOpenSettings}
+      />
+    </Wrapper>,
   );
   /** Pulsa y suelta lo que pide el objetivo (bien), un objetivo por segundo. */
   const playCorrect = (ms = 1000) => {
@@ -401,5 +413,46 @@ describe('lección · el resultado', () => {
     fireEvent.click(screen.getByTestId('start'));
     finishRound(1000);
     expect(screen.getByTestId('result').textContent).toContain('Tu mejor marca');
+  });
+});
+
+describe('lección · robustez', () => {
+  it('bajo StrictMode (efectos repetidos) preparar y salir no duplica nada y se guarda una sola vez', () => {
+    const { flow, store, finishRound } = setup({ strict: true });
+    expect(flow.getSnapshot().status).toBe('lista');
+    fireEvent.click(screen.getByTestId('start'));
+    finishRound();
+    expect(flow.getSnapshot().status).toBe('resultado');
+    expect(store.saves).toHaveLength(1);
+    expect(screen.getAllByTestId('result')).toHaveLength(1);
+  });
+
+  it('si la página se oculta a media ronda, la ronda se pausa', () => {
+    const { session } = setup();
+    fireEvent.click(screen.getByTestId('start'));
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+    expect(session.getSnapshot().phase).toBe('pausada');
+    expect(screen.getByTestId('paused')).toBeTruthy();
+  });
+
+  it('un objetivo que tarda una eternidad no inventa minutos en el resultado', () => {
+    const { finishRound, playCorrect } = setup();
+    fireEvent.click(screen.getByTestId('start'));
+    playCorrect();
+    playCorrect(3_600_000);
+    finishRound();
+    // El primer objetivo no cuenta; el de «una hora» cuenta 10 s y los otros 8, 1 s: 0:18.
+    expect(screen.getByTestId('result-time').textContent).toBe('0:18');
+  });
+
+  it('si no se puede guardar, el resultado lo dice', () => {
+    const { finishRound } = setup({ failSaves: true });
+    fireEvent.click(screen.getByTestId('start'));
+    finishRound();
+    expect(screen.getByTestId('no-guarda').textContent).toContain('no se ha podido guardar');
   });
 });

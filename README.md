@@ -3,9 +3,14 @@
 Aplicación para aprender piano corrigiendo al instante lo que no se te da bien.
 Nombre: **Passo** (paso a paso: no avanzas hasta que lo dominas).
 
-> Estado: **Fases 0, 1 y 2 completadas; Fase 3 (Passo como juego por niveles) en construcción** (la Fase 1 es la escucha activa por micrófono; la Fase 2 añade terceras y acordes, manos, notas que caen y un panel de ajustes). Pendiente de validar con el piano real: `docs/validacion-microfono.md` (pasos 15–29 son de la Fase 2). Evidencias: `evidencias/fase-2/informe.md`. Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
+> Estado: **Fases 0, 1, 2 y 3 completadas** (la 3 es el juego por niveles: camino de lecciones, estrellas, XP, racha y progreso guardado) (la Fase 1 es la escucha activa por micrófono; la Fase 2 añade terceras y acordes, manos, notas que caen y un panel de ajustes). Pendiente de validar con el piano real: `docs/validacion-microfono.md` (pasos 15–29 son de la Fase 2). Evidencias: `evidencias/fase-2/informe.md`. Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
 
 ## Cómo se usa hoy
+
+- **Camino** (`#/`): seis unidades con lecciones cortas (nueva, repaso y prueba). Se abre centrado en tu lección. Cada lección da hasta **3 estrellas** (≥ 70 % para pasar; la 3.ª pide un fallo como máximo y el ritmo), experiencia y **racha** de días (con un día de descanso por semana). Las unidades 1 a 5 son de notas sueltas (lo que el micrófono oye); la 6, de terceras y acordes, es opcional.
+- **Lección** (`#/leccion/<id>`): a pantalla completa; no arranca sola (hay que pulsar «Empezar» o activar el micrófono). Salir con la X pregunta y no guarda lo de esa ronda.
+- **Progreso** (`#/progreso`): tu nivel, medias, el **mapa de tu teclado** (qué teclas aciertas a la primera) y la curva de precisión. «Practicar 3 min» arma un repaso con tus teclas más flojas. Todo se guarda **solo en este navegador** (`passo.progreso`); «Borrar mi progreso» lo elimina.
+- **Práctica libre** (`#/practica`): la pantalla de siempre (modo y nivel a elección).
 
 - **Engranaje «Ajustes»** (o `Ctrl+,`): elige la entrada (**micrófono**, piano **MIDI** o **teclado del PC**; solo escucha una), el ejercicio (**notas**, **terceras** o **acordes**, con su nivel), la notación (Do Re Mi / C D E), la ayuda y el tema. Todo se recuerda en el navegador. Abrirlo pausa la ronda.
 - El **micrófono** nunca se enciende solo: hay que pulsar «Activar micrófono». Con él solo hay ejercicios de notas, salvo que actives la **beta «Oír varias notas a la vez»**.
@@ -95,7 +100,7 @@ En código, las capas se agrupan en `core/` (dominio, aplicación, puertos), `ad
 | 0 | Prototipo: teclado en pantalla + MIDI + modo "toca esta nota" (**hecha**) | 2 semanas |
 | 1 | **Escucha activa:** detectar la nota que suena por el micrófono (el Yamaha E263 no tiene USB-MIDI) (**hecha**, falta validar con el piano real) | 3 semanas |
 | 2 | **Ajustes, terceras y acordes:** panel de ajustes (entrada: micrófono / MIDI / teclado del PC), terceras y acordes, manos y dedos, notas que caen | 4–5 semanas |
-| 3 | **Passo como juego (diseño «A» del mockup):** camino de unidades y lecciones, estrellas, XP, racha, progreso guardado y estadísticas por tecla | 4–5 semanas |
+| 3 | **Passo como juego (diseño «A» del mockup):** camino de unidades y lecciones, estrellas, XP, racha, progreso guardado y estadísticas por tecla (**hecha**, falta validar con el piano real) | 4–5 semanas |
 | 4 | Núcleo de práctica: modos espera y estricto, niveles con negras | 3 semanas |
 | 5 | Entrenamiento por oído: nota por oído e intervalos por oído | 3 semanas |
 | 6 | Ritmo: metrónomo y calificación de tiempo | 3 semanas |

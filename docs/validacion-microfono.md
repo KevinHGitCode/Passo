@@ -107,6 +107,22 @@ aumentó tras el ataque; ≥ 1,8 si ya sonaba algo ahí). Lo más útil: **las m
 `__passoChords` no guarda **qué tocaste** en cada medición: apunta, en orden, lo que tocaste en cada una (por ejemplo «1: Fa–Sol por Mi–Sol»). Si no, queda como beta (apagada por defecto) y el plan B es el **arpegio**
 (las notas una tras otra, con el seguimiento de una sola voz, que ya funciona).
 
+## Fase 3: las lecciones con el Yamaha
+
+Con el micrófono elegido (Ajustes → Cómo toco). Abre `#/` y empieza por la unidad 1.
+
+| # | Qué hacer | Qué debe pasar |
+|---|---|---|
+| 30 | Abre la primera lección («Do · Re · Mi»), pulsa «Activar micrófono», espera la calibración y «Empezar» | La lección no arranca sola; el panel del micrófono comprueba el Do central; la barra superior avanza con cada nota |
+| 31 | Completa la lección tocando bien todo | Resultado con estrellas (sin fallos: 3 ★; la unidad 1 no pide ritmo), +XP y racha de 1 día; «Continuar» deja la siguiente lección como «actual» |
+| 32 | Recarga la página | El camino conserva lo hecho (estrellas, XP, racha) |
+| 33 | **Notas graves:** abre la unidad 2 (mano izquierda, Fa3–Do4) con el portátil cerca del altavoz y luego lejos | Anota qué notas no oye (Fa3, Sol3 y La3 son las más difíciles) y con qué distancia; debe aparecer el aviso «acerca el portátil al altavoz». La unidad 3 se abre sin terminar la 2 |
+| 34 | **Ritmo:** haz una lección nueva de la unidad 2 o 3 a tu ritmo normal | Mira «Ritmo» en el resultado: si no llegas nunca a la meta (12–14 notas/min con × 0,9), anota tu cifra para ajustarla |
+| 35 | Falla a propósito 3 de 10 (toca otra tecla) | Ronda de 70 %: 1 ★ y «Para la 3.ª estrella…»; con 4 fallos (60 %): «Todavía no: repítela» y «Repetir» como botón principal |
+| 36 | Sal a media lección con la X | Pregunta; «Salir sin guardar» no cambia el progreso; al volver al camino el micrófono queda apagado |
+
+Reporta, además de lo de la lista de abajo: **qué lecciones se te atascaron** y cuántos «No te oí bien» seguidos hubo.
+
 ## Qué reportar
 
 - Modelo de portátil y navegador, y la distancia al piano.

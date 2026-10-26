@@ -1,6 +1,6 @@
 # Fase 3 — Passo como juego (camino por niveles, estrellas y progreso)
 
-Estado: **plan revisado por los tres expertos; en construcción** (Kevin autorizó empezar: «comienza con su implementación»).
+Estado: **completada y verificada (falta validarla con el piano real)**. Kevin autorizó empezar («comienza con su implementación»). Resultados, límites y lo aplazado, al final de este documento.
 
 ## Qué pidió Kevin
 
@@ -154,3 +154,68 @@ El micrófono no verifica los **dedos**: se dice en pantalla.
 ## Decisiones fuera del plan (a Kevin, con valor por defecto)
 
 Sin cuentas ni nube, sin vidas, sin monetización, meta diaria de 5 min, un día de descanso por semana. Se cambian cuando él lo pida.
+
+## Decisiones tras la revisión final de los expertos
+
+Con la fase construida, los tres expertos la revisaron y salió lo siguiente (todo lo de abajo se aplicó; lo demás está en «Aplazado»):
+
+| # | Cambio respecto al plan | Origen |
+|---|---|---|
+| 1 | **Desbloqueo en paralelo:** cada unidad declara de cuáles depende (`requires`). La 3 solo pide la 1; la 4, la 3; la 5, la 2 y la 4. Así lo que el micrófono no oye bien en la unidad 2 (Fa3, Sol3) no frena el camino | Música |
+| 2 | **3.ª estrella con un fallo por ronda:** nueva 90 % · repaso 92 % · prueba 95 % (con 10 o 14 objetivos un 95 % exigía no fallar nunca). La «meta general» de la gráfica sigue en 95 % | Música |
+| 3 | **Cobertura de notas:** en las lecciones sale una «bolsa» barajada (todas las notas antes de repetir), así una ronda de 10 no se deja notas sin tocar y se llega antes a las 5 muestras por tecla. El repaso armado al momento no la usa (repite a propósito) | Música |
+| 4 | Una ronda sin llegar al 70 % **no cuenta como jugada** (ni como lección del día): ya no baja al 50 % la experiencia de la primera vez que apruebas | Música/Backend |
+| 5 | **Tope de 10 s por objetivo** en el ritmo, el tiempo del día y la lentitud por tecla; la ronda se **pausa al ocultar la página** | Backend |
+| 6 | Repaso de puntos débiles: lentitud con **margen absoluto** (+600 ms sobre la mediana: la latencia del micrófono no marca teclas), «las más lentas» con ≥ 5 muestras y la oferta de repasar solo con teclas **débiles**; el mapa y «débil» comparten el 80 % | Música |
+| 7 | Posiciones de la unidad 3 en orden Re, Mi, Sol, La (1, 1, 2 y 1 notas nuevas) y prueba a 20 notas/min | Música |
+| 8 | **«Saltar con prueba»:** las lecciones de una unidad saltada ya no son «la siguiente» (`currentLesson` recibe las estrellas) | Música |
+| 9 | **El micrófono se apaga** al salir de la lección o de la práctica libre (la luz del equipo no debe quedar encendida); la lección pide un gesto para volver a activarlo | Backend |
+| 10 | **Datos:** una versión mayor escrita después de cargar no se pisa; lo que no se reconoce (JSON válido de otra forma) se conserva aparte; «Borrar mi progreso» quita también esa copia; una sonda (`canSave`) avisa desde la primera visita de que no se puede guardar; un fallo al anotar no deja la lección «en curso» | Backend |
+| 11 | Camino: se abre **centrado en tu lección**, dice con qué se toca (con «Cambiar»), la explicación de un bloqueo se ve y caduca al cambiar de entrada, cada pantalla empieza arriba y hay «Saltar al contenido» | Interfaz |
+| 12 | Lección: «Para pasar: 70 %», aviso de notas graves por micrófono y de apagar la ayuda en las pruebas, cabecera móvil en dos filas, diálogo de salida con fondo inerte y foco que vuelve a la X; resultado sin pasar con «Repetir» como acción principal, resumen como descripción del título (se lee una vez) y aviso si no se pudo guardar | Interfaz |
+| 13 | Progreso: mapa del teclado con desplazamiento lateral en móvil y foco al título tras borrar | Interfaz |
+
+## Resultados
+
+Medidas en la última verificación: **`npm run check` pasa (1052 pruebas unitarias, de integración y de interfaz)** y **49 pruebas e2e en Edge** (las 37 de las fases 0 a 2, que siguen verdes con el sufijo `#/practica`, y 12 nuevas de la fase 3). Evidencias e informe en `evidencias/fase-3/`.
+
+| Etapa | Qué quedó | Pruebas clave |
+|---|---|---|
+| G1 | 6 unidades y 32 lecciones (nueva / repaso / prueba), disponibilidad según la entrada, desbloqueo derivado de las estrellas; puntuación (precisión, ritmo en notas/min con tiempo activo, estrellas, XP, nivel) | `lessons.test.ts`, `scoring.test.ts`, `coverage.test.ts` |
+| G2 | Progreso guardado: días y racha (descanso semanal), estadísticas por tecla, servicio, almacén `localStorage` con copia de lo dañado, calendario local | `progress.test.ts`, `streak.test.ts`, `key-stats.test.ts`, `progress-service*.test.ts` |
+| G3 | `PracticeSession.subscribeRounds`, `LessonFlow` (guarda una sola vez, salir no guarda), `override` del enlace con las preferencias | `lesson-flow.test.ts`, `lesson-preferences.test.ts` |
+| G4 | Modelo del tablero extraído de `PracticeScreen` (sin cambios visibles) | las 645 anteriores siguen verdes |
+| G5 | Tokens por rol (claro y oscuro), Nunito autoalojada, componentes base (botón 3D, estrellas, anillo, nodo, barra de respuesta) | `game-components.test.tsx`, `tokens-contrast.test.ts` (AA) |
+| G6 | `Shell`, rutas por hash, barra lateral / inferior, práctica libre en `#/practica` | `routes.test.ts`, `shell.test.tsx`, las 37 e2e |
+| G7 | Camino con datos reales, repaso de puntos débiles armado al momento | `camino-screen.test.tsx`, `review.test.ts` |
+| G8–G9 | Lección a pantalla completa y resultado (estrellas, anillo, ritmo, tiempo, XP, lo que más costó) | `lesson-screen.test.tsx`, e2e |
+| G10 | Progreso: nivel, medias, mapa del teclado, curva de precisión, borrado con confirmación | `progress-screen.test.tsx`, e2e |
+| G11 | Móvil (390 px) y 1366×650: la lección cabe sin desplazar en sus tres estados | e2e móvil y 1366×650 |
+| G12 | e2e de la fase, revisión final de los expertos y cierre | `fase-3.spec.ts` |
+
+### Decisiones del plan que cambiaron al construir
+
+- **Unidades paralelas** (`requires`) en vez de una sola fila (#1 de arriba).
+- **Rutas:** no hay `#/resultado`; el resultado es un estado de `#/leccion/<id>`. La lección no lleva barra de navegación (se sale con la X).
+- **«Puntos débiles»:** no es una pantalla; es una tarjeta del Camino y del Progreso que lleva a una lección armada al momento (`#/leccion/repaso-debiles`, sin estrellas y con la mitad de experiencia).
+- **Tema B:** solo queda preparado (tokens por rol; el escenario de tocar es siempre oscuro con cualquier tema).
+- **Nunito** se instaló con `@fontsource-variable/nunito` (la única dependencia nueva) en vez de cargarla desde Google Fonts.
+
+## Límites conocidos
+
+- **Falta validar con el piano real** (`docs/validacion-microfono.md`, pasos 30–36): lecciones con el micrófono del Yamaha, las notas graves de la unidad 2 (Fa3–Si3) y si las metas de ritmo son razonables.
+- Las lecciones duran **1–1,5 min**, no los 2–4 del plan; la meta diaria de 5 min equivale a 4–5 lecciones.
+- El camino entero suma unos 3,6 mil XP (nivel 9): «Pianista» (11) y «Maestro» (16) solo se alcanzan repitiendo.
+- Terceras y acordes (unidad 6) con micrófono requieren la beta de la Fase 2 (sin validar).
+
+## Aplazado y deuda técnica
+
+- **Atrás del navegador** (o el gesto de Android) sale de una lección sin confirmar y pierde la ronda; la X sí confirma.
+- `ListeningStrip` se redibuja con el monitor del micrófono (~15 Hz) junto con el tablero: debería suscribirse sola.
+- Los **ids de lección son posicionales** (`u2-3`): una prueba dorada vigila que no cambien; reordenar exigiría ids explícitos y migrar lo guardado.
+- Con la pestaña abierta pasada la **medianoche**, racha y meta muestran los de ayer hasta el siguiente cambio; un reloj adelantado congela la racha. Falta una regla de ESLint que prohíba `new Date()` sin argumentos en `core`.
+- El **bloqueo por avance** es solo de interfaz: `#/leccion/u1-4` abre una lección bloqueada por la dirección.
+- El repaso por tecla mezcla milisegundos de micrófono y de teclado; las vecinas se añaden solo hasta tener 3 notas distintas (el plan decía «×3 + vecinas»).
+- Títulos de lección fijos en notación latina aunque se elija la americana; `document.title` no lleva el título de la lección; el nodo «hecha» no muestra su título (solo estrellas); el bloqueo por entrada no tiene texto visible en el nodo.
+- Pruebas de accesibilidad automáticas (`@axe-core/playwright`) en las e2e: pendientes (dependencia nueva).
+- Aplazado por Kevin a otra fase: logros, calendario, tema B (sobrio) intercambiable, cuentas y nube.

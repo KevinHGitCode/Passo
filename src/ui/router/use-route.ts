@@ -57,6 +57,14 @@ export function useRouteAnnouncer(route: Route): void {
     announced.current = key;
     if (before === null || before === key) return;
     document.querySelector<HTMLElement>('[data-route-heading]')?.focus({ preventScroll: true });
+    // Cada pantalla empieza arriba (el camino se centra solo en tu lección).
+    if (route.name !== 'camino') {
+      try {
+        window.scrollTo(0, 0);
+      } catch {
+        // Sin desplazamiento (entornos sin ventana real): no pasa nada.
+      }
+    }
     // Solo cuando cambia la pantalla (la clave), no por la identidad del objeto.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);

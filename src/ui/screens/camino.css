@@ -241,3 +241,20 @@
     font-size: 19px;
   }
 }
+
+.camino__input {
+  margin: -8px 0 0;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.link-button {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--accent-strong);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}

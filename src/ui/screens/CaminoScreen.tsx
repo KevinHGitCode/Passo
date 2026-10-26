@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { CSSProperties } from 'react';
 import type { ProgressService } from '@/core/application/progress-service';
 import { LESSONS, UNITS, currentLesson, lessonAccessMap, playBlock } from '@/core/domain/lessons';
@@ -21,6 +21,7 @@ import { LessonNode } from '../game/LessonNode';
 import type { NodeState } from '../game/LessonNode';
 import type { StarCount } from '../game/Stars';
 import { hrefOf, lessonRoute } from '../router/routes';
+import { inputName } from './lesson-live';
 import './camino.css';
 
 /** Cuánto se desvía cada nodo a un lado (en píxeles): una ola suave. */
@@ -55,6 +56,8 @@ export interface CaminoScreenProps {
 interface Explanation {
   readonly text: string;
   readonly settings: boolean;
+  /** La entrada con la que se explicó: si cambia, la explicación ya no vale. */
+  readonly play: PlayContext;
 }
 
 function nodeStateOf(
@@ -275,11 +278,13 @@ function UnitSection({
             </h2>
             <p className="unit__summary">{unit.summary}</p>
           </div>
-          <p
-            className="unit__count"
-            aria-label={`${done} de ${unit.lessons.length} lecciones hechas`}
-          >
-            {done}/{unit.lessons.length}
+          <p className="unit__count">
+            <span aria-hidden="true">
+              {done}/{unit.lessons.length}
+            </span>
+            <span className="sr-only">
+              {done} de {unit.lessons.length} lecciones hechas
+            </span>
           </p>
         </header>
         <ol className="path">
@@ -327,12 +332,24 @@ function UnitSection({
 export function CaminoScreen({ progress, play, notation, onOpenSettings }: CaminoScreenProps) {
   const { state, saved } = useSyncExternalStore(progress.subscribe, progress.getSnapshot);
   const [explanation, setExplanation] = useState<Explanation | null>(null);
+  const noteRef = useRef<HTMLDivElement>(null);
   const today = progress.today();
   const access = lessonAccessMap(starsOf(state));
   const current = currentLesson(access, starsOf(state));
   const firstVisit = Object.keys(state.lessons).length === 0;
   const streak = currentStreak(state, today);
   const practicedToday = (state.daily[today]?.lessons ?? 0) > 0;
+  const source = play.sources.length === 1 ? (play.sources[0] ?? null) : null;
+
+  // Al abrir el camino se centra tu lección (con 30 lecciones, si no, siempre empezarías arriba).
+  useEffect(() => {
+    document.querySelector('.game-node--actual')?.scrollIntoView?.({ block: 'center' });
+  }, []);
+
+  // La explicación de un bloqueo se ve aunque esté lejos del nodo (y caduca si cambia la entrada).
+  useEffect(() => {
+    if (explanation) noteRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [explanation]);
 
   return (
     <div className="camino" data-testid="camino">
@@ -340,6 +357,12 @@ export function CaminoScreen({ progress, play, notation, onOpenSettings }: Camin
         <h1 id="camino-titulo" tabIndex={-1} data-route-heading>
           Aprender
         </h1>
+        <p className="camino__input" data-testid="camino-entrada">
+          Tocas con: <strong>{inputName(source)}</strong>{' '}
+          <button type="button" className="link-button" onClick={onOpenSettings}>
+            Cambiar
+          </button>
+        </p>
         <div className="camino__chips">
           <Chips
             streak={streak}
@@ -353,8 +376,8 @@ export function CaminoScreen({ progress, play, notation, onOpenSettings }: Camin
             Aquí no se guarda tu progreso: solo dura mientras tengas esta pestaña abierta.
           </p>
         ) : null}
-        {explanation ? (
-          <div className="camino__note" role="status" data-testid="explicacion">
+        {explanation && explanation.play === play ? (
+          <div className="camino__note" role="status" data-testid="explicacion" ref={noteRef}>
             <p>{explanation.text}</p>
             {explanation.settings ? (
               <GameButton variant="secondary" onClick={onOpenSettings}>
@@ -373,7 +396,7 @@ export function CaminoScreen({ progress, play, notation, onOpenSettings }: Camin
               current={current}
               play={play}
               firstVisit={firstVisit}
-              onExplain={(text, settings) => setExplanation({ text, settings })}
+              onExplain={(text, settings) => setExplanation({ text, settings, play })}
             />
           ))}
         </ol>

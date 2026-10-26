@@ -131,7 +131,7 @@ describe('el camino · con progreso', () => {
   it('cada unidad cuenta cuántas lecciones lleva', () => {
     setup({ seed });
     const count = document.querySelector('[data-unit="u1"] .unit__count');
-    expect(count?.getAttribute('aria-label')).toBe('2 de 4 lecciones hechas');
+    expect(count?.textContent).toContain('2 de 4 lecciones hechas');
   });
 
   it('la racha, la meta de hoy y el nivel salen del progreso', () => {
@@ -256,5 +256,50 @@ describe('el camino · sin almacenamiento', () => {
       />,
     );
     expect(screen.getByTestId('no-guarda').textContent).toContain('no se guarda');
+  });
+});
+
+describe('el camino · entrada, centrado y explicaciones', () => {
+  it('dice con qué se toca y ofrece cambiarlo', () => {
+    const { onOpenSettings } = setup({ seed: null });
+    expect(screen.getByTestId('camino-entrada').textContent).toContain('Tocas con: Teclado del PC');
+    fireEvent.click(
+      within(screen.getByTestId('camino-entrada')).getByRole('button', { name: 'Cambiar' }),
+    );
+    expect(onOpenSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it('con varias entradas (modo de desarrollo) lo dice', () => {
+    setup({ seed: null, play: { sources: ['microfono', 'teclado-pc'], polyphonicMic: false } });
+    expect(screen.getByTestId('camino-entrada').textContent).toContain('Varias entradas');
+  });
+
+  it('al abrirse centra tu lección en la pantalla', () => {
+    const calls: Element[] = [];
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element) {
+      calls.push(this);
+    };
+    try {
+      setup({ seed: { lessons: { 'u1-1': { stars: 3 }, 'u1-2': { stars: 1 } } } });
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+    expect(calls.some((el) => el.classList.contains('game-node--actual'))).toBe(true);
+  });
+
+  it('la explicación de un nodo bloqueado caduca si cambia la entrada', () => {
+    cleanup();
+    const progress = new ProgressService(
+      new FakeProgressStore(stored({ lessons: UP_TO_FIVE })),
+      new FakeCalendar(TODAY),
+    );
+    const props = { progress, notation: 'latina' as const, onOpenSettings: vi.fn() };
+    const { rerender } = render(<CaminoScreen {...props} play={MIC} />);
+    fireEvent.click(within(node('u6-1')).getByRole('button'));
+    expect(screen.getByTestId('explicacion')).toBeTruthy();
+    // Cambiar de entrada (otro contexto) borra lo que se explicó para la anterior.
+    rerender(<CaminoScreen {...props} play={{ sources: ['teclado-pc'], polyphonicMic: false }} />);
+    expect(screen.queryByTestId('explicacion')).toBeNull();
   });
 });

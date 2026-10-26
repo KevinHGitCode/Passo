@@ -131,3 +131,27 @@
 .game-shell--focus {
   grid-template-columns: minmax(0, 1fr);
 }
+
+/* «Saltar al contenido»: invisible hasta que recibe el foco con el tabulador. */
+.skip-link {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 30;
+  padding: 10px 16px;
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--accent-strong);
+  font: 800 14px var(--font-display);
+  transform: translateY(-200%);
+}
+.skip-link:focus {
+  transform: none;
+}
+.game-main:focus {
+  outline: none;
+}
+.game-main h1 {
+  width: fit-content;
+}

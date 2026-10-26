@@ -227,6 +227,11 @@ export function SettingsPanel({
 
         <fieldset className="settings-group">
           <legend>Cómo toco</legend>
+          {lessonActive && (
+            <p className="settings-group__note" data-testid="lesson-input-note">
+              Si cambias de entrada, la lección vuelve a empezar.
+            </p>
+          )}
           {inputManager === undefined && (
             <p className="settings-group__note" data-testid="input-dev-note">
               Modo de desarrollo: las entradas vienen de la dirección (<code>?pc</code>,{' '}

@@ -255,3 +255,41 @@ describe('el micrófono solo escucha donde hay pantalla que lo use', () => {
     expect(stops()).toBe(0);
   });
 });
+
+describe('accesibilidad del marco', () => {
+  it('hay un «Saltar al contenido» que lleva el foco al contenido', () => {
+    setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Saltar al contenido' }));
+    expect(document.activeElement?.id).toBe('contenido');
+  });
+
+  it('también en la lección (pantalla completa)', () => {
+    setup({ hash: '#/leccion/u1-1' });
+    fireEvent.click(screen.getByRole('button', { name: 'Saltar al contenido' }));
+    expect(document.activeElement?.id).toBe('contenido');
+  });
+
+  it('en una lección los ajustes avisan de que cambiar de entrada reinicia', () => {
+    const { lessonFlow } = setup({ hash: '#/' });
+    act(() => lessonFlow.prepare('u1-1'));
+    fireEvent.click(screen.getByTestId('settings-button'));
+    expect(screen.getByTestId('lesson-input-note').textContent).toContain('vuelve a empezar');
+  });
+
+  it('fuera de una lección ese aviso no sale', () => {
+    setup();
+    fireEvent.click(screen.getByTestId('settings-button'));
+    expect(screen.queryByTestId('lesson-input-note')).toBeNull();
+  });
+
+  it('cada pantalla nueva empieza arriba del todo, salvo el camino (que centra tu lección)', () => {
+    const { go } = setup();
+    const scrollTo = vi.fn();
+    window.scrollTo = scrollTo as unknown as typeof window.scrollTo;
+    go('#/progreso');
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+    scrollTo.mockClear();
+    go('#/');
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+});

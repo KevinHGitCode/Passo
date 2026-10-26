@@ -99,6 +99,15 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
   const lessonActive = useSyncExternalStore(lessonFlow.subscribe, lessonFlow.isActive);
   const play = usePlayContext(preferences, inputManager, inputs);
 
+  const skipToContent = (
+    <button
+      type="button"
+      className="skip-link"
+      onClick={() => document.getElementById('contenido')?.focus({ preventScroll: false })}
+    >
+      Saltar al contenido
+    </button>
+  );
   const gear = (
     <SettingsButton open={settings.open} onToggle={settings.toggle} buttonRef={gearRef} />
   );
@@ -128,7 +137,8 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
   if (route.name === 'leccion') {
     return (
       <div className="game game-shell game-shell--focus" data-testid="game-shell">
-        <main className="game-main game-main--lesson" id="contenido">
+        {skipToContent}
+        <main className="game-main game-main--lesson" id="contenido" tabIndex={-1}>
           {screen}
         </main>
         {panel}
@@ -141,6 +151,7 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
       className={`game game-shell${narrow ? ' game-shell--narrow' : ''}`}
       data-testid="game-shell"
     >
+      {skipToContent}
       {narrow ? (
         <header className="game-top">
           <a className="game-brand" href={hrefOf(CAMINO)}>
@@ -157,7 +168,7 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
           <div className="game-side__foot">{gear}</div>
         </aside>
       )}
-      <main className="game-main" id="contenido">
+      <main className="game-main" id="contenido" tabIndex={-1}>
         {screen}
       </main>
       {narrow ? <GameNav route={route} bottom /> : null}

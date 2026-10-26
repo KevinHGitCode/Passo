@@ -11,6 +11,7 @@ import {
   parseProgress,
   serializeProgress,
   starsOf,
+  weekActivity,
 } from '@/core/domain/progress';
 import type { Progress } from '@/core/domain/progress';
 import { scoreLesson } from '@/core/domain/scoring';
@@ -266,5 +267,55 @@ describe('aplicar el resultado de una lección', () => {
     play(before, 'u2-1', PERFECT);
     expect(before).toEqual(EMPTY_PROGRESS);
     expect(Object.keys(before.lessons)).toHaveLength(0);
+  });
+});
+
+describe('actividad de la semana', () => {
+  const state: Progress = {
+    ...EMPTY_PROGRESS,
+    daily: {
+      '2026-10-26': { ms: 1000, lessons: 1 },
+      '2026-10-28': { ms: 1000, lessons: 2 },
+      '2026-10-30': { ms: 1000, lessons: 0 },
+    },
+  };
+
+  it('da los siete días de lunes a domingo, con los practicados marcados', () => {
+    const week = weekActivity(state, '2026-10-28');
+    expect(week.map((day) => day.day)).toEqual([
+      '2026-10-26',
+      '2026-10-27',
+      '2026-10-28',
+      '2026-10-29',
+      '2026-10-30',
+      '2026-10-31',
+      '2026-11-01',
+    ]);
+    expect(week.map((day) => day.practiced)).toEqual([
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+    ]);
+  });
+
+  it('marca hoy y los días que aún no llegaron', () => {
+    const week = weekActivity(state, '2026-10-28');
+    expect(week.map((day) => day.today)).toEqual([false, false, true, false, false, false, false]);
+    expect(week.map((day) => day.future)).toEqual([false, false, false, true, true, true, true]);
+  });
+
+  it('un domingo pertenece a la semana que empezó el lunes anterior', () => {
+    const week = weekActivity(state, '2026-11-01');
+    expect(week[0]?.day).toBe('2026-10-26');
+    expect(week[6]).toMatchObject({ day: '2026-11-01', today: true, future: false });
+  });
+
+  it('un día con tiempo pero sin lecciones no cuenta como practicado', () => {
+    const week = weekActivity(state, '2026-10-30');
+    expect(week[4]?.practiced).toBe(false);
   });
 });

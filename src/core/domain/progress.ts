@@ -1,4 +1,4 @@
-import { isValidDay } from './day';
+import { addDays, isValidDay, weekStart } from './day';
 import type { Attempt } from './exercise';
 import { addSamples, samplesOf, targetKey } from './key-stats';
 import type { KeyHistory, KeySample } from './key-stats';
@@ -223,6 +223,29 @@ export const starsOf =
 
 export function minutesOn(state: Progress, day: string): number {
   return (state.daily[day]?.ms ?? 0) / 60_000;
+}
+
+/** Un día de la semana en curso (de lunes a domingo) y si se practicó. */
+export interface WeekDay {
+  readonly day: string;
+  readonly practiced: boolean;
+  readonly today: boolean;
+  readonly future: boolean;
+}
+
+/** Los siete días de la semana de `today`, con los que tuvieron al menos una lección. */
+export function weekActivity(state: Progress, today: string): WeekDay[] {
+  const monday = weekStart(today);
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = addDays(monday, index);
+    return {
+      day,
+      practiced: (state.daily[day]?.lessons ?? 0) > 0,
+      today: day === today,
+      // Las fechas `AAAA-MM-DD` se ordenan como texto.
+      future: day > today,
+    };
+  });
 }
 
 export function currentStreak(state: Progress, today: string): number {

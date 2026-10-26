@@ -1,4 +1,5 @@
 import { addDays, isValidDay, weekStart } from './day';
+import { MAX_REACTION_MS } from './exercise';
 import type { Attempt } from './exercise';
 import { addSamples, samplesOf, targetKey } from './key-stats';
 import type { KeyHistory, KeySample } from './key-stats';
@@ -20,7 +21,7 @@ export const PROGRESS_VERSION = 1;
 
 /** Meta de práctica de cada día, en minutos de tiempo activo. */
 export const DAILY_GOAL_MINUTES = 5;
-/** Un repaso armado al momento da la mitad de experiencia: no se puede repetir para sumar sin fin. */
+/** Un repaso armado al momento da siempre la mitad de experiencia (se puede repetir; no es camino de XP). */
 const DYNAMIC_XP_FACTOR = 0.5;
 export const MAX_DAILY_DAYS = 90;
 export const MAX_HISTORY = 50;
@@ -360,18 +361,20 @@ export function applyResult(
     stars,
     accuracy: Math.max(previous?.accuracy ?? 0, accuracy),
     rhythm: Math.max(previous?.rhythm ?? 0, rhythm),
-    plays: previousPlays + 1,
+    // Una ronda sin llegar al 70 % no cuenta como jugada: no baja la experiencia de la primera vez.
+    plays: previousPlays + (score.stars >= 1 ? 1 : 0),
     day,
   };
 
   const playMs = attempts.reduce(
-    (sum, attempt) => sum + (attempt.isCorrect ? Math.max(0, attempt.reactionMs) : 0),
+    (sum, attempt) =>
+      sum + (attempt.isCorrect ? Math.min(MAX_REACTION_MS, Math.max(0, attempt.reactionMs)) : 0),
     0,
   );
   const today = state.daily[day];
   const daily: DayRecord = {
     ms: Math.min(MAX_DAY_MS, (today?.ms ?? 0) + Math.round(playMs)),
-    lessons: (today?.lessons ?? 0) + 1,
+    lessons: (today?.lessons ?? 0) + (score.stars >= 1 ? 1 : 0),
   };
 
   const streak = score.stars >= 1 ? advanceStreak(state.streak, day) : state.streak;

@@ -1,5 +1,5 @@
 import type { HistoryEntry } from '@/core/domain/progress';
-import { STAR_3_ACCURACY } from '@/core/domain/scoring';
+import { GOAL_ACCURACY } from '@/core/domain/scoring';
 
 const WIDTH = 400;
 const HEIGHT = 120;
@@ -28,7 +28,7 @@ export function AccuracyChart({ entries }: { readonly entries: readonly HistoryE
   const points = entries.map((entry, index) => ({ x: PAD + index * step, y: yOf(entry.accuracy) }));
   const first = entries[0];
   const last = entries[entries.length - 1];
-  const goalY = yOf(STAR_3_ACCURACY * 1000);
+  const goalY = yOf(GOAL_ACCURACY * 1000);
   return (
     <figure className="chart" data-testid="chart">
       <svg
@@ -37,7 +37,7 @@ export function AccuracyChart({ entries }: { readonly entries: readonly HistoryE
         role="img"
         aria-label={`Tu precisión pasó de ${Math.round((first?.accuracy ?? 0) / 10)} % a ${Math.round(
           (last?.accuracy ?? 0) / 10,
-        )} % en tus últimas ${entries.length} lecciones. La meta es ${Math.round(STAR_3_ACCURACY * 100)} %.`}
+        )} % en tus últimas ${entries.length} lecciones. La meta es ${Math.round(GOAL_ACCURACY * 100)} %.`}
       >
         <line className="chart__goal" x1={PAD} x2={WIDTH - PAD} y1={goalY} y2={goalY} />
         <polyline className="chart__line" points={points.map((p) => `${p.x},${p.y}`).join(' ')} />
@@ -53,7 +53,7 @@ export function AccuracyChart({ entries }: { readonly entries: readonly HistoryE
       </svg>
       <figcaption className="chart__caption">
         <span>Hace {entries.length} lecciones</span>
-        <span className="chart__goal-label">Meta {Math.round(STAR_3_ACCURACY * 100)} %</span>
+        <span className="chart__goal-label">Meta {Math.round(GOAL_ACCURACY * 100)} %</span>
         <span>Última · {Math.round((last?.accuracy ?? 0) / 10)} %</span>
       </figcaption>
     </figure>

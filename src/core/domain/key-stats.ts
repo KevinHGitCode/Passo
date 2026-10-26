@@ -1,3 +1,4 @@
+import { MAX_REACTION_MS } from './exercise';
 import type { Attempt } from './exercise';
 
 /**
@@ -23,8 +24,10 @@ export const MIN_SAMPLES = 5;
 export const DECAY = 0.85;
 /** Una tecla es débil si acierta a la primera menos de esto… */
 export const WEAK_ACCURACY = 0.8;
-/** …o si tarda más de esta vez su mediana global. */
+/** …o si tarda más de esta vez su mediana global… */
 export const WEAK_SLOWNESS = 1.5;
+/** …y además más de esto (ms) por encima: la latencia del micrófono no debe marcar teclas. */
+export const WEAK_SLOWNESS_MARGIN_MS = 600;
 /** Salida de «débil»: al menos 4 de los últimos 5 a la primera. */
 export const RECOVERY_WINDOW = 5;
 export const RECOVERY_HITS = 4;
@@ -48,7 +51,10 @@ export function samplesOf(attempts: readonly Attempt[]): { key: string; sample: 
     if (solved === undefined || first === undefined) continue;
     samples.push({
       key: targetKey(first.targetNotes),
-      sample: { ok: first.firstTryCorrect, ms: Math.max(0, Math.round(solved.reactionMs)) },
+      sample: {
+        ok: first.firstTryCorrect,
+        ms: Math.min(MAX_REACTION_MS, Math.max(0, Math.round(solved.reactionMs))),
+      },
     });
   }
   return samples;
@@ -132,13 +138,15 @@ export function weakKeys(history: KeyHistory): KeyStat[] {
         stat.samples >= MIN_SAMPLES &&
         // Fallar mucho se perdona al recuperarse; tardar mucho se ve en la mediana de la ventana.
         ((stat.accuracy < WEAK_ACCURACY && !stat.recovered) ||
-          (global > 0 && stat.medianMs > WEAK_SLOWNESS * global)),
+          (global > 0 &&
+            stat.medianMs > WEAK_SLOWNESS * global &&
+            stat.medianMs - global > WEAK_SLOWNESS_MARGIN_MS)),
     )
     .sort((a, b) => b.weight - a.weight || b.medianMs - a.medianMs);
 }
 
-/** Cuando casi nada es débil: las teclas más lentas (con al menos 3 muestras). */
-export function slowestKeys(history: KeyHistory, minSamples = 3): KeyStat[] {
+/** Cuando casi nada es débil: las teclas más lentas (con muestras suficientes para fiarse). */
+export function slowestKeys(history: KeyHistory, minSamples = MIN_SAMPLES): KeyStat[] {
   return keyStats(history)
     .filter((stat) => stat.samples >= minSamples)
     .sort((a, b) => b.medianMs - a.medianMs);
@@ -149,7 +157,8 @@ export type HeatLevel = 'fuerte' | 'buena' | 'media' | 'debil' | 'sin-datos';
 
 export const HEAT_STRONG = 0.95;
 export const HEAT_GOOD = 0.85;
-export const HEAT_MID = 0.7;
+/** Coincide con lo que cuenta como «débil»: por debajo, la tecla sale roja y en «Puntos débiles». */
+export const HEAT_MID = WEAK_ACCURACY;
 
 /** Con menos de `MIN_SAMPLES` muestras la tecla sale gris («sin datos»), no roja. */
 export function heatLevel(stat: KeyStat): HeatLevel {

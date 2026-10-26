@@ -212,7 +212,9 @@ describe('aplicar el resultado de una lección', () => {
     expect(state.lessons['u2-1']?.stars).toBe(0);
     expect(state.streak.count).toBe(0);
     expect(gains.streak).toBe(0);
-    expect(state.daily[DAY]?.lessons).toBe(1);
+    // No cuenta como lección jugada ni del día, pero el tiempo sí.
+    expect(state.lessons['u2-1']?.plays).toBe(0);
+    expect(state.daily[DAY]?.lessons).toBe(0);
     expect(minutesOn(state, DAY)).toBeGreaterThan(0);
     expect(starsOf(state)('u2-1')).toBe(0);
   });
@@ -354,5 +356,28 @@ describe('resumen del progreso', () => {
     expect(summary.lessons).toBe(10);
     expect(summary.totalMs).toBe(90_000);
     expect(summary.practiceDays).toBe(1);
+  });
+});
+
+describe('una ronda fallida no resta experiencia a la primera aprobada', () => {
+  it('suspender y luego pasar da toda la experiencia de la primera vez', () => {
+    const failing = steady(10, 1000, { notes: [60] }).map((spec, i) => ({
+      ...spec,
+      firstTry: i >= 5,
+    }));
+    const first = play(EMPTY_PROGRESS, 'u2-1', failing);
+    expect(first.state.lessons['u2-1']?.plays).toBe(0);
+    const second = play(first.state, 'u2-1', PERFECT);
+    // 10 objetivos × 10 + 3 estrellas nuevas × 10, sin el 50 % de «repetir».
+    expect(second.gains.xp).toBe(130);
+    expect(second.state.lessons['u2-1']?.plays).toBe(1);
+  });
+
+  it('un objetivo que tardó una eternidad no infla el tiempo del día', () => {
+    const { state } = play(EMPTY_PROGRESS, 'u2-1', [
+      ...steady(9, 1000, { notes: [60] }),
+      { notes: [60], ms: 3_600_000 },
+    ]);
+    expect(state.daily[DAY]?.ms).toBe(9 * 1000 + 10_000);
   });
 });

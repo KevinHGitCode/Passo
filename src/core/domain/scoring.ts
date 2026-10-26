@@ -1,4 +1,4 @@
-import { summarizeRound } from './exercise';
+import { MAX_REACTION_MS, summarizeRound } from './exercise';
 import type { Attempt, RoundSummary } from './exercise';
 import type { Lesson, LessonKind } from './lessons';
 import type { InputSource } from './note-event';
@@ -18,8 +18,17 @@ export const STAR_2_ACCURACY: Readonly<Record<LessonKind, number>> = {
   repaso: 0.9,
   prueba: 0.9,
 };
-/** Precisión para la 3.ª estrella (junto con el ritmo). */
-export const STAR_3_ACCURACY = 0.95;
+/**
+ * Precisión para la 3.ª estrella (junto con el ritmo): deja un fallo por ronda (9 de 10, 13 de 14,
+ * 19 de 20). Con 10 o 14 objetivos un 95 % obligaría a no fallar nunca.
+ */
+export const STAR_3_ACCURACY: Readonly<Record<LessonKind, number>> = {
+  nueva: 0.9,
+  repaso: 0.92,
+  prueba: 0.95,
+};
+/** La meta general que se enseña de referencia (la gráfica del progreso). */
+export const GOAL_ACCURACY = 0.95;
 
 /** Con el micrófono la detección añade latencia por nota: la meta de ritmo se relaja. */
 export const MIC_RHYTHM_FACTOR = 0.9;
@@ -74,7 +83,10 @@ export function measureRhythm(attempts: readonly Attempt[]): {
   readonly activeMs: number;
 } {
   const solved = attempts.filter((attempt) => attempt.isCorrect && attempt.targetIndex > 0);
-  const activeMs = solved.reduce((sum, attempt) => sum + Math.max(0, attempt.reactionMs), 0);
+  const activeMs = solved.reduce(
+    (sum, attempt) => sum + Math.min(MAX_REACTION_MS, Math.max(0, attempt.reactionMs)),
+    0,
+  );
   if (solved.length === 0 || activeMs <= 0) return { notesPerMinute: 0, activeMs };
   const notes = solved.reduce((sum, attempt) => sum + attempt.targetNotes.length, 0);
   return { notesPerMinute: (notes / activeMs) * 60_000, activeMs };
@@ -92,7 +104,7 @@ export function starsFor(input: {
   if (accuracy < STAR_2_ACCURACY[kind]) return 1;
   // En las pruebas la 3.ª estrella exige leer la nota (sin ayuda), no emparejar el color.
   const exam = kind !== 'prueba' || input.withoutHelp;
-  if (accuracy >= STAR_3_ACCURACY && input.rhythmMet && exam) return 3;
+  if (accuracy >= STAR_3_ACCURACY[kind] && input.rhythmMet && exam) return 3;
   return 2;
 }
 

@@ -131,13 +131,29 @@ describe('teclas débiles', () => {
     expect(weakKeys(history).map((stat) => stat.key)).toEqual(['62', '60']);
   });
 
-  it('si casi nada es débil, ofrece las más lentas (con al menos 3 muestras)', () => {
+  it('una tecla lenta solo cuenta con un margen absoluto sobre la mediana (la latencia del micrófono no marca teclas)', () => {
+    // 1,6 veces la mediana, pero solo 300 ms por encima: no es débil.
+    const history: KeyHistory = {
+      '60': many(6, ok(500)),
+      '62': many(6, ok(500)),
+      '64': many(6, ok(500)),
+      '65': many(6, ok(800)),
+    };
+    expect(weakKeys(history)).toEqual([]);
+    // Con 1 s por encima sí.
+    expect(weakKeys({ ...history, '65': many(6, ok(1500)) }).map((stat) => stat.key)).toEqual([
+      '65',
+    ]);
+  });
+
+  it('si casi nada es débil, ofrece las más lentas (con al menos 5 muestras)', () => {
     const history: KeyHistory = {
       '60': many(6, ok(900)),
       '62': many(6, ok(1800)),
-      '64': many(2, ok(9000)),
+      '64': many(4, ok(9000)),
     };
     expect(slowestKeys(history).map((stat) => stat.key)).toEqual(['62', '60']);
+    expect(slowestKeys(history, 3).map((stat) => stat.key)[0]).toBe('64');
   });
 });
 

@@ -128,7 +128,7 @@ describe('progreso · con datos', () => {
   it('hay una lista equivalente con los mismos datos para lectores de pantalla', () => {
     setup(seed);
     const list = screen.getByTestId('heat-list');
-    expect(within(list).getByText(/Re4: \d+ % \(menos de 70 %\)/)).toBeTruthy();
+    expect(within(list).getByText(/Re4: \d+ % \(menos de 80 %\)/)).toBeTruthy();
     expect(within(list).getByText(/Do4: \d+ % \(95 % o más\)/)).toBeTruthy();
   });
 

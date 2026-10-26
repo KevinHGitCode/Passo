@@ -32,8 +32,8 @@ describe('qué repasar', () => {
     expect(selectReview({ '60': many(2, miss()) })).toBeNull();
   });
 
-  it('con 3 o 4 muestras no se juzga débil, pero puede ofrecerse como lenta', () => {
-    expect(selectReview({ '60': many(4, miss()) })?.reason).toBe('lentas');
+  it('con menos de 5 muestras no se juzga ni débil ni lenta', () => {
+    expect(selectReview({ '60': many(4, miss()) })).toBeNull();
   });
 
   it('con dos o más débiles, repasa las débiles (como máximo cuatro)', () => {

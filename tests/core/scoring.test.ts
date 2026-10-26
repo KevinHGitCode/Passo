@@ -2,6 +2,8 @@ import { findLesson } from '@/core/domain/lessons';
 import type { Lesson } from '@/core/domain/lessons';
 import {
   MAX_LEVEL,
+  GOAL_ACCURACY,
+  STAR_3_ACCURACY,
   MIC_GROUP_RHYTHM_FACTOR,
   MIC_RHYTHM_FACTOR,
   baseXpOf,
@@ -44,10 +46,23 @@ describe('estrellas', () => {
     expect(starsFor({ ...base, kind: 'prueba', accuracy: 0.9 })).toBe(2);
   });
 
-  it('la 3.ª estrella pide 95 % y el ritmo objetivo', () => {
-    expect(starsFor({ ...base, kind: 'nueva', accuracy: 0.949 })).toBe(2);
-    expect(starsFor({ ...base, kind: 'nueva', accuracy: 0.95 })).toBe(3);
+  it('la 3.ª estrella pide el ritmo objetivo y deja un fallo por ronda según el tipo', () => {
+    // Nueva (10 objetivos): 90 % = un fallo. Repaso (14): 92 % = un fallo. Prueba (20): 95 % = un fallo.
+    expect(starsFor({ ...base, kind: 'nueva', accuracy: 0.899 })).toBe(2);
+    expect(starsFor({ ...base, kind: 'nueva', accuracy: 0.9 })).toBe(3);
+    expect(starsFor({ ...base, kind: 'repaso', accuracy: 0.919 })).toBe(2);
+    expect(starsFor({ ...base, kind: 'repaso', accuracy: 0.92 })).toBe(3);
+    expect(starsFor({ ...base, kind: 'prueba', accuracy: 0.949 })).toBe(2);
+    expect(starsFor({ ...base, kind: 'prueba', accuracy: 0.95 })).toBe(3);
     expect(starsFor({ ...base, kind: 'nueva', accuracy: 1, rhythmMet: false })).toBe(2);
+  });
+
+  it('con las rondas reales, un solo fallo no cierra la 3.ª estrella', () => {
+    const miss = (total: number, kind: 'nueva' | 'repaso' | 'prueba') =>
+      starsFor({ kind, accuracy: (total - 1) / total, rhythmMet: true, withoutHelp: true });
+    expect(miss(10, 'nueva')).toBe(3);
+    expect(miss(14, 'repaso')).toBe(3);
+    expect(miss(20, 'prueba')).toBe(3);
   });
 
   it('en las pruebas la 3.ª estrella exige tocar sin ayuda', () => {
@@ -200,5 +215,19 @@ describe('nivel de pianista', () => {
     expect(pianistLevel(Number.NaN).level).toBe(1);
     expect(pianistLevel(Number.POSITIVE_INFINITY).level).toBe(1);
     expect(pianistLevel(100.9).level).toBe(2);
+  });
+});
+
+describe('tope del tiempo de reacción', () => {
+  it('un objetivo que «tarda» minutos (móvil bloqueado, distracción) cuenta como 10 s como mucho', () => {
+    const attempts = round([{ ms: 1000 }, { ms: 1000 }, { ms: 300_000 }]);
+    const { activeMs, notesPerMinute } = measureRhythm(attempts);
+    expect(activeMs).toBe(1000 + 10_000);
+    expect(notesPerMinute).toBeCloseTo((2 / 11_000) * 60_000, 6);
+  });
+
+  it('la meta general de referencia sigue siendo el 95 %', () => {
+    expect(GOAL_ACCURACY).toBe(0.95);
+    expect(STAR_3_ACCURACY.prueba).toBe(0.95);
   });
 });

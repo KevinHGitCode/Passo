@@ -7,6 +7,12 @@ import type { Rng } from './rng';
 import { closestTargetNote, sameTarget } from './target';
 import type { Target } from './target';
 
+/**
+ * Tope del tiempo de reacción que cuenta para puntuar (ritmo, tiempo del día, lentitud por tecla): un
+ * móvil bloqueado a media ronda no debe contar minutos como si fueran lo que tardaste en una nota.
+ */
+export const MAX_REACTION_MS = 10_000;
+
 export const DEFAULT_ROUND_SIZE = 20;
 /** Una tercera o un acorde cuesta más que una nota: rondas más cortas. */
 export const GROUP_ROUND_SIZE = 12;
@@ -31,6 +37,11 @@ export interface RoundConfig {
   readonly level: number;
   readonly pool: readonly Target[];
   readonly roundSize: number;
+  /**
+   * Cobertura: antes de repetir una nota salen todas las del conjunto (una «bolsa» barajada), así
+   * una ronda corta no se deja notas sin tocar. Solo en lecciones (no en la práctica libre).
+   */
+  readonly coverage?: boolean;
 }
 
 /** Configuración de una ronda para un modo y nivel, o `null` si ese nivel no existe. */
@@ -141,13 +152,45 @@ export type Outcome =
       readonly summary: RoundSummary;
     };
 
-/** Elige un objetivo del conjunto distinto del anterior (si el conjunto tiene más de uno). */
-export function pickTarget(pool: readonly Target[], previous: Target | null, rng: Rng): Target {
+const keyOf = (target: Target): string => target.notes.join('-');
+
+/**
+ * Las notas ya vistas en el ciclo actual de una ronda con cobertura: cuando han salido todas las
+ * distintas del conjunto, el ciclo vuelve a empezar. `order` es la sucesión de objetivos hasta ahora.
+ */
+function coverageSeen(
+  config: RoundConfig,
+  order: readonly string[],
+): ReadonlySet<string> | undefined {
+  if (!config.coverage) return undefined;
+  const distinct = new Set(config.pool.map(keyOf)).size;
+  const seen = new Set<string>();
+  for (const key of order) {
+    seen.add(key);
+    if (seen.size >= distinct) seen.clear();
+  }
+  return seen;
+}
+
+/**
+ * Elige un objetivo del conjunto distinto del anterior (si el conjunto tiene más de uno). Con `seen`
+ * prefiere los que aún no han salido en el ciclo.
+ */
+export function pickTarget(
+  pool: readonly Target[],
+  previous: Target | null,
+  rng: Rng,
+  seen?: ReadonlySet<string>,
+): Target {
   if (pool.length === 0) throw new RangeError('El conjunto de objetivos está vacío');
-  const candidates =
+  let candidates =
     pool.length > 1
       ? pool.filter((target) => previous === null || !sameTarget(target, previous))
       : pool;
+  if (seen !== undefined && seen.size > 0) {
+    const fresh = candidates.filter((target) => !seen.has(keyOf(target)));
+    if (fresh.length > 0) candidates = fresh;
+  }
   const index = Math.min(Math.floor(rng() * candidates.length), candidates.length - 1);
   return candidates[index] as Target;
 }
@@ -162,12 +205,14 @@ function fillUpcoming(
   config: RoundConfig,
   completedTargets: number,
   rng: Rng,
+  solved: readonly string[] = [],
 ): readonly Target[] {
   const wanted = Math.max(0, Math.min(UPCOMING_COUNT, config.roundSize - completedTargets - 1));
   const upcoming = queue.slice(0, wanted);
   let previous = upcoming[upcoming.length - 1] ?? current;
   while (upcoming.length < wanted) {
-    previous = pickTarget(config.pool, previous, rng);
+    const order = [...solved, keyOf(current), ...upcoming.map(keyOf)];
+    previous = pickTarget(config.pool, previous, rng, coverageSeen(config, order));
     upcoming.push(previous);
   }
   return upcoming;
@@ -345,12 +390,17 @@ export function evaluate(
   }
 
   const [queued, ...rest] = state.upcoming;
-  const target = queued ?? pickTarget(state.config.pool, state.target, context.rng);
+  const solved = attempts
+    .filter((item) => item.isCorrect)
+    .map((item) => item.targetNotes.join('-'));
+  const target =
+    queued ??
+    pickTarget(state.config.pool, state.target, context.rng, coverageSeen(state.config, solved));
   return {
     state: {
       ...state,
       target,
-      upcoming: fillUpcoming(target, rest, state.config, completedTargets, context.rng),
+      upcoming: fillUpcoming(target, rest, state.config, completedTargets, context.rng, solved),
       held: [],
       wrongGroup: null,
       shownAt: context.now ?? event.at,

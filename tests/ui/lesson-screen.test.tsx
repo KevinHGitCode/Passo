@@ -104,7 +104,7 @@ describe('lección · antes de empezar', () => {
     const intro = screen.getByTestId('lesson-intro');
     expect(intro.textContent).toContain('Lección nueva');
     expect(intro.textContent).toContain('10 notas');
-    expect(intro.textContent).toContain('3.ª estrella: 95 % y 12 notas/min');
+    expect(intro.textContent).toContain('3.ª estrella: 90 % y 12 notas/min');
     expect(screen.getByTestId('start')).toBeTruthy();
     expect(flow.getSnapshot().status).toBe('lista');
     expect(session.getSnapshot().phase).toBe('inactiva');
@@ -131,7 +131,7 @@ describe('lección · antes de empezar', () => {
     setup();
     expect(screen.getByTestId('stat-accuracy').textContent).toContain('—');
     expect(screen.getByTestId('stat-rhythm').textContent).toContain('—');
-    expect(screen.getByTestId('stat-goal').textContent).toContain('95 % y 12 notas/min');
+    expect(screen.getByTestId('stat-goal').textContent).toContain('90 % y 12 notas/min');
   });
 
   it('con el teclado del PC dice qué teclas tocar (mano izquierda en esta lección)', () => {
@@ -389,7 +389,7 @@ describe('lección · el resultado', () => {
     expect(session.getSnapshot().phase).toBe('completada');
     expect(screen.getByRole('img', { name: '2 de 3 estrellas' })).toBeTruthy();
     expect(screen.getByTestId('result-retry').textContent).toBe('Repetir para la 3.ª ★');
-    expect(screen.getByTestId('result').textContent).toContain('Para la 3.ª ★: 95 %');
+    expect(screen.getByTestId('result').textContent).toContain('Para la 3.ª ★: 90 %');
   });
 
   it('el ritmo mejor se celebra solo si ya se había jugado antes', () => {

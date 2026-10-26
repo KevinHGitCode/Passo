@@ -39,12 +39,12 @@ describe('marcas en vivo', () => {
 
 describe('textos de la lección', () => {
   it('la meta de la 3.ª estrella suma el ritmo cuando la lección lo pide', () => {
-    expect(thirdStarGoalText(lesson('u1-1'), 'teclado-pc')).toBe('95 %');
-    expect(thirdStarGoalText(lesson('u2-1'), 'teclado-pc')).toBe('95 % y 12 notas/min');
+    expect(thirdStarGoalText(lesson('u1-1'), 'teclado-pc')).toBe('90 %');
+    expect(thirdStarGoalText(lesson('u2-1'), 'teclado-pc')).toBe('90 % y 12 notas/min');
   });
 
   it('con el micrófono la meta de ritmo baja (× 0,9)', () => {
-    expect(thirdStarGoalText(lesson('u2-1'), 'microfono')).toBe('95 % y 11 notas/min');
+    expect(thirdStarGoalText(lesson('u2-1'), 'microfono')).toBe('90 % y 11 notas/min');
   });
 
   it('en una prueba pide leer la nota sin ayuda', () => {

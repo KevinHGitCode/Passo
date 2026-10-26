@@ -60,7 +60,8 @@ export function LessonResult({
   const percent = Math.round(score.accuracy * 100);
   const missed = score.summary.mostMissed;
   const slowest = score.summary.slowest;
-  const review = selectReview(state.keys) !== null && !lesson.dynamic;
+  // Solo se ofrece repasar cuando de verdad hay teclas débiles (no por ser «las más lentas»).
+  const review = selectReview(state.keys)?.reason === 'debiles' && !lesson.dynamic;
   const nextStar = score.stars >= 3 ? null : score.stars + 1;
   const wasBest = gains.bestRhythm && gains.previousPlays > 0;
 
@@ -100,7 +101,7 @@ export function LessonResult({
               </p>
               {score.stars < 3 && !lesson.dynamic ? (
                 <p className="result-card__note">
-                  Para la 3.ª ★: {Math.round(STAR_3_ACCURACY * 100)} %
+                  Para la 3.ª ★: {Math.round(STAR_3_ACCURACY[lesson.kind] * 100)} %
                 </p>
               ) : null}
             </div>

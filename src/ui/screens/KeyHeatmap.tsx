@@ -14,8 +14,8 @@ const BLACK_HEIGHT = 74;
 const LEVEL_TEXT: Readonly<Record<HeatLevel, string>> = {
   fuerte: '95 % o más',
   buena: '85–94 %',
-  media: '70–84 %',
-  debil: 'menos de 70 %',
+  media: '80–84 %',
+  debil: 'menos de 80 %',
   'sin-datos': 'sin datos',
 };
 

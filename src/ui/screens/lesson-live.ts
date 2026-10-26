@@ -29,7 +29,7 @@ export function liveStats(attempts: readonly Attempt[], hits: number): LiveStats
 
 /** La meta de la 3.ª estrella, en una frase: «95 % y 14 notas/min», y en las pruebas «sin ayuda». */
 export function thirdStarGoalText(lesson: Lesson, source: InputSource | null): string {
-  const parts = [`${Math.round(STAR_3_ACCURACY * 100)} %`];
+  const parts = [`${Math.round(STAR_3_ACCURACY[lesson.kind] * 100)} %`];
   const rhythm = effectiveRhythmGoal(lesson, source);
   if (rhythm !== null) parts.push(`${Math.round(rhythm)} notas/min`);
   const text = parts.join(' y ');

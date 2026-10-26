@@ -139,6 +139,8 @@ describe('el camino · con progreso', () => {
     expect(screen.getByText('3 días seguidos')).toBeTruthy();
     const goal = screen.getByRole('progressbar', { name: 'Meta diaria: 2 de 5 minutos' });
     expect(goal.getAttribute('aria-valuenow')).toBe('2');
+    // En pantallas estrechas la meta va en una ficha arriba (la tarjeta lateral no cabe).
+    expect(screen.getByTestId('chip-meta').textContent).toBe('2 / 5 min hoy');
     expect(screen.getByText('Nivel 2 · Principiante')).toBeTruthy();
     expect(screen.getByRole('progressbar', { name: 'Experiencia hacia el nivel 3' })).toBeTruthy();
   });

@@ -49,6 +49,12 @@
 .chip--xp svg {
   color: var(--xp);
 }
+.chip--goal {
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 13px;
+}
 
 .camino__warn,
 .camino__note {

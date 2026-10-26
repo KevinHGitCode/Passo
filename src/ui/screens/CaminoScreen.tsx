@@ -74,10 +74,13 @@ function Chips({
   streak,
   today,
   xp,
+  minutes,
 }: {
   readonly streak: number;
   readonly today: boolean;
   readonly xp: number;
+  /** Minutos practicados hoy (para la meta del día en pantallas estrechas). */
+  readonly minutes: number;
 }) {
   return (
     <>
@@ -94,6 +97,11 @@ function Chips({
       <span className="chip chip--xp">
         <Icon name="bolt" size={18} />
         <span>{xp.toLocaleString('es')} XP</span>
+      </span>
+      <span className="chip chip--goal" data-testid="chip-meta">
+        <span>
+          {Math.min(DAILY_GOAL_MINUTES, Math.floor(minutes))} / {DAILY_GOAL_MINUTES} min hoy
+        </span>
       </span>
     </>
   );
@@ -333,7 +341,12 @@ export function CaminoScreen({ progress, play, notation, onOpenSettings }: Camin
           Aprender
         </h1>
         <div className="camino__chips">
-          <Chips streak={streak} today={practicedToday} xp={state.xp} />
+          <Chips
+            streak={streak}
+            today={practicedToday}
+            xp={state.xp}
+            minutes={minutesOn(state, today)}
+          />
         </div>
         {!saved ? (
           <p className="camino__warn" role="status" data-testid="no-guarda">

@@ -104,8 +104,10 @@ describe('el marco del juego', () => {
     expect(current()).toEqual(['Aprender']);
     go('#/progreso');
     expect(current()).toEqual(['Progreso']);
+    // Una lección ocupa toda la pantalla: no hay barra de navegación.
     go('#/leccion/u1-1');
-    expect(current()).toEqual(['Aprender']);
+    expect(current()).toEqual([]);
+    expect(screen.queryByRole('navigation', { name: 'Principal' })).toBeNull();
   });
 
   it('cada enlace lleva a su dirección', () => {

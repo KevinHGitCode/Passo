@@ -126,3 +126,8 @@
   outline: 3px solid var(--focus);
   outline-offset: 4px;
 }
+
+/* La lección ocupa toda la pantalla: sin barra lateral ni inferior. */
+.game-shell--focus {
+  grid-template-columns: minmax(0, 1fr);
+}

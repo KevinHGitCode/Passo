@@ -2,6 +2,7 @@ import { useEffect, useRef, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 import type { LessonFlow } from '@/core/application/lesson-flow';
 import type { ProgressService } from '@/core/application/progress-service';
+import type { PlayContext } from '@/core/domain/lessons';
 import { App } from '../App';
 import type { AppProps } from '../App';
 import { useIsNarrow, useSessionSnapshot } from '../practice/hooks';
@@ -32,13 +33,16 @@ const noop = (): void => undefined;
 function Screen({
   route,
   shell,
+  play,
+  gear,
   openSettings,
 }: {
   readonly route: Route;
   readonly shell: ShellProps;
+  readonly play: PlayContext;
+  readonly gear: ReactNode;
   readonly openSettings: () => void;
 }): ReactNode {
-  const play = usePlayContext(shell.preferences, shell.inputManager, shell.inputs);
   const { notation } = useSyncExternalStore(
     shell.preferences.subscribe,
     shell.preferences.getSnapshot,
@@ -53,8 +57,24 @@ function Screen({
           onOpenSettings={openSettings}
         />
       );
-    case 'leccion':
-      return <LessonScreen lessonId={route.lessonId} flow={shell.lessonFlow} />;
+    case 'leccion': {
+      // El micrófono solo cuenta si es una de las entradas con las que se toca ahora.
+      const microphone = play.sources.includes('microfono') ? shell.microphone : undefined;
+      return (
+        <LessonScreen
+          lessonId={route.lessonId}
+          flow={shell.lessonFlow}
+          session={shell.session}
+          progress={shell.progress}
+          play={play}
+          microphone={microphone}
+          canStartWithoutMic={play.sources.some((source) => source !== 'microfono')}
+          midi={shell.inputs.find((input) => input.source === 'midi')}
+          gear={gear}
+          onOpenSettings={openSettings}
+        />
+      );
+    }
     case 'progreso':
       return <ProgressScreen />;
     case 'practica':
@@ -76,10 +96,45 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
   const narrow = useIsNarrow(NARROW_MAX_WIDTH);
   const { phase } = useSessionSnapshot(session);
   const lessonActive = useSyncExternalStore(lessonFlow.subscribe, lessonFlow.isActive);
+  const play = usePlayContext(preferences, inputManager, inputs);
 
   const gear = (
     <SettingsButton open={settings.open} onToggle={settings.toggle} buttonRef={gearRef} />
   );
+  const screen = (
+    <Screen
+      route={route}
+      shell={shell}
+      play={play}
+      gear={gear}
+      openSettings={settings.open ? noop : settings.toggle}
+    />
+  );
+  const panel = (
+    <SettingsPanel
+      open={settings.open}
+      onClose={settings.close}
+      preferences={preferences}
+      inputs={inputs}
+      inputManager={inputManager}
+      microphone={microphone}
+      roundPaused={phase === 'pausada'}
+      lessonActive={lessonActive}
+    />
+  );
+
+  // Una lección ocupa toda la pantalla: sin barra lateral ni inferior (se sale con la X).
+  if (route.name === 'leccion') {
+    return (
+      <div className="game game-shell game-shell--focus" data-testid="game-shell">
+        <main className="game-main game-main--lesson" id="contenido">
+          {screen}
+        </main>
+        {panel}
+      </div>
+    );
+  }
+
   return (
     <div
       className={`game game-shell${narrow ? ' game-shell--narrow' : ''}`}
@@ -102,19 +157,10 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
         </aside>
       )}
       <main className="game-main" id="contenido">
-        <Screen route={route} shell={shell} openSettings={settings.open ? noop : settings.toggle} />
+        {screen}
       </main>
       {narrow ? <GameNav route={route} bottom /> : null}
-      <SettingsPanel
-        open={settings.open}
-        onClose={settings.close}
-        preferences={preferences}
-        inputs={inputs}
-        inputManager={inputManager}
-        microphone={microphone}
-        roundPaused={phase === 'pausada'}
-        lessonActive={lessonActive}
-      />
+      {panel}
     </div>
   );
 }

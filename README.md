@@ -3,7 +3,7 @@
 Aplicación para aprender piano corrigiendo al instante lo que no se te da bien.
 Nombre: **Passo** (paso a paso: no avanzas hasta que lo dominas).
 
-> Estado: **Fases 0, 1 y 2 completadas** (la Fase 1 es la escucha activa por micrófono; la Fase 2 añade terceras y acordes, manos, notas que caen y un panel de ajustes). Pendiente de validar con el piano real: `docs/validacion-microfono.md` (pasos 15–29 son de la Fase 2). Evidencias: `evidencias/fase-2/informe.md`. Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
+> Estado: **Fases 0, 1 y 2 completadas; Fase 3 (Passo como juego por niveles) en construcción** (la Fase 1 es la escucha activa por micrófono; la Fase 2 añade terceras y acordes, manos, notas que caen y un panel de ajustes). Pendiente de validar con el piano real: `docs/validacion-microfono.md` (pasos 15–29 son de la Fase 2). Evidencias: `evidencias/fase-2/informe.md`. Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
 
 ## Cómo se usa hoy
 
@@ -95,12 +95,13 @@ En código, las capas se agrupan en `core/` (dominio, aplicación, puertos), `ad
 | 0 | Prototipo: teclado en pantalla + MIDI + modo "toca esta nota" (**hecha**) | 2 semanas |
 | 1 | **Escucha activa:** detectar la nota que suena por el micrófono (el Yamaha E263 no tiene USB-MIDI) (**hecha**, falta validar con el piano real) | 3 semanas |
 | 2 | **Ajustes, terceras y acordes:** panel de ajustes (entrada: micrófono / MIDI / teclado del PC), terceras y acordes, manos y dedos, notas que caen | 4–5 semanas |
-| 3 | Núcleo de práctica: modos espera y estricto, niveles con negras, guardar progreso | 3 semanas |
-| 4 | Entrenamiento por oído: nota por oído e intervalos por oído | 3 semanas |
-| 5 | Ritmo: metrónomo y calificación de tiempo | 3 semanas |
-| 6 | Canciones: MusicXML/MIDI, partitura | 4–6 semanas |
-| 7 | Motor adaptativo: práctica por tramos, unión progresiva, subida de tempo | 3 semanas |
-| 8 | Pulido: estadísticas, cuentas y nube | continuo |
+| 3 | **Passo como juego (diseño «A» del mockup):** camino de unidades y lecciones, estrellas, XP, racha, progreso guardado y estadísticas por tecla | 4–5 semanas |
+| 4 | Núcleo de práctica: modos espera y estricto, niveles con negras | 3 semanas |
+| 5 | Entrenamiento por oído: nota por oído e intervalos por oído | 3 semanas |
+| 6 | Ritmo: metrónomo y calificación de tiempo | 3 semanas |
+| 7 | Canciones: MusicXML/MIDI, partitura | 4–6 semanas |
+| 8 | Motor adaptativo: práctica por tramos, unión progresiva, subida de tempo | 3 semanas |
+| 9 | Pulido: logros y calendario, **tema B (sobrio) intercambiable**, cuentas y nube | continuo |
 
 Archivado a petición de Kevin (se retoma cuando él lo pida): teclado completo en móvil y selector de micrófono. Ver [docs/archivado.md](docs/archivado.md).
 

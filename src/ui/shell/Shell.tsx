@@ -76,7 +76,7 @@ function Screen({
       );
     }
     case 'progreso':
-      return <ProgressScreen />;
+      return <ProgressScreen progress={shell.progress} notation={notation} />;
     case 'practica':
       return null;
   }

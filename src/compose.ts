@@ -2,6 +2,7 @@ import { WebAudioOutput } from '@/adapters/audio/web-audio-output';
 import type { AudioContextLike } from '@/adapters/audio/web-audio-output';
 import { ComputerKeyboardInput } from '@/adapters/keyboard/computer-keyboard-input';
 import type { KeyEventTarget } from '@/adapters/keyboard/computer-keyboard-input';
+import { LocalCalendar } from '@/adapters/calendar/local-calendar';
 import { MicrophoneInput } from '@/adapters/microphone/microphone-input';
 import type {
   MediaDevicesLike,
@@ -14,13 +15,17 @@ import {
   LocalStoragePreferencesStore,
   browserStorage,
 } from '@/adapters/storage/local-storage-preferences-store';
+import { LocalStorageProgressStore } from '@/adapters/storage/local-storage-progress-store';
 import { InputManager } from '@/core/application/input-manager';
 import { bindInputsToPreferences } from '@/core/application/input-sync';
+import { LessonFlow } from '@/core/application/lesson-flow';
 import { PracticeSession } from '@/core/application/practice-session';
 import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
+import { ProgressService } from '@/core/application/progress-service';
 import { isExerciseMode } from '@/core/domain/curriculum';
 import { roundConfigFor } from '@/core/domain/exercise';
+import type { PlayContext } from '@/core/domain/lessons';
 import { createSeededRng } from '@/core/domain/rng';
 import type { Rng } from '@/core/domain/rng';
 import type { Clock } from '@/core/ports/clock';
@@ -128,11 +133,32 @@ export function composeApp(search: string = window.location.search) {
     ...(devMode && useMic ? { primarySource: 'microfono' as const } : {}),
   });
 
-  // Notación, ayuda y ejercicio se recuerdan; `?modo=` fija el ejercicio sin guardarlo.
-  bindSessionToPreferences(session, preferences, { exercise: config === undefined });
+  // Progreso de la persona (experiencia, racha, lecciones): se guarda en el navegador.
+  const progress = new ProgressService(
+    new LocalStorageProgressStore(browserStorage()),
+    new LocalCalendar(),
+  );
 
   // Entrada elegida: solo esa escucha. Con el teclado del PC la app suena, y para eso hace falta un gesto.
   let inputManager: InputManager | undefined;
+
+  // Con qué se puede tocar ahora: la entrada elegida (en modo de desarrollo, todas las pedidas).
+  const playContext = (): PlayContext => {
+    const selected = inputManager?.getSnapshot().selected ?? null;
+    return {
+      sources: selected === null ? inputs.map((input) => input.source) : [selected],
+      polyphonicMic: preferences.getSnapshot().polyphonicMic,
+    };
+  };
+  const lessonFlow = new LessonFlow({ session, progress, playContext });
+
+  // Notación, ayuda y ejercicio se recuerdan; `?modo=` fija el ejercicio sin guardarlo. Una lección en
+  // curso manda sobre el ejercicio: al salir de ella se restaura el de las preferencias.
+  bindSessionToPreferences(session, preferences, {
+    exercise: config === undefined,
+    override: { isActive: lessonFlow.isActive, subscribe: lessonFlow.subscribe },
+  });
+
   if (!devMode) {
     const manager = new InputManager(inputs, preferences.getSnapshot().input);
     inputManager = manager;
@@ -148,6 +174,9 @@ export function composeApp(search: string = window.location.search) {
   return {
     session,
     preferences,
+    /** Progreso guardado y flujo de las lecciones (las usa el marco del camino). */
+    progress,
+    lessonFlow,
     inputs: inputs as readonly NoteInput[],
     /** `undefined` en el modo de desarrollo (`?pc`, `?midi`, `?mic=off`): allí valen las entradas pedidas. */
     inputManager,

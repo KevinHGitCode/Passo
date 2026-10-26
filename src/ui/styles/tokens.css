@@ -157,7 +157,9 @@
   }
 }
 
-:root[data-theme='oscuro'] {
+:root[data-theme='oscuro'],
+/* El escenario de tocar es siempre oscuro (como en el diseño), con el tema que sea. */
+.stage-dark {
   color-scheme: dark;
   --bg: #0e1218;
   --surface: #171c25;

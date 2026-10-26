@@ -4,11 +4,9 @@ import type { PracticeSession } from '@/core/application/practice-session';
 import { findLevel } from '@/core/domain/curriculum';
 import type { ExerciseMode } from '@/core/domain/curriculum';
 import type { RoundSummary } from '@/core/domain/exercise';
-import { octaveOf, pitchName } from '@/core/domain/note';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { NoteInput } from '@/core/ports/note-input';
 import type { NotationMode } from '@/core/domain/note';
-import type { Hand } from '@/core/domain/target';
 import { hintText } from '../listen/listen-messages';
 import { ListeningStrip } from '../listen/ListeningStrip';
 import { MicPanel } from '../listen/MicPanel';
@@ -16,7 +14,8 @@ import { liveMessage, pauseText, transpositionText, useBoardModel } from './boar
 import { formatSeconds } from './feedback-message';
 import type { FeedbackMessage } from './feedback-message';
 import { PracticeKeyboard } from './PracticeKeyboard';
-import { countLabel, notesText, promptText, targetDetail } from './target-text';
+import { TargetName } from './TargetName';
+import { countLabel, notesText, pcKeysText, promptText, targetDetail } from './target-text';
 import './practice.css';
 
 export interface PracticeScreenProps {
@@ -116,13 +115,6 @@ function Summary({
       </button>
     </section>
   );
-}
-
-/** Teclas del PC que hacen de piano: la fila de arriba (mano derecha) y la de abajo (mano izquierda). */
-function pcKeysText(hand: Hand): string {
-  return hand === 'izquierda'
-    ? 'Teclado del PC: Z X C V B N M = Do3 Re3 Mi3 Fa3 Sol3 La3 Si3 · A S D F = Do4 Re4 Mi4 Fa4'
-    : 'Teclado del PC: A S D F G H J K L ; = Do4 Re4 Mi4 Fa4 Sol4 La4 Si4 Do5 Re5 Mi5';
 }
 
 function welcomeTitle(mode: ExerciseMode): string {
@@ -236,36 +228,7 @@ export function PracticeScreen({
             <>
               <div className="target" data-testid="target">
                 <span className="target__label">{promptText(mode)}</span>
-                {targetNotes.length === 1 ? (
-                  <span
-                    className="target__name"
-                    data-testid="target-note"
-                    data-midi={targetNotes[0]}
-                    data-midis={targetNotes[0]}
-                  >
-                    {pitchName(targetNotes[0], notation)}
-                    <span className="target__octave">{octaveOf(targetNotes[0])}</span>
-                  </span>
-                ) : (
-                  <span
-                    className="target__name target__name--group"
-                    data-testid="target-note"
-                    data-midi={targetNotes[0]}
-                    data-midis={targetNotes.join(',')}
-                  >
-                    {targetNotes.map((note) => (
-                      <span
-                        key={note}
-                        className="target__chip"
-                        data-held={exercise.held.includes(note)}
-                      >
-                        {pitchName(note, notation)}
-                        <span className="target__octave">{octaveOf(note)}</span>
-                        {exercise.held.includes(note) && <span className="sr-only"> (tocada)</span>}
-                      </span>
-                    ))}
-                  </span>
-                )}
+                <TargetName notes={targetNotes} held={exercise.held} notation={notation} />
                 <span className="target__hint target__hint--keep" data-testid="target-detail">
                   {targetDetail(exercise.target, notation) ||
                     (help ? 'La tecla resaltada del teclado' : 'Búscala en el teclado')}

@@ -70,3 +70,8 @@ const TITLES: Readonly<Record<RouteName, string>> = {
 export function routeTitle(route: Route): string {
   return TITLES[route.name];
 }
+
+/** Cambia de pantalla (la dirección cambia y `hashchange` hace el resto). */
+export function navigate(route: Route): void {
+  window.location.hash = hrefOf(route);
+}

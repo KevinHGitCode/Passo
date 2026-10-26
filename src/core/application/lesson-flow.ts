@@ -28,6 +28,8 @@ export interface LessonOutcome {
 export interface LessonFlowSnapshot {
   readonly status: LessonStatus;
   readonly lessonId: string | null;
+  /** La lección preparada (también la que se arma al momento), o `null` si no hay. */
+  readonly lesson: Lesson | null;
   readonly outcome: LessonOutcome | null;
 }
 
@@ -43,7 +45,7 @@ export interface LessonFlowDeps {
   readonly resolveLesson?: (lessonId: string) => Lesson | null;
 }
 
-const FREE: LessonFlowSnapshot = { status: 'libre', lessonId: null, outcome: null };
+const FREE: LessonFlowSnapshot = { status: 'libre', lessonId: null, lesson: null, outcome: null };
 
 /**
  * El flujo de una lección: la prepara en la sesión, nota cuándo empieza y cuándo termina su ronda, la
@@ -81,6 +83,9 @@ export class LessonFlow {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   };
+
+  /** ¿Existe esta lección? (las del camino y el repaso que se arma al momento, si hay con qué). */
+  canOpen = (lessonId: string): boolean => this.resolveLesson(lessonId) !== null;
 
   /** Hay una lección en marcha: las preferencias no deben cambiar el ejercicio. */
   isActive = (): boolean => this.snapshot.status !== 'libre';
@@ -138,7 +143,7 @@ export class LessonFlow {
     this.config = lessonConfig(lesson);
     this.session.reset();
     this.session.configure(this.config);
-    this.set({ status: 'lista', lessonId: lesson.id, outcome: null });
+    this.set({ status: 'lista', lessonId: lesson.id, lesson, outcome: null });
   }
 
   /** La sesión cambió: ¿empezó la ronda de la lección, o se abandonó (p. ej. al cambiar de entrada)? */
@@ -164,6 +169,7 @@ export class LessonFlow {
     this.set({
       status: 'resultado',
       lessonId: lesson.id,
+      lesson,
       outcome: { lesson, score, gains, roundId },
     });
   }

@@ -5,6 +5,9 @@ import type { IconName } from './icons';
 
 export type AnswerTone = 'ok' | 'partial' | 'error';
 
+/** Atributos `data-*` opcionales (pruebas y animaciones). */
+type DataAttributes = { readonly [K in `data-${string}`]?: string | number };
+
 const ICONS: Readonly<Record<AnswerTone, IconName>> = {
   ok: 'check',
   partial: 'play',
@@ -27,8 +30,7 @@ export function AnswerBar({
   readonly title: string;
   readonly detail?: string | undefined;
   readonly actions?: ReactNode;
-  readonly 'data-testid'?: string;
-}) {
+} & DataAttributes) {
   return (
     <div className={`game-answer game-answer--${tone}`} data-tone={tone} {...rest}>
       <span className="game-answer__icon">

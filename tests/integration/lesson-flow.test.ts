@@ -108,7 +108,12 @@ describe('PracticeSession.subscribeRounds', () => {
 describe('LessonFlow', () => {
   it('empieza libre y no toca la sesión', () => {
     const { flow, session } = setup();
-    expect(flow.getSnapshot()).toEqual({ status: 'libre', lessonId: null, outcome: null });
+    expect(flow.getSnapshot()).toEqual({
+      status: 'libre',
+      lessonId: null,
+      lesson: null,
+      outcome: null,
+    });
     expect(flow.isActive()).toBe(false);
     expect(session.getSnapshot().level).toBe(1);
   });

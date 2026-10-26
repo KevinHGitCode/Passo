@@ -19,7 +19,8 @@ function block(selector: RegExp): Record<string, string> {
 }
 
 const LIGHT = block(/:root\s*\{([^}]*)\}/);
-const DARK = block(/:root\[data-theme='oscuro'\]\s*\{([^}]*)\}/);
+// El bloque comparte selector con `.stage-dark` (el escenario de tocar, siempre oscuro).
+const DARK = block(/:root\[data-theme='oscuro'\],[^{]*\{([^}]*)\}/);
 const DARK_AUTO = block(/:root:not\(\[data-theme='claro'\]\)\s*\{([^}]*)\}/);
 
 type Theme = Record<string, string>;

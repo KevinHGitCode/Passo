@@ -1,6 +1,7 @@
 import { summarizeRound } from './exercise';
 import type { Attempt, RoundSummary } from './exercise';
 import type { Lesson, LessonKind } from './lessons';
+import type { InputSource } from './note-event';
 
 /**
  * Puntuación de una lección (estilo typing.com): precisión a la primera, ritmo en notas por minuto,
@@ -53,6 +54,14 @@ export function rhythmFactor(attempts: readonly Attempt[], lesson: Lesson): numb
   const last = attempts[attempts.length - 1];
   if (last === undefined || last.inputSource !== 'microfono') return 1;
   return lesson.mode === 'notas' ? MIC_RHYTHM_FACTOR : MIC_GROUP_RHYTHM_FACTOR;
+}
+
+/** La meta de ritmo de una lección para una entrada (`null` si no se exige), ya relajada para el micrófono. */
+export function effectiveRhythmGoal(lesson: Lesson, source: InputSource | null): number | null {
+  if (lesson.rhythmGoal === null) return null;
+  if (source !== 'microfono') return lesson.rhythmGoal;
+  const factor = lesson.mode === 'notas' ? MIC_RHYTHM_FACTOR : MIC_GROUP_RHYTHM_FACTOR;
+  return lesson.rhythmGoal * factor;
 }
 
 /**

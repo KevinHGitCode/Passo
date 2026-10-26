@@ -56,3 +56,10 @@ export function targetDetail(target: Target, notation: NotationMode): string {
   if (target.fingers.length > 0) parts.push(fingersText(target.fingers));
   return parts.join(' · ');
 }
+
+/** Teclas del PC que hacen de piano: la fila de arriba (mano derecha) y la de abajo (mano izquierda). */
+export function pcKeysText(hand: Hand): string {
+  return hand === 'izquierda'
+    ? 'Teclado del PC: Z X C V B N M = Do3 Re3 Mi3 Fa3 Sol3 La3 Si3 · A S D F = Do4 Re4 Mi4 Fa4'
+    : 'Teclado del PC: A S D F G H J K L ; = Do4 Re4 Mi4 Fa4 Sol4 La4 Si4 Do5 Re5 Mi5';
+}

@@ -28,7 +28,7 @@ async function saveVideo(page: Page, fileName: string): Promise<void> {
 
 test('Fase 0 · ronda completa con el teclado del PC (video principal)', async ({ page }) => {
   await page.addInitScript(EMPTY_MIDI_SCRIPT);
-  await page.goto('/?seed=7&debug&pc&midi&mic=off');
+  await page.goto('/?seed=7&debug&pc&midi&mic=off#/practica');
   await expect(page.getByTestId('welcome')).toBeVisible();
   await expect(page.getByTestId('status-teclado-pc')).toContainText('Teclado del PC');
   await expect(page.getByTestId('status-midi')).toContainText('sin conectar');
@@ -134,7 +134,7 @@ test('Fase 0 · ronda completa con el teclado del PC (video principal)', async (
 
 test('Fase 0 · piano MIDI simulado: notas, desconexión y reanudación', async ({ page }) => {
   await page.addInitScript(FAKE_MIDI_SCRIPT);
-  await page.goto('/?seed=11&pc&midi&mic=off');
+  await page.goto('/?seed=11&pc&midi&mic=off#/practica');
   await expect(page.getByTestId('status-midi')).toContainText('Yamaha PSR-E263 (simulado)');
   await expect(page.getByTestId('status-midi')).toHaveAttribute('data-tone', 'ok');
   await capture(page, '10-midi-conectado');
@@ -191,7 +191,7 @@ test('Fase 0 · piano MIDI simulado: notas, desconexión y reanudación', async 
 
 test('Fase 0 · estados sin piano: permiso denegado y navegador sin MIDI', async ({ page }) => {
   await page.addInitScript(DENIED_MIDI_SCRIPT);
-  await page.goto('/?seed=3&pc&midi&mic=off');
+  await page.goto('/?seed=3&pc&midi&mic=off#/practica');
   await expect(page.getByTestId('status-midi')).toHaveAttribute('data-tone', 'warn');
   await expect(page.getByTestId('status-midi')).toContainText('bloqueó');
   await expect(page.getByRole('button', { name: 'Reintentar' })).toBeVisible();
@@ -204,7 +204,7 @@ test('Fase 0 · estados sin piano: permiso denegado y navegador sin MIDI', async
 
 test('Fase 0 · navegador sin Web MIDI', async ({ page }) => {
   await page.addInitScript(NO_MIDI_SCRIPT);
-  await page.goto('/?seed=3&pc&midi&mic=off');
+  await page.goto('/?seed=3&pc&midi&mic=off#/practica');
   await expect(page.getByTestId('status-midi')).toContainText('Chrome o Edge');
   await capture(page, '13-sin-soporte-midi');
 });
@@ -217,7 +217,7 @@ test('Fase 0 · accesibilidad visual: daltonismo y móvil', async ({ browser }) 
   });
   const page = await context.newPage();
   await page.addInitScript(EMPTY_MIDI_SCRIPT);
-  await page.goto('/?seed=7&pc&midi&mic=off');
+  await page.goto('/?seed=7&pc&midi&mic=off#/practica');
   await page.getByTestId('start').click();
   await beat(page, 300);
   await capture(page, '14-movil-375-objetivo');
@@ -232,7 +232,7 @@ test('Fase 0 · accesibilidad visual: daltonismo y móvil', async ({ browser }) 
   });
   const desktop = await wide.newPage();
   await desktop.addInitScript(EMPTY_MIDI_SCRIPT);
-  await desktop.goto('/?seed=7&pc&midi&mic=off');
+  await desktop.goto('/?seed=7&pc&midi&mic=off#/practica');
   await desktop.getByTestId('start').click();
   await playWrong(desktop);
   await beat(desktop, 400);

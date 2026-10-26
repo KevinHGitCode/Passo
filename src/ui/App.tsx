@@ -27,6 +27,8 @@ export interface AppProps {
   readonly debug?: boolean;
   /** Modo de desarrollo: muestra el estado del sonido de la app (solo suena con el teclado del PC). */
   readonly devShowSound?: boolean;
+  /** Dirección a la que lleva la marca «Passo» de la cabecera (volver al camino). */
+  readonly brandHref?: string | undefined;
 }
 
 export function App({
@@ -38,6 +40,7 @@ export function App({
   microphone,
   debug = false,
   devShowSound = false,
+  brandHref,
 }: AppProps) {
   useTheme(preferences);
   const settings = useSettingsPanel(session);
@@ -63,6 +66,7 @@ export function App({
     <>
       <PracticeScreen
         session={session}
+        brandHref={brandHref}
         headerActions={
           <SettingsButton open={settings.open} onToggle={settings.toggle} buttonRef={gearRef} />
         }

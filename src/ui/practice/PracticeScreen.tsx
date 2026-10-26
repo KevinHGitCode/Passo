@@ -21,6 +21,8 @@ import './practice.css';
 
 export interface PracticeScreenProps {
   readonly session: PracticeSession;
+  /** Si se indica, la marca «Passo» de la cabecera es un enlace a esa dirección (volver al camino). */
+  readonly brandHref?: string | undefined;
   /** Acciones de la cabecera (el engranaje de los ajustes). */
   readonly headerActions?: ReactNode;
   /** Zona de estado de entradas y sonido (se coloca bajo la cabecera). */
@@ -148,6 +150,7 @@ function levelTitle(mode: ExerciseMode, level: number): string {
 
 export function PracticeScreen({
   session,
+  brandHref,
   headerActions,
   statusZone,
   showPcKeys = false,
@@ -177,7 +180,15 @@ export function PracticeScreen({
           <span className="brand__mark" aria-hidden="true">
             ♪
           </span>
-          <h1 className="brand__name">Passo</h1>
+          <h1 className="brand__name">
+            {brandHref ? (
+              <a className="brand__link" href={brandHref} title="Volver al camino">
+                Passo
+              </a>
+            ) : (
+              'Passo'
+            )}
+          </h1>
           <span className="brand__tag">toca, corrige, avanza</span>
         </div>
         {statusZone}

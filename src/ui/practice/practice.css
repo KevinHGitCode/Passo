@@ -37,6 +37,13 @@
   font-weight: 800;
   letter-spacing: -0.02em;
 }
+.brand__link {
+  color: inherit;
+  text-decoration: none;
+}
+.brand__link:hover {
+  text-decoration: underline;
+}
 .brand__tag {
   color: var(--text-muted);
   font-size: 14px;

@@ -67,7 +67,7 @@ test('Fase 1 · escucha activa con micrófono simulado: ronda completa (video pr
   page,
 }) => {
   await page.addInitScript(FAKE_MIC_SCRIPT);
-  await page.goto('/?seed=7&debug');
+  await page.goto('/?seed=7&debug#/practica');
 
   await test.step('El micrófono empieza apagado y nunca se pide solo', async () => {
     await expect(page.getByTestId('mic-panel')).toHaveAttribute('data-state', 'inactivo');
@@ -264,7 +264,7 @@ test('Fase 1 · estados del micrófono: permiso denegado, sin micrófono, ocupad
   page,
 }) => {
   await page.addInitScript(FAKE_MIC_SCRIPT);
-  await page.goto('/?seed=3');
+  await page.goto('/?seed=3#/practica');
 
   await test.step('Permiso denegado: guía y reintento', async () => {
     await micSetMode(page, 'denied');
@@ -298,7 +298,7 @@ test('Fase 1 · estados del micrófono: permiso denegado, sin micrófono, ocupad
 
 test('Fase 1 · navegador sin micrófono', async ({ page }) => {
   await page.addInitScript(NO_MEDIA_DEVICES_SCRIPT);
-  await page.goto('/?seed=3');
+  await page.goto('/?seed=3#/practica');
   await page.getByTestId('activate-mic').click();
   await expect(page.getByTestId('mic-panel')).toHaveAttribute('data-state', 'sin-soporte');
   await expect(page.getByTestId('mic-panel')).toContainText('Chrome o Edge');
@@ -318,7 +318,7 @@ for (const size of [
       await page.addInitScript(FAKE_MIC_SCRIPT);
       const tops: Record<string, number> = {};
 
-      await page.goto('/?seed=7');
+      await page.goto('/?seed=7#/practica');
       tops['apagado'] = await keyboardTop(page);
 
       await micSetMode(page, 'denied');
@@ -374,7 +374,7 @@ test('Fase 1 · móvil y daltonismo con escucha activa', async ({ browser }) => 
   });
   const phone = await mobile.newPage();
   await phone.addInitScript(FAKE_MIC_SCRIPT);
-  await phone.goto('/?seed=7');
+  await phone.goto('/?seed=7#/practica');
   await micCapture(phone, '30-movil-375-apagado');
   await activateMic(phone);
   await micCapture(phone, '31-movil-375-listo');
@@ -388,7 +388,7 @@ test('Fase 1 · móvil y daltonismo con escucha activa', async ({ browser }) => 
   const wide = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const desktop = await wide.newPage();
   await desktop.addInitScript(FAKE_MIC_SCRIPT);
-  await desktop.goto('/?seed=7');
+  await desktop.goto('/?seed=7#/practica');
   await activateMic(desktop);
   await desktop.getByTestId('start').click();
   await micNote(desktop, (await targetNote(desktop)) + 3, { ms: 700 });
@@ -411,7 +411,7 @@ test('Fase 1 · en un portátil de poca altura (1366×650) todo se ve sin despla
   const context = await browser.newContext({ viewport: { width: 1366, height: 650 } });
   const page = await context.newPage();
   await page.addInitScript(FAKE_MIC_SCRIPT);
-  await page.goto('/?seed=7');
+  await page.goto('/?seed=7#/practica');
   await activateMic(page);
   await page.getByTestId('start').click();
   await micNote(page, await targetNote(page), { ms: 600 });

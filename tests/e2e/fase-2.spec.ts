@@ -29,7 +29,7 @@ const feedback = (page: Page) => page.getByTestId('feedback');
 test('Fase 2 · terceras: ronda completa con avance parcial, nota de más y resumen (video)', async ({
   page,
 }) => {
-  await page.goto('/?seed=7&pc&mic=off&modo=terceras&nivel=2');
+  await page.goto('/?seed=7&pc&mic=off&modo=terceras&nivel=2#/practica');
   await expect(page.getByTestId('welcome')).toContainText('Toca la tercera que aparece');
   await expect(page.getByTestId('welcome')).toContainText('Las siete terceras');
   await beat(page, 800);
@@ -91,7 +91,7 @@ test('Fase 2 · terceras: ronda completa con avance parcial, nota de más y resu
 test('Fase 2 · soltar una tecla quita la nota: tocarlas una tras otra no es una tercera', async ({
   page,
 }) => {
-  await page.goto('/?seed=11&pc&mic=off&modo=terceras&nivel=1');
+  await page.goto('/?seed=11&pc&mic=off&modo=terceras&nivel=1#/practica');
   await page.getByTestId('start').click();
   const [low, high] = (await targetMidis(page)) as [number, number];
   await down(page, low);
@@ -107,7 +107,7 @@ test('Fase 2 · soltar una tecla quita la nota: tocarlas una tras otra no es una
 test('Fase 2 · acordes de la mano derecha: nombre, dedos 1-3-5 y acordes mal armados (video)', async ({
   page,
 }) => {
-  await page.goto('/?seed=5&pc&mic=off&modo=acordes&nivel=4');
+  await page.goto('/?seed=5&pc&mic=off&modo=acordes&nivel=4#/practica');
   await expect(page.getByTestId('welcome')).toContainText('Toca el acorde que aparece');
   await page.getByTestId('start').click();
   await expect(page.getByTestId('target-detail')).toHaveText(
@@ -151,7 +151,7 @@ test('Fase 2 · acordes de la mano derecha: nombre, dedos 1-3-5 y acordes mal ar
 test('Fase 2 · acordes de la mano izquierda: dedos 5-3-1 con la fila Z X C V B N M', async ({
   page,
 }) => {
-  await page.goto('/?seed=9&pc&mic=off&modo=acordes&nivel=5');
+  await page.goto('/?seed=9&pc&mic=off&modo=acordes&nivel=5#/practica');
   await expect(page.getByTestId('welcome')).toContainText('mano izquierda');
   await page.getByTestId('start').click();
   await expect(page.getByTestId('target-detail')).toHaveText(
@@ -169,7 +169,7 @@ test('Fase 2 · acordes de la mano izquierda: dedos 5-3-1 con la fila Z X C V B 
 });
 
 test('Fase 2 · con notación americana el acorde se llama «C major»', async ({ page }) => {
-  await page.goto('/?seed=3&pc&mic=off&modo=acordes&nivel=1');
+  await page.goto('/?seed=3&pc&mic=off&modo=acordes&nivel=1#/practica');
   await page.getByTestId('start').click();
   await openSettings(page);
   await page.getByLabel('C D E').click();
@@ -181,7 +181,7 @@ test('Fase 2 · con notación americana el acorde se llama «C major»', async (
 test('Fase 2 · las preferencias se recuerdan al recargar (notación, ayuda y tema)', async ({
   page,
 }) => {
-  await page.goto('/?seed=3&pc&mic=off');
+  await page.goto('/?seed=3&pc&mic=off#/practica');
   await openSettings(page);
   await page.getByLabel('C D E').click();
   await page.getByTestId('help-switch').click();
@@ -218,7 +218,7 @@ test('Fase 2 · el tema que se guardaba antes de las preferencias se conserva', 
       window.localStorage.setItem('passo.tema', 'oscuro');
     }
   });
-  await page.goto('/?seed=3&pc&mic=off');
+  await page.goto('/?seed=3&pc&mic=off#/practica');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'oscuro');
   await openSettings(page);
   await page.getByLabel('C D E').click();
@@ -227,14 +227,14 @@ test('Fase 2 · el tema que se guardaba antes de las preferencias se conserva', 
 });
 
 test('Fase 2 · ?modo= fija el ejercicio de esta visita pero no lo guarda', async ({ page }) => {
-  await page.goto('/?seed=3&pc&mic=off&modo=acordes&nivel=3');
+  await page.goto('/?seed=3&pc&mic=off&modo=acordes&nivel=3#/practica');
   await expect(page.getByTestId('welcome')).toContainText('Toca el acorde que aparece');
   await openSettings(page);
   await page.getByLabel('C D E').click();
   const saved = await page.evaluate(() => window.localStorage.getItem('passo.preferencias'));
   expect(JSON.parse(saved ?? '{}')).toMatchObject({ mode: 'notas', notation: 'americana' });
 
-  await page.goto('/?seed=3&pc&mic=off');
+  await page.goto('/?seed=3&pc&mic=off#/practica');
   await expect(page.getByTestId('welcome')).toContainText('Toca la nota que aparece');
 });
 
@@ -248,7 +248,7 @@ test('Fase 2 · sin almacenamiento (ventana privada o bloqueado) la app sigue fu
       },
     });
   });
-  await page.goto('/?seed=3&pc&mic=off');
+  await page.goto('/?seed=3&pc&mic=off#/practica');
   await openSettings(page);
   await page.getByLabel('C D E').click();
   await closeSettings(page);
@@ -277,7 +277,7 @@ test('Fase 2 · por defecto escucha el micrófono, pero no se enciende solo hast
   page,
 }) => {
   await page.addInitScript(FAKE_MIC_SCRIPT);
-  await page.goto('/?seed=3');
+  await page.goto('/?seed=3#/practica');
   await expect(page.getByTestId('mic-panel')).toBeVisible();
   await expect(page.getByTestId('status-microfono')).toBeVisible();
   await expect(page.getByTestId('status-teclado-pc')).toHaveCount(0);
@@ -302,7 +302,7 @@ test('Fase 2 · con el teclado del PC elegido no aparece el micrófono ni se pid
 }) => {
   await page.addInitScript(FAKE_MIC_SCRIPT);
   await chooseInput(page, 'teclado-pc');
-  await page.goto('/?seed=7');
+  await page.goto('/?seed=7#/practica');
   await expect(page.getByTestId('welcome')).toBeVisible();
   await expect(page.getByTestId('mic-panel')).toHaveCount(0);
   await expect(page.getByTestId('status-teclado-pc')).toContainText('Teclado del PC');
@@ -328,7 +328,7 @@ test('Fase 2 · con el piano MIDI elegido solo escucha el MIDI (el teclado del P
   await page.addInitScript(FAKE_MIC_SCRIPT);
   await page.addInitScript(FAKE_MIDI_SCRIPT);
   await chooseInput(page, 'midi');
-  await page.goto('/?seed=7');
+  await page.goto('/?seed=7#/practica');
   await expect(page.getByTestId('mic-panel')).toHaveCount(0);
   await expect(page.getByTestId('status-midi')).toBeVisible();
   await expect(page.getByTestId('status-teclado-pc')).toHaveCount(0);
@@ -352,7 +352,7 @@ test('Fase 2 · ajustes: elegir entrada y ejercicio desde el engranaje, con la r
 }) => {
   await page.addInitScript(FAKE_MIC_SCRIPT);
   await page.addInitScript(FAKE_MIDI_SCRIPT);
-  await page.goto('/?seed=7');
+  await page.goto('/?seed=7#/practica');
   await expect(page.getByTestId('mic-panel')).toBeVisible();
   await beat(page, 700);
   await f2Capture(page, '13-ajustes-cerrados-microfono');
@@ -441,7 +441,7 @@ test('Fase 2 · ajustes: elegir entrada y ejercicio desde el engranaje, con la r
 test('Fase 2 · ajustes: lo elegido se recuerda al recargar (entrada y ejercicio)', async ({
   page,
 }) => {
-  await page.goto('/?seed=7');
+  await page.goto('/?seed=7#/practica');
   await openSettings(page);
   await page.getByTestId('input-teclado-pc').check();
   await page.getByTestId('mode-acordes').check();
@@ -465,7 +465,7 @@ test('Fase 2 · ajustes en un móvil: panel modal que cierra con Esc y devuelve 
 }) => {
   const context = await browser.newContext({ viewport: { width: 375, height: 812 } });
   const page = await context.newPage();
-  await page.goto('/?seed=7&pc&mic=off');
+  await page.goto('/?seed=7&pc&mic=off#/practica');
   await openSettings(page);
   await expect(page.getByTestId('settings-panel')).toHaveAttribute('aria-modal', 'true');
   await expect(page.locator('.settings-backdrop')).toBeVisible();
@@ -508,7 +508,7 @@ async function alignment(page: Page) {
 test('Fase 2 · cascada y manos: cada bloque cae sobre su tecla y cada dedo queda bajo ella (video)', async ({
   page,
 }) => {
-  await page.goto('/?seed=7&pc&mic=off&modo=acordes&nivel=4');
+  await page.goto('/?seed=7&pc&mic=off&modo=acordes&nivel=4#/practica');
   await page.getByTestId('start').click();
   await expect(page.getByTestId('cascade').locator('.cascade__block')).toHaveCount(3);
   await expect(page.getByTestId('hand').locator('.hand__finger')).toHaveCount(5);
@@ -566,7 +566,7 @@ test('Fase 2 · cascada y manos: cada bloque cae sobre su tecla y cada dedo qued
 test('Fase 2 · la mano izquierda se dibuja con cuadrados rosas, el 5 a la izquierda, bajo sus teclas', async ({
   page,
 }) => {
-  await page.goto('/?seed=9&pc&mic=off&modo=acordes&nivel=5');
+  await page.goto('/?seed=9&pc&mic=off&modo=acordes&nivel=5#/practica');
   await page.getByTestId('start').click();
   await expect(page.getByTestId('hand')).toHaveAttribute('data-hand', 'izquierda');
   const order = await page.locator('.hand__finger').evaluateAll((fingers) =>
@@ -588,7 +588,7 @@ test('Fase 2 · la mano izquierda se dibuja con cuadrados rosas, el 5 a la izqui
 test('Fase 2 · en modo notas la cascada y la mano también están (posición de cinco dedos)', async ({
   page,
 }) => {
-  await page.goto('/?seed=7&pc&mic=off');
+  await page.goto('/?seed=7&pc&mic=off#/practica');
   await page.getByTestId('start').click();
   await expect(page.getByTestId('cascade').locator('.cascade__block')).toHaveCount(3);
   await expect(page.getByTestId('hand').locator('.hand__finger--used')).toHaveCount(1);
@@ -632,7 +632,7 @@ test('Fase 2 · terceras por micrófono (beta): oye las dos notas a la vez y avi
   page,
 }) => {
   await page.addInitScript(FAKE_MIC_SCRIPT);
-  await page.goto('/?seed=7');
+  await page.goto('/?seed=7#/practica');
 
   await test.step('Activar la beta y elegir terceras desde los ajustes', async () => {
     await openSettings(page);
@@ -693,7 +693,7 @@ test('Fase 2 · terceras por micrófono (beta): oye las dos notas a la vez y avi
 
 test('Fase 2 · acordes por micrófono (beta): un acorde de tres notas', async ({ page }) => {
   await page.addInitScript(FAKE_MIC_SCRIPT);
-  await page.goto('/?seed=5&debug');
+  await page.goto('/?seed=5&debug#/practica');
   await openSettings(page);
   await page.getByTestId('polyphonic-switch').click();
   await page.getByTestId('mode-acordes').check();
@@ -736,7 +736,7 @@ test('Fase 2 · con el micrófono, sin la beta, terceras y acordes siguen bloque
   page,
 }) => {
   await page.addInitScript(FAKE_MIC_SCRIPT);
-  await page.goto('/?seed=5');
+  await page.goto('/?seed=5#/practica');
   await openSettings(page);
   await expect(page.getByTestId('mode-acordes')).toBeDisabled();
   await expect(page.getByTestId('polyphonic-switch')).toHaveAttribute('aria-checked', 'false');
@@ -748,7 +748,7 @@ test('Fase 2 · en un móvil la cascada y la mano caben sin desplazamiento horiz
 }) => {
   const context = await browser.newContext({ viewport: { width: 375, height: 812 } });
   const page = await context.newPage();
-  await page.goto('/?seed=9&pc&mic=off&modo=acordes&nivel=4');
+  await page.goto('/?seed=9&pc&mic=off&modo=acordes&nivel=4#/practica');
   await page.getByTestId('start').click();
   await expect(page.getByTestId('cascade').locator('.cascade__block')).toHaveCount(3);
   await expect(page.getByTestId('hand').locator('.hand__finger')).toHaveCount(5);
@@ -771,7 +771,7 @@ test('Fase 2 · a 1366×650 la página entera cabe sin desplazarse (teclado del 
   const overflow = () =>
     page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
 
-  await page.goto('/?seed=7&pc&mic=off&modo=acordes&nivel=4');
+  await page.goto('/?seed=7&pc&mic=off&modo=acordes&nivel=4#/practica');
   await page.getByTestId('start').click();
   await expect(page.getByTestId('hand')).toBeVisible();
   expect(await overflow(), 'teclado del PC').toBeLessThanOrEqual(1);
@@ -781,7 +781,7 @@ test('Fase 2 · a 1366×650 la página entera cabe sin desplazarse (teclado del 
   expect(handBottom).toBeLessThanOrEqual(650);
 
   await page.addInitScript(FAKE_MIC_SCRIPT);
-  await page.goto('/?seed=7');
+  await page.goto('/?seed=7#/practica');
   await page.getByTestId('activate-mic').click();
   await listening(page);
   await page.getByTestId('start').click();
@@ -802,7 +802,7 @@ for (const size of [
     }) => {
       const tops: Record<string, number> = {};
 
-      await page.goto('/?seed=7&pc&mic=off');
+      await page.goto('/?seed=7&pc&mic=off#/practica');
       tops['notas-bienvenida'] = await keyboardTop(page);
       await page.getByTestId('start').click();
       await expect(page.getByTestId('target')).toBeVisible();
@@ -813,7 +813,7 @@ for (const size of [
         ['acordes', 4],
         ['acordes', 5],
       ] as const) {
-        await page.goto(`/?seed=7&pc&mic=off&modo=${mode}&nivel=${level}`);
+        await page.goto(`/?seed=7&pc&mic=off&modo=${mode}&nivel=${level}#/practica`);
         tops[`${mode}${level}-bienvenida`] = await keyboardTop(page);
         await page.getByTestId('start').click();
         await expect(page.getByTestId('target-detail')).toBeVisible();

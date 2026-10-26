@@ -45,6 +45,8 @@ export interface SettingsPanelProps {
   readonly microphone?: (NoteInput & InputMonitor) | undefined;
   /** Hay una ronda en pausa mientras los ajustes están abiertos: se avisa. */
   readonly roundPaused?: boolean | undefined;
+  /** Hay una lección en curso: ella decide el ejercicio y el nivel, que no se pueden cambiar. */
+  readonly lessonActive?: boolean | undefined;
 }
 
 function GearIcon() {
@@ -176,6 +178,7 @@ export function SettingsPanel({
   inputManager,
   microphone,
   roundPaused = false,
+  lessonActive = false,
 }: SettingsPanelProps) {
   const prefs = useSyncExternalStore(preferences.subscribe, preferences.getSnapshot);
   const narrow = useIsNarrow(NARROW_MAX_WIDTH);
@@ -268,57 +271,66 @@ export function SettingsPanel({
           )}
         </fieldset>
 
-        <fieldset className="settings-group">
-          <legend>Qué practico</legend>
-          <div className="segmented segmented--wrap" role="radiogroup" aria-label="Ejercicio">
-            {EXERCISE_MODES.map((mode) => {
-              const blocked = groupsBlocked && mode !== 'notas';
-              return (
-                <label key={mode} className="segmented__option">
+        {lessonActive ? (
+          <fieldset className="settings-group">
+            <legend>Qué practico</legend>
+            <p className="settings-group__note" data-testid="lesson-note">
+              La lección decide qué practicas. Sal de ella para elegir ejercicio y nivel.
+            </p>
+          </fieldset>
+        ) : (
+          <fieldset className="settings-group">
+            <legend>Qué practico</legend>
+            <div className="segmented segmented--wrap" role="radiogroup" aria-label="Ejercicio">
+              {EXERCISE_MODES.map((mode) => {
+                const blocked = groupsBlocked && mode !== 'notas';
+                return (
+                  <label key={mode} className="segmented__option">
+                    <input
+                      type="radio"
+                      name="mode"
+                      value={mode}
+                      checked={prefs.mode === mode}
+                      disabled={blocked}
+                      aria-describedby={blocked ? 'mode-blocked' : undefined}
+                      onChange={() => preferences.update({ mode })}
+                      data-testid={`mode-${mode}`}
+                    />
+                    <span>{MODE_TEXT[mode]}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {groupsBlocked && (
+              <p id="mode-blocked" className="settings-group__note" data-testid="mode-blocked">
+                Terceras y acordes necesitan el teclado del PC o un piano MIDI. Con el micrófono,
+                activa «Oír varias notas a la vez» (beta).
+              </p>
+            )}
+            <div className="levels" role="radiogroup" aria-label="Nivel">
+              {levels.map((def) => (
+                <label
+                  key={def.level}
+                  className="choice choice--compact"
+                  data-checked={prefs.levels[prefs.mode] === def.level}
+                >
                   <input
                     type="radio"
-                    name="mode"
-                    value={mode}
-                    checked={prefs.mode === mode}
-                    disabled={blocked}
-                    aria-describedby={blocked ? 'mode-blocked' : undefined}
-                    onChange={() => preferences.update({ mode })}
-                    data-testid={`mode-${mode}`}
+                    name="level"
+                    value={def.level}
+                    checked={prefs.levels[prefs.mode] === def.level}
+                    onChange={() => preferences.update({ levels: { [prefs.mode]: def.level } })}
+                    data-testid={`level-${def.level}`}
                   />
-                  <span>{MODE_TEXT[mode]}</span>
+                  <span className="choice__body">
+                    <span className="choice__title">Nivel {def.level}</span>
+                    <span className="choice__hint">{def.title}</span>
+                  </span>
                 </label>
-              );
-            })}
-          </div>
-          {groupsBlocked && (
-            <p id="mode-blocked" className="settings-group__note" data-testid="mode-blocked">
-              Terceras y acordes necesitan el teclado del PC o un piano MIDI. Con el micrófono,
-              activa «Oír varias notas a la vez» (beta).
-            </p>
-          )}
-          <div className="levels" role="radiogroup" aria-label="Nivel">
-            {levels.map((def) => (
-              <label
-                key={def.level}
-                className="choice choice--compact"
-                data-checked={prefs.levels[prefs.mode] === def.level}
-              >
-                <input
-                  type="radio"
-                  name="level"
-                  value={def.level}
-                  checked={prefs.levels[prefs.mode] === def.level}
-                  onChange={() => preferences.update({ levels: { [prefs.mode]: def.level } })}
-                  data-testid={`level-${def.level}`}
-                />
-                <span className="choice__body">
-                  <span className="choice__title">Nivel {def.level}</span>
-                  <span className="choice__hint">{def.title}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
+              ))}
+            </div>
+          </fieldset>
+        )}
 
         <fieldset className="settings-group">
           <legend>Cómo lo veo</legend>

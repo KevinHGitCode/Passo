@@ -45,6 +45,13 @@ export interface LessonScreenProps {
   readonly onOpenSettings: () => void;
 }
 
+/** Por debajo de La3 (220 Hz) el altavoz de un teclado portátil casi no da graves. */
+const LOW_NOTE = 57;
+
+function lowestNote(lesson: Lesson): number {
+  return Math.min(...lesson.pool.map((target) => target.notes[0]));
+}
+
 const TONE_OF: Readonly<Record<FeedbackMessage['tone'], AnswerTone>> = {
   ok: 'ok',
   done: 'ok',
@@ -101,9 +108,21 @@ function LessonIntro({
         {lesson.title}
       </p>
       <p className="lesson-intro__text">
-        {lesson.roundSize} {countLabel(lesson.mode).toLowerCase()} · 3.ª estrella:{' '}
-        {thirdStarGoalText(lesson, source)}
+        {lesson.roundSize} {countLabel(lesson.mode).toLowerCase()} · Para pasar: 70 % · 3.ª
+        estrella: {thirdStarGoalText(lesson, source)}
       </p>
+      {lesson.kind === 'prueba' && snapshot.help ? (
+        <p className="lesson-intro__tip" data-testid="tip-help">
+          Para la 3.ª estrella apaga la ayuda en Ajustes: así lees la nota en vez de seguir el
+          color.
+        </p>
+      ) : null}
+      {source === 'microfono' && lowestNote(lesson) < LOW_NOTE ? (
+        <p className="lesson-intro__tip" data-testid="tip-low">
+          Son notas graves: si el micrófono no las oye bien, acerca el portátil al altavoz del
+          piano.
+        </p>
+      ) : null}
       {blocked !== null ? (
         <div className="lesson-intro__block" data-testid="lesson-blocked">
           <p>
@@ -251,6 +270,7 @@ function LessonView({
   const midiStatus = useInputStatus(props.midi);
   const [confirming, setConfirming] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
+  const exitRef = useRef<HTMLButtonElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const source = play.sources.length === 1 ? (play.sources[0] ?? null) : null;
   const stats = liveStats(exercise?.attempts ?? [], snapshot.hits);
@@ -298,6 +318,8 @@ function LessonView({
   const keepGoing = useCallback(() => {
     setConfirming(false);
     session.resume();
+    // El botón «Seguir» desaparece: el foco vuelve a la X desde la que se abrió el diálogo.
+    exitRef.current?.focus({ preventScroll: true });
   }, [session]);
 
   if (status === 'resultado' && outcome !== null) {
@@ -315,9 +337,10 @@ function LessonView({
   const midiConnected = midiStatus?.kind === 'conectado';
   return (
     <div className="lesson game" data-testid="lesson" data-status={status} data-lesson={lesson.id}>
-      <header className="lesson__top">
+      <header className="lesson__top" inert={confirming}>
         <button
           type="button"
+          ref={exitRef}
           className="lesson__exit"
           aria-label="Salir de la lección"
           onClick={requestExit}
@@ -349,7 +372,7 @@ function LessonView({
         {gear}
       </header>
 
-      <section className="lesson__stats" aria-label="Tus marcas">
+      <section className="lesson__stats" aria-label="Tus marcas" inert={confirming}>
         <h1 className="lesson__name" tabIndex={-1} data-route-heading ref={headingRef}>
           {lesson.title}
         </h1>
@@ -363,13 +386,17 @@ function LessonView({
           <span className="lesson__stat-unit">notas/min</span>
         </p>
         <p className="lesson__stat lesson__stat--goal" data-testid="stat-goal">
-          <span className="lesson__stat-label">3.ª ★</span>
+          <span className="lesson__stat-label">
+            <span aria-hidden="true">3.ª ★</span>
+            <span className="sr-only">3.ª estrella</span>
+          </span>
           <strong>{thirdStarGoalText(lesson, source)}</strong>
         </p>
       </section>
 
       <section
         className="lesson__stage stage-dark"
+        inert={confirming}
         aria-label={`Lección: ${lesson.title}`}
         tabIndex={-1}
         ref={stageRef}
@@ -400,7 +427,7 @@ function LessonView({
         ) : null}
       </section>
 
-      <footer className="lesson__answer">
+      <footer className="lesson__answer" inert={confirming}>
         {status === 'en-curso' || phase === 'pausada' ? (
           <LessonFooter board={board} microphone={microphone} session={session} />
         ) : null}

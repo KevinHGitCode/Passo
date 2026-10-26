@@ -363,12 +363,12 @@ describe('lección · el resultado', () => {
     const { finishRound } = setup();
     fireEvent.click(screen.getByTestId('start'));
     finishRound();
-    const status = screen
-      .getAllByRole('status')
-      .find((el) => el.textContent?.includes('estrellas'));
-    expect(status?.textContent).toContain('Conseguiste 3 de 3 estrellas.');
-    expect(status?.textContent).toContain('Ganaste 130 puntos de experiencia.');
-    expect(status?.textContent).toContain('Racha de 1 día.');
+    // El resumen es la descripción del título (se lee una vez al enfocarlo), no una zona viva.
+    const heading = screen.getByRole('heading', { level: 1 });
+    const summary = document.getElementById(heading.getAttribute('aria-describedby') ?? '');
+    expect(summary?.textContent).toContain('Conseguiste 3 de 3 estrellas.');
+    expect(summary?.textContent).toContain('Ganaste 130 puntos de experiencia.');
+    expect(summary?.textContent).toContain('Racha de 1 día.');
   });
 
   it('«Continuar» es un enlace al camino', () => {
@@ -401,7 +401,7 @@ describe('lección · el resultado', () => {
     expect(session.getSnapshot().phase).toBe('completada');
     expect(screen.getByRole('img', { name: '2 de 3 estrellas' })).toBeTruthy();
     expect(screen.getByTestId('result-retry').textContent).toBe('Repetir para la 3.ª ★');
-    expect(screen.getByTestId('result').textContent).toContain('Para la 3.ª ★: 90 %');
+    expect(screen.getByTestId('result').textContent).toContain('Para la 3.ª estrella: 90 %');
   });
 
   it('el ritmo mejor se celebra solo si ya se había jugado antes', () => {
@@ -454,5 +454,88 @@ describe('lección · robustez', () => {
     fireEvent.click(screen.getByTestId('start'));
     finishRound();
     expect(screen.getByTestId('no-guarda').textContent).toContain('no se ha podido guardar');
+  });
+});
+
+describe('lección · ayudas para un principiante', () => {
+  it('la presentación dice qué hace falta para pasar', () => {
+    setup();
+    expect(screen.getByTestId('lesson-intro').textContent).toContain('Para pasar: 70 %');
+  });
+
+  it('en una prueba con la ayuda encendida avisa de cómo optar a la 3.ª estrella', () => {
+    setup({ lessonId: 'u1-4' });
+    expect(screen.getByTestId('tip-help').textContent).toContain('apaga la ayuda en Ajustes');
+  });
+
+  it('las notas graves por micrófono avisan de acercar el portátil al altavoz', () => {
+    setup({ lessonId: 'u2-2', play: MIC, mic: true });
+    expect(screen.getByTestId('tip-low').textContent).toContain('acerca el portátil al altavoz');
+  });
+
+  it('una lección de notas agudas no lleva ese aviso', () => {
+    setup({ lessonId: 'u1-1', play: MIC, mic: true });
+    expect(screen.queryByTestId('tip-low')).toBeNull();
+  });
+
+  it('la meta de la 3.ª estrella se lee como «estrella», no como un símbolo', () => {
+    setup();
+    const label = screen.getByTestId('stat-goal').querySelector('.lesson__stat-label');
+    expect(label?.querySelector('[aria-hidden="true"]')?.textContent).toBe('3.ª ★');
+    expect(label?.querySelector('.sr-only')?.textContent).toBe('3.ª estrella');
+  });
+});
+
+describe('lección · resultado sin pasar y con la ayuda de una prueba', () => {
+  it('con menos del 70 % dice cuánto hace falta y lo principal es repetir', () => {
+    const { playWrong, playCorrect, finishRound } = setup();
+    fireEvent.click(screen.getByTestId('start'));
+    for (let i = 0; i < 4; i++) {
+      playWrong();
+      playCorrect();
+    }
+    finishRound();
+    expect(screen.getByRole('heading', { level: 1, name: 'Todavía no: repítela' })).toBeTruthy();
+    expect(screen.getByTestId('need-pass').textContent).toBe('Necesitas 70 % para pasar');
+    expect(screen.getByTestId('result-retry').className).toContain('game-btn--primary');
+    const back = screen.getByTestId('result-continue');
+    expect(back.textContent).toBe('Volver al camino');
+    expect(back.className).toContain('game-btn--secondary');
+  });
+
+  it('una prueba perfecta con la ayuda encendida explica por qué no hay 3.ª estrella', () => {
+    const { finishRound } = setup({ lessonId: 'u1-4' });
+    fireEvent.click(screen.getByTestId('start'));
+    finishRound();
+    expect(screen.getByRole('img', { name: '2 de 3 estrellas' })).toBeTruthy();
+    expect(screen.getByTestId('tip-help').textContent).toContain('sin ayuda');
+  });
+
+  it('el botón de repetir dice «estrella» a los lectores de pantalla', () => {
+    const { finishRound, playWrong, playCorrect } = setup();
+    fireEvent.click(screen.getByTestId('start'));
+    playWrong();
+    playCorrect();
+    playWrong();
+    playCorrect();
+    finishRound();
+    expect(screen.getByTestId('result-retry').getAttribute('aria-label')).toBe(
+      'Repetir para la 3.ª estrella',
+    );
+  });
+});
+
+describe('lección · el diálogo de salida', () => {
+  it('mientras está abierto, el fondo queda inerte y al seguir el foco vuelve a la X', () => {
+    const { playCorrect } = setup();
+    fireEvent.click(screen.getByTestId('start'));
+    playCorrect();
+    fireEvent.click(screen.getByTestId('lesson-exit'));
+    const lesson = screen.getByTestId('lesson');
+    expect(lesson.querySelector('header')?.hasAttribute('inert')).toBe(true);
+    expect(lesson.querySelector('.lesson__stage')?.hasAttribute('inert')).toBe(true);
+    fireEvent.click(screen.getByTestId('exit-continue'));
+    expect(lesson.querySelector('header')?.hasAttribute('inert')).toBe(false);
+    expect(document.activeElement).toBe(screen.getByTestId('lesson-exit'));
   });
 });

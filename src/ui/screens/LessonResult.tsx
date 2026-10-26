@@ -3,7 +3,7 @@ import type { LessonFlow, LessonOutcome } from '@/core/application/lesson-flow';
 import type { ProgressService } from '@/core/application/progress-service';
 import type { NotationMode } from '@/core/domain/note';
 import { REVIEW_LESSON_ID, selectReview } from '@/core/domain/review';
-import { STAR_3_ACCURACY } from '@/core/domain/scoring';
+import { MIN_ACCURACY, STAR_3_ACCURACY } from '@/core/domain/scoring';
 import { GameButton, GameLink } from '../game/GameButton';
 import { Icon } from '../game/icons';
 import { ProgressRing } from '../game/ProgressRing';
@@ -11,6 +11,12 @@ import { Stars } from '../game/Stars';
 import { formatSeconds } from '../practice/feedback-message';
 import { countLabel, notesText } from '../practice/target-text';
 import { CAMINO, hrefOf, lessonRoute } from '../router/routes';
+
+/** El texto del botón de repetir: con 2 estrellas anima a la 3.ª; el nombre accesible dice «estrella». */
+function retryLabel(nextStar: number | null, dynamic: boolean, spoken: boolean): string {
+  if (nextStar === null || nextStar <= 1 || dynamic) return 'Repetir';
+  return spoken ? `Repetir para la ${nextStar}.ª estrella` : `Repetir para la ${nextStar}.ª ★`;
+}
 
 function clock(ms: number): string {
   const total = Math.round(ms / 1000);
@@ -63,6 +69,8 @@ export function LessonResult({
   // Solo se ofrece repasar cuando de verdad hay teclas débiles (no por ser «las más lentas»).
   const review = selectReview(state.keys)?.reason === 'debiles' && !lesson.dynamic;
   const nextStar = score.stars >= 3 ? null : score.stars + 1;
+  // Sin llegar al 70 % lo que toca es repetir: esa es la acción principal.
+  const failed = score.stars === 0 && !lesson.dynamic;
   const wasBest = gains.bestRhythm && gains.previousPlays > 0;
 
   return (
@@ -79,6 +87,7 @@ export function LessonResult({
       <h1
         id="resultado-titulo"
         className="result__title"
+        aria-describedby="resultado-resumen"
         tabIndex={-1}
         data-route-heading
         ref={headingRef}
@@ -86,7 +95,7 @@ export function LessonResult({
         {title(outcome)}
       </h1>
       <p className="result__lesson">{lesson.title}</p>
-      <p className="sr-only" role="status">
+      <p className="sr-only" id="resultado-resumen">
         {announcement(outcome)}
       </p>
 
@@ -99,9 +108,13 @@ export function LessonResult({
               <p className="result-card__value" data-testid="result-accuracy">
                 {percent} %
               </p>
-              {score.stars < 3 && !lesson.dynamic ? (
+              {score.stars === 0 && !lesson.dynamic ? (
+                <p className="result-card__note" data-testid="need-pass">
+                  Necesitas {Math.round(MIN_ACCURACY * 100)} % para pasar
+                </p>
+              ) : score.stars < 3 && !lesson.dynamic ? (
                 <p className="result-card__note">
-                  Para la 3.ª ★: {Math.round(STAR_3_ACCURACY[lesson.kind] * 100)} %
+                  Para la 3.ª estrella: {Math.round(STAR_3_ACCURACY[lesson.kind] * 100)} %
                 </p>
               ) : null}
             </div>
@@ -157,6 +170,14 @@ export function LessonResult({
         </section>
       </div>
 
+      {lesson.kind === 'prueba' &&
+      !score.withoutHelp &&
+      score.accuracy >= STAR_3_ACCURACY.prueba ? (
+        <p className="result__tip" data-testid="tip-help">
+          La 3.ª estrella de una prueba se consigue sin ayuda: apágala en Ajustes y repítela.
+        </p>
+      ) : null}
+
       <section className="result__hard" aria-label="Lo que más costó" data-testid="result-hard">
         <span className="result__hard-icon" aria-hidden="true">
           <Icon name="target" size={28} />
@@ -187,8 +208,13 @@ export function LessonResult({
       ) : null}
 
       <footer className="result__actions">
-        <GameButton variant="secondary" onClick={() => flow.retry()} data-testid="result-retry">
-          {nextStar === null || lesson.dynamic ? 'Repetir' : `Repetir para la ${nextStar}.ª ★`}
+        <GameButton
+          variant={failed ? 'primary' : 'secondary'}
+          onClick={() => flow.retry()}
+          data-testid="result-retry"
+          aria-label={retryLabel(nextStar, lesson.dynamic === true, true)}
+        >
+          {retryLabel(nextStar, lesson.dynamic === true, false)}
         </GameButton>
         {review ? (
           <GameLink
@@ -199,8 +225,12 @@ export function LessonResult({
             Repasar tus puntos débiles
           </GameLink>
         ) : null}
-        <GameLink href={hrefOf(CAMINO)} data-testid="result-continue">
-          Continuar
+        <GameLink
+          variant={failed ? 'secondary' : 'primary'}
+          href={hrefOf(CAMINO)}
+          data-testid="result-continue"
+        >
+          {failed ? 'Volver al camino' : 'Continuar'}
         </GameLink>
       </footer>
     </section>

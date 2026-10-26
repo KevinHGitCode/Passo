@@ -106,6 +106,7 @@
   padding-top: 8px;
 }
 .progreso__reset {
+  min-height: 44px;
   padding: 8px 4px;
   border: 0;
   background: none;
@@ -295,6 +296,13 @@
   }
 }
 @media (max-width: 599px) {
+  /* El mapa del teclado no se encoge hasta ser ilegible: se desplaza de lado. */
+  .heat {
+    overflow-x: auto;
+  }
+  .heat__svg {
+    min-width: 540px;
+  }
   .progreso__kpis {
     grid-template-columns: minmax(0, 1fr);
   }

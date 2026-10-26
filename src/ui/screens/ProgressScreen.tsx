@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from 'react';
+import { useRef, useState, useSyncExternalStore } from 'react';
 import type { ProgressService } from '@/core/application/progress-service';
 import { LESSONS } from '@/core/domain/lessons';
 import type { NotationMode } from '@/core/domain/note';
@@ -36,6 +36,7 @@ export function ProgressScreen({
 }) {
   const { state, saved } = useSyncExternalStore(progress.subscribe, progress.getSnapshot);
   const [confirming, setConfirming] = useState(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const summary = progressSummary(state);
   const level = pianistLevel(state.xp);
   const done = LESSONS.filter((lesson) => (state.lessons[lesson.id]?.stars ?? 0) >= 1).length;
@@ -46,7 +47,7 @@ export function ProgressScreen({
   return (
     <div className="progreso" data-testid="progreso">
       <header className="progreso__head">
-        <h1 id="progreso-titulo" tabIndex={-1} data-route-heading>
+        <h1 id="progreso-titulo" tabIndex={-1} data-route-heading ref={headingRef}>
           Progreso
         </h1>
         <p className="progreso__sub">
@@ -177,6 +178,8 @@ export function ProgressScreen({
                 onClick={() => {
                   progress.reset();
                   setConfirming(false);
+                  // El botón pulsado desaparece: el foco pasa al título (se anuncia dónde estás).
+                  headingRef.current?.focus({ preventScroll: true });
                 }}
                 data-testid="borrar-si"
               >

@@ -474,6 +474,30 @@
   .lesson {
     padding: 8px 12px;
   }
+  /* La barra de tramos pasa a una segunda fila (en una sola quedaría en 0 px) y el engranaje, a solo icono. */
+  .lesson__top {
+    flex-wrap: wrap;
+  }
+  .lesson__segments {
+    flex: 1 0 100%;
+    order: 3;
+  }
+  .lesson__top .gear span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  /* El resultado deja sus acciones a la vista sin tener que desplazarse hasta el final. */
+  .result__actions {
+    position: sticky;
+    bottom: 0;
+    padding: 12px 0;
+    background: var(--bg);
+  }
   .result__cards {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -495,4 +519,15 @@
   color: var(--warn-strong);
   font-weight: 700;
   text-align: center;
+}
+
+.lesson-intro__tip {
+  max-width: 52ch;
+  margin: 2px 0 0;
+  color: var(--warn-strong);
+  background: var(--warn-soft);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 700;
 }

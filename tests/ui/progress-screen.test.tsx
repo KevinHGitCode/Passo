@@ -170,6 +170,8 @@ describe('progreso · borrar', () => {
     expect(progress.getSnapshot().state.xp).toBe(0);
     expect(screen.getByTestId('progreso-vacio')).toBeTruthy();
     expect(screen.getByTestId('kpi-accuracy').textContent).toBe('—');
+    // El botón pulsado desaparece: el foco pasa al título.
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1 }));
   });
 });
 

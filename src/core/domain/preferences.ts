@@ -1,5 +1,7 @@
 import { EXERCISE_MODES, findLevel } from './curriculum';
 import type { ExerciseMode } from './curriculum';
+import { DEFAULT_INSTRUMENT, INSTRUMENTS } from './instrument';
+import type { Instrument } from './instrument';
 import type { NotationMode } from './note';
 import type { InputSource } from './note-event';
 
@@ -17,6 +19,8 @@ export interface Preferences {
   readonly version: typeof PREFERENCES_VERSION;
   /** Entrada con la que se practica. El micrófono no se enciende solo: hace falta activarlo. */
   readonly input: InputSource;
+  /** Qué instrumento se está aprendiendo (el camino, el progreso y lo que se muestra son suyos). */
+  readonly instrument: Instrument;
   readonly notation: NotationMode;
   /** Ayuda: iluminar las teclas objetivo. */
   readonly help: boolean;
@@ -31,6 +35,7 @@ export interface Preferences {
 export const DEFAULT_PREFERENCES: Preferences = {
   version: PREFERENCES_VERSION,
   input: 'microfono',
+  instrument: DEFAULT_INSTRUMENT,
   notation: 'latina',
   help: true,
   theme: 'auto',
@@ -94,6 +99,7 @@ function parseFields(raw: unknown, fallback: Preferences): Preferences {
   return {
     version: PREFERENCES_VERSION,
     input: oneOf(raw['input'], INPUT_CHOICES, fallback.input),
+    instrument: oneOf(raw['instrument'], INSTRUMENTS, fallback.instrument),
     notation: oneOf(raw['notation'], NOTATION_CHOICES, fallback.notation),
     help: typeof raw['help'] === 'boolean' ? raw['help'] : fallback.help,
     theme,
@@ -115,6 +121,7 @@ export function applyPreferencesPatch(current: Preferences, patch: PreferencesPa
 export function samePreferences(a: Preferences, b: Preferences): boolean {
   return (
     a.input === b.input &&
+    a.instrument === b.instrument &&
     a.notation === b.notation &&
     a.help === b.help &&
     a.theme === b.theme &&

@@ -24,6 +24,7 @@ import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
 import { ProgressService } from '@/core/application/progress-service';
 import { isExerciseMode } from '@/core/domain/curriculum';
+import { isInstrument } from '@/core/domain/instrument';
 import { roundConfigFor } from '@/core/domain/exercise';
 import { findLesson } from '@/core/domain/lessons';
 import type { Lesson, PlayContext } from '@/core/domain/lessons';
@@ -42,7 +43,7 @@ import type { NoteInput } from '@/core/ports/note-input';
  * Modo de desarrollo: `?pc` (teclado del PC), `?midi` (piano MIDI) o `?mic=off` (sin micrófono)
  * activan esas entradas a la vez, como antes, sin gestor ni preferencias de entrada. También:
  * `?seed=N` (notas reproducibles), `?debug` (panel de latencia) y `?modo=notas|terceras|acordes&nivel=N`
- * (ejercicio inicial).
+ * (ejercicio inicial) y `?instrumento=piano|guitarra` (instrumento de esta visita, sin guardarlo).
  */
 export function composeApp(search: string = window.location.search) {
   const params = new URLSearchParams(search);
@@ -58,7 +59,11 @@ export function composeApp(search: string = window.location.search) {
     : undefined;
 
   const clock: Clock = { now: () => performance.now() };
-  const preferences = new PreferencesService(new LocalStoragePreferencesStore(browserStorage()));
+  const instrumentParam = params.get('instrumento');
+  const preferences = new PreferencesService(
+    new LocalStoragePreferencesStore(browserStorage()),
+    isInstrument(instrumentParam) ? { instrument: instrumentParam } : undefined,
+  );
 
   const microphone = new MicrophoneInput({
     mediaDevices: navigator.mediaDevices as unknown as MediaDevicesLike | undefined,

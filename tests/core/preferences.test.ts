@@ -9,6 +9,7 @@ import type { Preferences } from '@/core/domain/preferences';
 const valid: Preferences = {
   version: 1,
   input: 'teclado-pc',
+  instrument: 'guitarra',
   notation: 'americana',
   help: false,
   theme: 'oscuro',
@@ -28,6 +29,7 @@ describe('parsePreferences', () => {
     expect(DEFAULT_PREFERENCES).toEqual({
       version: 1,
       input: 'microfono',
+      instrument: 'piano',
       notation: 'latina',
       help: true,
       theme: 'auto',
@@ -45,6 +47,7 @@ describe('parsePreferences', () => {
     const parsed = parsePreferences({
       ...valid,
       input: 'telepatía',
+      instrument: 'ukelele',
       notation: 3,
       help: 'sí',
       theme: 'rosa',

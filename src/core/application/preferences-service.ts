@@ -10,9 +10,14 @@ export class PreferencesService {
   private current: Preferences;
   private readonly listeners = new Set<() => void>();
 
-  constructor(store: PreferencesStore) {
+  /**
+   * `initial` (opcional, para el modo de desarrollo: `?instrumento=guitarra`) manda sobre lo guardado
+   * en esta visita pero **no se guarda** hasta que la persona cambie algo.
+   */
+  constructor(store: PreferencesStore, initial?: PreferencesPatch) {
     this.store = store;
-    this.current = parsePreferences(this.read());
+    const loaded = parsePreferences(this.read());
+    this.current = initial === undefined ? loaded : applyPreferencesPatch(loaded, initial);
   }
 
   /** Foto inmutable: cambia de identidad solo cuando algo cambia (apta para useSyncExternalStore). */

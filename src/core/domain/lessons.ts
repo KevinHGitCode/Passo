@@ -1,6 +1,7 @@
 import { LEVELS } from './curriculum';
 import type { ExerciseMode } from './curriculum';
 import type { RoundConfig } from './exercise';
+import { GUITAR_UNITS } from './guitar-lessons';
 import { INSTRUMENTS } from './instrument';
 import type { Instrument } from './instrument';
 import { LESSON_LEVEL, lessonsOf } from './lesson-model';
@@ -247,7 +248,7 @@ export const LESSONS: readonly Lesson[] = UNITS.flatMap((unit) => unit.lessons);
 /** Las unidades de cada instrumento. */
 const COURSES: Readonly<Record<Instrument, readonly Unit[]>> = {
   piano: UNITS,
-  guitarra: [],
+  guitarra: GUITAR_UNITS,
 };
 
 export function unitsOf(instrument: Instrument): readonly Unit[] {
@@ -280,6 +281,8 @@ export function lessonConfig(lesson: Lesson): RoundConfig {
     // Cobertura de notas, salvo en el repaso armado al momento (sus teclas débiles se repiten a propósito).
     coverage: lesson.dynamic !== true,
     instrument: lesson.instrument,
+    // En esta etapa la guitarra se juzga por el nombre de la nota (ver `RoundConfig.octaveFree`).
+    ...(lesson.instrument === 'guitarra' ? { octaveFree: true } : {}),
   };
 }
 
@@ -290,7 +293,7 @@ export function lessonNoteCount(lesson: Lesson): number {
 
 // ─── Disponibilidad según la entrada ────────────────────────────────────────────────────────────
 
-export type PlayBlock = 'necesita-varias-notas';
+export type PlayBlock = 'necesita-varias-notas' | 'necesita-microfono';
 
 export interface PlayContext {
   /** Entradas con las que se puede tocar ahora (la elegida; en modo de desarrollo, todas las pedidas). */
@@ -304,6 +307,10 @@ export interface PlayContext {
  * MIDI, teclado del PC o la beta. Devuelve `null` si se puede tocar.
  */
 export function playBlock(lesson: Lesson, context: PlayContext): PlayBlock | null {
+  // La guitarra no tiene piano MIDI ni teclado de PC: solo se toca con el micrófono.
+  if (lesson.instrument === 'guitarra' && !context.sources.includes('microfono')) {
+    return 'necesita-microfono';
+  }
   if (lesson.mode === 'notas') return null;
   if (context.sources.some((source) => source !== 'microfono')) return null;
   return context.polyphonicMic ? null : 'necesita-varias-notas';

@@ -142,10 +142,11 @@ describe('el repaso es de un instrumento', () => {
 });
 
 describe('el catálogo por instrumento', () => {
-  it('el piano conserva sus lecciones y la guitarra aún no tiene', () => {
+  it('cada instrumento tiene sus lecciones, marcadas con su instrumento', () => {
     expect(unitsOf('piano').length).toBeGreaterThan(0);
     expect(lessonsFor('piano').every((lesson) => lesson.instrument === 'piano')).toBe(true);
-    expect(unitsOf('guitarra')).toEqual([]);
+    expect(unitsOf('guitarra').length).toBeGreaterThan(0);
+    expect(lessonsFor('guitarra').every((lesson) => lesson.instrument === 'guitarra')).toBe(true);
   });
 });
 

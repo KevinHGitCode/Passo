@@ -45,6 +45,13 @@ export interface RoundConfig {
   readonly coverage?: boolean;
   /** De qué instrumento es la ronda; sin indicar, piano. Marca los intentos para no mezclar las estadísticas. */
   readonly instrument?: Instrument;
+  /**
+   * Se juzga el **nombre** de la nota, no su octava: una nota oída con el mismo nombre que el objetivo
+   * (una octava arriba o abajo) cuenta como el objetivo. Para la guitarra, que se escribe una octava
+   * por encima de como suena y cuyas cuerdas graves el micrófono lee a menudo una octava distinta. Solo
+   * vale con objetivos de una nota.
+   */
+  readonly octaveFree?: boolean;
 }
 
 /** Configuración de una ronda para un modo y nivel, o `null` si ese nivel no existe. */
@@ -159,6 +166,27 @@ export type Outcome =
 
 const keyOf = (target: Target): string => target.notes.join('-');
 
+/** Los dos objetivos son una sola nota del mismo nombre (aunque de distinta octava). */
+function sameName(a: Target, b: Target): boolean {
+  return (
+    a.notes.length === 1 &&
+    b.notes.length === 1 &&
+    pitchClass(a.notes[0]) === pitchClass(b.notes[0])
+  );
+}
+
+/**
+ * Con `octaveFree`, la nota oída con el nombre del objetivo (de una nota) pasa a ser el objetivo.
+ * Se hace antes de evaluar, así el resto de reglas (eco, errores, acierto) ve ya la nota pedida.
+ */
+function foldOctave(state: ExerciseState, event: NoteEvent): NoteEvent {
+  if (state.config.octaveFree !== true || state.target.notes.length !== 1) return event;
+  const target = state.target.notes[0];
+  return event.note !== target && pitchClass(event.note) === pitchClass(target)
+    ? { ...event, note: target }
+    : event;
+}
+
 /**
  * Las notas ya vistas en el ciclo actual de una ronda con cobertura: cuando han salido todas las
  * distintas del conjunto, el ciclo vuelve a empezar. `order` es la sucesión de objetivos hasta ahora.
@@ -186,12 +214,18 @@ export function pickTarget(
   previous: Target | null,
   rng: Rng,
   seen?: ReadonlySet<string>,
+  avoidSameName = false,
 ): Target {
   if (pool.length === 0) throw new RangeError('El conjunto de objetivos está vacío');
   let candidates =
     pool.length > 1
       ? pool.filter((target) => previous === null || !sameTarget(target, previous))
       : pool;
+  if (avoidSameName && previous !== null) {
+    // Con el juicio por nombre, un Mi y otro Mi de otra octava serían la misma nota seguida.
+    const other = candidates.filter((target) => !sameName(target, previous));
+    if (other.length > 0) candidates = other;
+  }
   if (seen !== undefined && seen.size > 0) {
     const fresh = candidates.filter((target) => !seen.has(keyOf(target)));
     if (fresh.length > 0) candidates = fresh;
@@ -217,7 +251,13 @@ function fillUpcoming(
   let previous = upcoming[upcoming.length - 1] ?? current;
   while (upcoming.length < wanted) {
     const order = [...solved, keyOf(current), ...upcoming.map(keyOf)];
-    previous = pickTarget(config.pool, previous, rng, coverageSeen(config, order));
+    previous = pickTarget(
+      config.pool,
+      previous,
+      rng,
+      coverageSeen(config, order),
+      config.octaveFree === true,
+    );
     upcoming.push(previous);
   }
   return upcoming;
@@ -316,10 +356,11 @@ function buildAttempt(
  */
 export function evaluate(
   state: ExerciseState,
-  event: NoteEvent,
+  rawEvent: NoteEvent,
   context: EvaluateContext,
 ): { state: ExerciseState; outcome: Outcome } {
   if (state.finished) return ignored(state);
+  const event = foldOctave(state, rawEvent);
   if (!isNoteOn(event)) {
     if (!state.held.includes(event.note)) return ignored(state);
     return ignored({ ...state, held: state.held.filter((note) => note !== event.note) });
@@ -401,7 +442,13 @@ export function evaluate(
     .map((item) => item.targetNotes.join('-'));
   const target =
     queued ??
-    pickTarget(state.config.pool, state.target, context.rng, coverageSeen(state.config, solved));
+    pickTarget(
+      state.config.pool,
+      state.target,
+      context.rng,
+      coverageSeen(state.config, solved),
+      state.config.octaveFree === true,
+    );
   return {
     state: {
       ...state,

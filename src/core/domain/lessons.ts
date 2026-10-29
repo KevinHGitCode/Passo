@@ -1,65 +1,24 @@
 import { LEVELS } from './curriculum';
 import type { ExerciseMode } from './curriculum';
 import type { RoundConfig } from './exercise';
+import { LESSON_LEVEL, lessonsOf } from './lesson-model';
+import type { Lesson, LessonKind, LessonSpec, Unit } from './lesson-model';
 import type { Midi } from './note';
 import type { InputSource } from './note-event';
 import { targetOf } from './target';
 import type { Finger, Hand, Target } from './target';
 
 /**
- * El camino de aprendizaje: unidades con lecciones cortas (2–4 minutos). Son datos puros; la interfaz
- * solo los muestra. Una lección es una ronda con **su propio conjunto de objetivos** (a diferencia de
- * un nivel de práctica libre, que usa todo el conjunto del nivel).
+ * El camino de aprendizaje del piano: unidades con lecciones cortas (2–4 minutos). Son datos puros; la
+ * interfaz solo los muestra. Una lección es una ronda con **su propio conjunto de objetivos** (a
+ * diferencia de un nivel de práctica libre, que usa todo el conjunto del nivel).
  */
 
-export type LessonKind = 'nueva' | 'repaso' | 'prueba';
+export { LESSON_LEVEL, LESSON_ROUND_SIZE } from './lesson-model';
+export type { Lesson, LessonKind, LessonSpec, Unit } from './lesson-model';
 
-/** Objetivos de cada tipo de lección: nueva 10 · repaso 14 · prueba 20 (en notas sueltas). */
-export const LESSON_ROUND_SIZE: Readonly<Record<LessonKind, number>> = {
-  nueva: 10,
-  repaso: 14,
-  prueba: 20,
-};
 /** Una tercera o un acorde cuesta más que una nota: rondas de 12. */
 const GROUP_LESSON_ROUND_SIZE = 12;
-
-/** El nivel de una lección no es de práctica libre: marca los intentos como «de lección». */
-export const LESSON_LEVEL = 0;
-
-export interface Lesson {
-  /** Estable: se guarda en el progreso. `u<unidad>-<n>`. */
-  readonly id: string;
-  readonly unitId: string;
-  readonly kind: LessonKind;
-  /** Qué se toca, en pocas palabras («Do · Re · Mi»). */
-  readonly title: string;
-  readonly mode: ExerciseMode;
-  readonly pool: readonly Target[];
-  readonly roundSize: number;
-  /** Notas por minuto para la 3.ª estrella (con piano MIDI o teclado del PC); `null`: no se exige. */
-  readonly rhythmGoal: number | null;
-  /**
-   * Lección armada al momento (el repaso de tus puntos débiles): no está en el camino, no tiene
-   * estrellas ni se guarda como lección; sí da experiencia y alimenta las estadísticas por tecla.
-   */
-  readonly dynamic?: boolean;
-}
-
-export interface Unit {
-  readonly id: string;
-  readonly number: number;
-  readonly title: string;
-  /** Una línea que explica la unidad. */
-  readonly summary: string;
-  /** No frena el camino: se puede dejar para más tarde (terceras y acordes con micrófono). */
-  readonly optional: boolean;
-  /**
-   * Unidades que hay que terminar antes de abrir esta (por avance). No es una fila única: la 3 solo pide
-   * la 1, para que una nota que el micrófono no oye bien (las graves de la 2) no frene el camino.
-   */
-  readonly requires: readonly string[];
-  readonly lessons: readonly Lesson[];
-}
 
 // ─── Constructores de objetivos ─────────────────────────────────────────────────────────────────
 
@@ -114,32 +73,6 @@ const RHYTHM_THIRDS = 16;
 const RHYTHM_CHORDS = 18;
 
 // ─── Lecciones ──────────────────────────────────────────────────────────────────────────────────
-
-interface LessonSpec {
-  readonly kind: LessonKind;
-  readonly title: string;
-  readonly pool: readonly Target[];
-  readonly mode?: ExerciseMode;
-  readonly roundSize?: number;
-  readonly rhythmGoal?: number | null;
-}
-
-function lessonsOf(
-  unitId: string,
-  specs: readonly LessonSpec[],
-  rhythm: (kind: LessonKind) => number | null,
-): Lesson[] {
-  return specs.map((spec, index) => ({
-    id: `${unitId}-${index + 1}`,
-    unitId,
-    kind: spec.kind,
-    title: spec.title,
-    mode: spec.mode ?? 'notas',
-    pool: spec.pool,
-    roundSize: spec.roundSize ?? LESSON_ROUND_SIZE[spec.kind],
-    rhythmGoal: spec.rhythmGoal === undefined ? rhythm(spec.kind) : spec.rhythmGoal,
-  }));
-}
 
 const basic = (kind: LessonKind): number => RHYTHM_BASIC[kind];
 const moving = (kind: LessonKind): number => RHYTHM_MOVING[kind];

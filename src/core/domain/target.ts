@@ -1,3 +1,5 @@
+import { midiAt } from './instrument';
+import type { FretPosition } from './instrument';
 import type { Midi } from './note';
 import { isValidMidi } from './note';
 
@@ -20,15 +22,21 @@ export interface Target {
   readonly fingers: readonly Finger[];
   readonly hand: Hand | null;
   readonly chord: ChordInfo | null;
+  /**
+   * Dónde se toca cada nota en la guitarra (mismo orden que `notes`); vacío si no se indica. Solo guía a
+   * la pantalla: lo que se juzga es la nota, y la misma nota puede tocarse en más de un sitio.
+   */
+  readonly positions: readonly FretPosition[];
 }
 
 export interface TargetExtras {
   readonly fingers?: readonly Finger[];
   readonly hand?: Hand;
   readonly chord?: ChordInfo;
+  readonly positions?: readonly FretPosition[];
 }
 
-/** `extras.fingers` va en el mismo orden que las notas ya ordenadas de grave a agudo. */
+/** `extras.fingers` y `extras.positions` van en el mismo orden que las notas ya ordenadas de grave a agudo. */
 export function targetOf(notes: readonly Midi[], extras: TargetExtras = {}): Target {
   const sorted = [...new Set(notes)].sort((a, b) => a - b);
   const [first, ...rest] = sorted;
@@ -40,11 +48,23 @@ export function targetOf(notes: readonly Midi[], extras: TargetExtras = {}): Tar
   if (fingers.length !== 0 && fingers.length !== sorted.length) {
     throw new RangeError('Hace falta un dedo por cada nota del objetivo');
   }
+  const positions = extras.positions ?? [];
+  if (positions.length !== 0 && positions.length !== sorted.length) {
+    throw new RangeError('Hace falta una posición por cada nota del objetivo');
+  }
+  positions.forEach((position, i) => {
+    if (midiAt(position.string, position.fret) !== sorted[i]) {
+      throw new RangeError(
+        `La posición (cuerda ${position.string}, traste ${position.fret}) no suena como la nota ${sorted[i]}`,
+      );
+    }
+  });
   return {
     notes: [first, ...rest],
     fingers,
     hand: extras.hand ?? null,
     chord: extras.chord ?? null,
+    positions,
   };
 }
 

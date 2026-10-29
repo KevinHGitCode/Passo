@@ -74,6 +74,7 @@ export function reviewLesson(history: KeyHistory): Lesson | null {
   return {
     id: REVIEW_LESSON_ID,
     unitId: 'repaso',
+    instrument: 'piano',
     kind: 'repaso',
     title: 'Tus puntos débiles',
     mode: 'notas',

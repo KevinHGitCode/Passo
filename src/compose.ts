@@ -20,6 +20,7 @@ import { InputManager } from '@/core/application/input-manager';
 import { bindInputsToPreferences } from '@/core/application/input-sync';
 import { LessonFlow } from '@/core/application/lesson-flow';
 import { PracticeSession } from '@/core/application/practice-session';
+import { bindProfileToSession } from '@/core/application/profile-sync';
 import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
 import { ProgressService } from '@/core/application/progress-service';
@@ -139,6 +140,9 @@ export function composeApp(search: string = window.location.search) {
     ...(config ? { config } : {}),
     ...(devMode && useMic ? { primarySource: 'microfono' as const } : {}),
   });
+
+  // El micrófono escucha según el instrumento de la ronda en curso (piano o guitarra).
+  bindProfileToSession(session, microphone);
 
   // Progreso de la persona (experiencia, racha, lecciones): se guarda en el navegador.
   const progress = new ProgressService(

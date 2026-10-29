@@ -1,5 +1,7 @@
 import { ChordListener } from '@/core/domain/chord-listener';
 import { analyzeFrame, BLOCK_SIZE } from '@/core/domain/frame-analysis';
+import { trackerConfigFor } from '@/core/domain/listening-profile';
+import type { ListeningProfile } from '@/core/domain/listening-profile';
 import type { Midi } from '@/core/domain/note';
 import type { NoteEvent } from '@/core/domain/note-event';
 import { NoteTracker } from '@/core/domain/note-tracker';
@@ -7,6 +9,7 @@ import type { Clock } from '@/core/ports/clock';
 import type { ChordLogSource } from '@/core/ports/chord-log';
 import type { ExpectationSink } from '@/core/ports/expectation-sink';
 import { SILENT_MONITOR } from '@/core/ports/input-monitor';
+import type { ListeningProfileSink } from '@/core/ports/listening-profile-sink';
 import type { InputMonitor, ListenPhase, MonitorSnapshot } from '@/core/ports/input-monitor';
 import type { InputStatus, NoteInput, Unsubscribe } from '@/core/ports/note-input';
 import type {
@@ -99,7 +102,9 @@ interface Capture {
  * Escucha activa: oye el instrumento por el micrófono y convierte el audio en eventos de nota.
  * El audio nunca sale del navegador: solo se calculan nivel, altura y ataques.
  */
-export class MicrophoneInput implements NoteInput, InputMonitor, ExpectationSink, ChordLogSource {
+export class MicrophoneInput
+  implements NoteInput, InputMonitor, ExpectationSink, ListeningProfileSink, ChordLogSource
+{
   readonly source = 'microfono';
   private readonly deps: MicrophoneDeps;
   private readonly handlers = new Set<(event: NoteEvent) => void>();
@@ -109,6 +114,8 @@ export class MicrophoneInput implements NoteInput, InputMonitor, ExpectationSink
   private monitor: MonitorSnapshot = SILENT_MONITOR;
   private capture: Capture | null = null;
   private tracker = new NoteTracker();
+  /** Cómo escucha según el instrumento; se aplica al encender y, en caliente, al cambiar. */
+  private profile: ListeningProfile = 'piano';
   /** Verifica acordes (varias notas a la vez) cuando la sesión dice qué se espera; si no, no hace nada. */
   private readonly chords = new ChordListener();
   private startToken = 0;
@@ -135,6 +142,18 @@ export class MicrophoneInput implements NoteInput, InputMonitor, ExpectationSink
   /** Qué acorde se espera oír (`null`: ninguno). Con un acorde esperado las notas se verifican a la vez. */
   setExpectation(notes: readonly Midi[] | null): void {
     this.chords.setExpectation(notes);
+  }
+
+  /**
+   * Cambia cómo se escucha según el instrumento. Con el micrófono encendido es en caliente: no vuelve a
+   * calibrar el ruido, pero suelta la nota en curso y olvida la afinación aprendida.
+   */
+  setProfile(profile: ListeningProfile): void {
+    if (profile === this.profile) return;
+    this.profile = profile;
+    if (!this.capture) return;
+    this.emitAll(this.tracker.reconfigure(trackerConfigFor(profile), this.deps.clock.now()));
+    this.publish(true);
   }
 
   getMonitor(): MonitorSnapshot {
@@ -251,7 +270,7 @@ export class MicrophoneInput implements NoteInput, InputMonitor, ExpectationSink
     this.deps.visibility?.addEventListener('visibilitychange', this.onVisibility);
 
     this.suspended = this.deps.visibility?.hidden === true;
-    this.tracker = new NoteTracker();
+    this.tracker = new NoteTracker(trackerConfigFor(this.profile));
     this.lastHeard = null;
     this.capture = {
       context,

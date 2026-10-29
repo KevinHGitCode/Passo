@@ -285,3 +285,87 @@ export function streamFrames(
     consumer(window, hop, startAtMs + (end / sampleRate) * 1000);
   }
 }
+
+export interface GuitarOptions {
+  /** Duración total en ms. */
+  readonly ms?: number;
+  /** Amplitud de pico (0–1). */
+  readonly amplitude?: number;
+  /** Desafinación en cents. */
+  readonly cents?: number;
+  /** Segundos que tarda la fundamental en caer 60 dB: 3–6 en acero grave, 1,2–2 en nailon agudo. */
+  readonly t60?: number;
+  /** Pérdida del bucle (paso bajo de un polo): ~0,10–0,15 en acero, ~0,45 en nailon. */
+  readonly loss?: number;
+  /** Dónde se pulsa la cuerda, como fracción de su longitud (0,15 = cerca del puente). */
+  readonly pluck?: number;
+  /** Golpe de púa o uña: ráfaga de ruido de 8 ms relativa al pico (0–1). */
+  readonly pickNoise?: number;
+  readonly sampleRate?: number;
+  readonly seed?: number;
+}
+
+/**
+ * Cuerda pulsada por Karplus-Strong: una línea de retardo de `fs/f0` muestras (con un filtro todo-paso
+ * para la parte fraccionaria) realimentada a través de un paso bajo de un polo. La excitación es
+ * triangular y de media cero (no una ráfaga de ruido, que dejaría ~60 ms no armónicos). Imita una cuerda
+ * de guitarra mejor que la síntesis aditiva de piano: el decaimiento es lento y los armónicos altos se
+ * apagan antes que la fundamental.
+ */
+export function guitarNote(midi: number, options: GuitarOptions = {}): Float32Array {
+  const {
+    ms = 1200,
+    amplitude = 0.3,
+    cents = 0,
+    t60 = 4,
+    loss = 0.12,
+    pluck = 0.15,
+    pickNoise = 0.2,
+    sampleRate = SAMPLE_RATE,
+    seed = 1,
+  } = options;
+  const f0 = midiToFrequency(midi) * 2 ** (cents / 1200);
+  const period = sampleRate / f0;
+  const lowpassDelay = loss / (1 - loss);
+  const length = Math.max(2, Math.floor(period - lowpassDelay - 0.5));
+  const fraction = period - length - lowpassDelay; // entre 0,5 y 1,5
+  const allpass = (1 - fraction) / (1 + fraction);
+  const gain = 10 ** (-3 / (f0 * t60));
+
+  const line = new Float32Array(length);
+  const peakAt = Math.max(1, Math.round(pluck * length));
+  for (let i = 0; i < length; i++) {
+    line[i] = i < peakAt ? i / peakAt : (length - i) / (length - peakAt);
+  }
+  const mean = line.reduce((total, value) => total + value, 0) / length;
+  for (let i = 0; i < length; i++) line[i] = (line[i] as number) - mean;
+
+  const count = samplesFor(ms, sampleRate);
+  const out = new Float32Array(count);
+  let index = 0;
+  let lowpassState = 0;
+  let allpassIn = 0;
+  let allpassOut = 0;
+  for (let i = 0; i < count; i++) {
+    const delayed = line[index] as number;
+    out[i] = delayed;
+    lowpassState = (1 - loss) * delayed + loss * lowpassState;
+    const shifted = allpass * lowpassState + allpassIn - allpass * allpassOut;
+    allpassIn = lowpassState;
+    allpassOut = shifted;
+    line[index] = gain * shifted;
+    index = (index + 1) % length;
+  }
+
+  let peak = 0;
+  for (const value of out) peak = Math.max(peak, Math.abs(value));
+  const scaleTo = peak === 0 ? 0 : amplitude / peak;
+  const rng = createSeededRng(seed);
+  const pick = samplesFor(8, sampleRate);
+  for (let i = 0; i < count; i++) {
+    const noiseValue =
+      i < pick ? (rng() * 2 - 1) * pickNoise * amplitude * Math.exp((-i / pick) * 3) : 0;
+    out[i] = (out[i] as number) * scaleTo + noiseValue;
+  }
+  return out;
+}

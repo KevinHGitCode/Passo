@@ -7,6 +7,7 @@ import type {
   RoundConfig,
   RoundSummary,
 } from '../domain/exercise';
+import type { Instrument } from '../domain/instrument';
 import type { Midi, NotationMode } from '../domain/note';
 import type { InputSource, NoteEvent } from '../domain/note-event';
 import type { Rng } from '../domain/rng';
@@ -33,6 +34,8 @@ export interface SessionSnapshot {
   /** Modo y nivel del ejercicio (de la configuración de la ronda). */
   readonly mode: ExerciseMode;
   readonly level: number;
+  /** Instrumento de la ronda (el de la configuración; piano si no se indicó). */
+  readonly instrument: Instrument;
   /** Ayuda activada: la tecla objetivo se ilumina. Se registra en cada intento. */
   readonly help: boolean;
   readonly exercise: ExerciseState | null;
@@ -118,6 +121,7 @@ export class PracticeSession {
       notation: deps.notation ?? 'latina',
       mode: this.config.mode,
       level: this.config.level,
+      instrument: this.config.instrument ?? 'piano',
       help: true,
       exercise: null,
       feedback: null,
@@ -163,6 +167,7 @@ export class PracticeSession {
     this.update({
       mode: this.config.mode,
       level: this.config.level,
+      instrument: this.config.instrument ?? 'piano',
       phase: paused ? 'pausada' : 'en-curso',
       pauseReason: paused ? paused.reason : null,
       pausedSource: paused ? paused.source : null,
@@ -191,7 +196,11 @@ export class PracticeSession {
       // Sigue en pausa por el mismo motivo (p. ej. una entrada perdida se sigue esperando).
       this.begin({ reason: pauseReason, source: pausedSource });
     } else {
-      this.update({ mode: config.mode, level: config.level });
+      this.update({
+        mode: config.mode,
+        level: config.level,
+        instrument: config.instrument ?? 'piano',
+      });
     }
   }
 

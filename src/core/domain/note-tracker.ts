@@ -48,6 +48,12 @@ export interface TrackerConfig {
   /** Rango fiable de notas (Do3–Do6). */
   readonly minMidi: Midi;
   readonly maxMidi: Midi;
+  /**
+   * Aprende la afinación del instrumento a partir de las últimas notas y la resta (un teclado afinado
+   * 30 cents arriba). Con `false` las notas se miden contra la afinación estándar: lo hace la guitarra,
+   * donde una cuerda floja no es un instrumento desviado.
+   */
+  readonly learnTuning: boolean;
   /** Tiempo máximo para confirmar una nota tras un ataque antes de darla por «confusa». */
   readonly confirmTimeoutMs: number;
   /**
@@ -94,6 +100,7 @@ export const DEFAULT_TRACKER_CONFIG: TrackerConfig = {
   minFundamentalRatio: 0.03,
   minMidi: 48,
   maxMidi: 84,
+  learnTuning: true,
   confirmTimeoutMs: 450,
   sameNoteRetriggerMs: 300,
   dropoutRatio: 0.15,
@@ -177,7 +184,7 @@ function velocityFor(level: number): number {
  * varios fotogramas de altura estable; lo dudoso se marca con confianza `media`.
  */
 export class NoteTracker {
-  private readonly config: TrackerConfig;
+  private config: TrackerConfig;
   private phase: TrackerState['phase'] = 'calibrando';
   private calibrationStartedAt: number | null = null;
   private calibrationLevels: number[] = [];
@@ -258,6 +265,20 @@ export class NoteTracker {
     this.gate = this.config.minGate;
     this.hint = null;
     this.silentSince = null;
+    return events;
+  }
+
+  /**
+   * Cambia la configuración en caliente (otro instrumento) sin volver a calibrar: conserva la fase y el
+   * ruido ambiente medidos, suelta la nota en curso y olvida la afinación aprendida (era de otro
+   * instrumento). Los valores no indicados vuelven a los de fábrica.
+   */
+  reconfigure(config: Partial<TrackerConfig>, at: number): NoteEvent[] {
+    const events = this.reset(at);
+    this.config = { ...DEFAULT_TRACKER_CONFIG, ...config };
+    this.tuningOffset = null;
+    this.rawCentsHistory = [];
+    this.updateGate();
     return events;
   }
 
@@ -538,6 +559,7 @@ export class NoteTracker {
 
   /** Estima la afinación del teclado con la mediana de las desviaciones de las últimas notas. */
   private trackTuning(rawCents: readonly number[]): void {
+    if (!this.config.learnTuning) return;
     this.rawCentsHistory.push(median(rawCents));
     if (this.rawCentsHistory.length > MEDIAN_WINDOW) this.rawCentsHistory.shift();
     if (this.rawCentsHistory.length < MEDIAN_WINDOW) return;

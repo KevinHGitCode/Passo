@@ -1,5 +1,6 @@
 import { findLevel } from './curriculum';
 import type { ExerciseMode } from './curriculum';
+import type { Instrument } from './instrument';
 import type { Midi, NotationMode } from './note';
 import { pitchClass, semitoneDistance } from './note';
 import type { InputSource, NoteConfidence, NoteEvent } from './note-event';
@@ -42,6 +43,8 @@ export interface RoundConfig {
    * una ronda corta no se deja notas sin tocar. Solo en lecciones (no en la práctica libre).
    */
   readonly coverage?: boolean;
+  /** De qué instrumento es la ronda; sin indicar, piano. Marca los intentos para no mezclar las estadísticas. */
+  readonly instrument?: Instrument;
 }
 
 /** Configuración de una ronda para un modo y nivel, o `null` si ese nivel no existe. */
@@ -82,6 +85,8 @@ export interface Attempt {
   readonly noteNameMode: NotationMode;
   readonly mode: ExerciseMode;
   readonly level: number;
+  /** Instrumento de la ronda (piano si no se indicó). */
+  readonly instrument: Instrument;
   readonly velocity: number;
   /** La ayuda (tecla iluminada) estaba activada: con ayuda se empareja color, sin ella se lee la nota. */
   readonly helpOn: boolean;
@@ -293,6 +298,7 @@ function buildAttempt(
     noteNameMode: context.notation,
     mode: state.config.mode,
     level: state.config.level,
+    instrument: state.config.instrument ?? 'piano',
     velocity: event.velocity,
     helpOn: context.help,
     targetIndex: state.completedTargets,

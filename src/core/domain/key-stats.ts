@@ -1,5 +1,6 @@
 import { MAX_REACTION_MS } from './exercise';
 import type { Attempt } from './exercise';
+import type { Instrument } from './instrument';
 
 /**
  * Estadísticas por tecla (o por objetivo: «Do», «Do-Mi», «Do-Mi-Sol»): cómo sale cada una a la
@@ -32,8 +33,30 @@ export const WEAK_SLOWNESS_MARGIN_MS = 600;
 export const RECOVERY_WINDOW = 5;
 export const RECOVERY_HITS = 4;
 
-export function targetKey(notes: readonly number[]): string {
-  return notes.join('-');
+/** Las claves de guitarra llevan este prefijo: la misma nota en piano y en guitarra no es la misma práctica. */
+export const GUITAR_KEY_PREFIX = 'g:';
+
+/** La clave de un objetivo: sus notas MIDI unidas con «-» («60», «60-64»), con prefijo en guitarra («g:64»). */
+export function targetKey(notes: readonly number[], instrument: Instrument = 'piano'): string {
+  const key = notes.join('-');
+  return instrument === 'guitarra' ? `${GUITAR_KEY_PREFIX}${key}` : key;
+}
+
+export function keyInstrument(key: string): Instrument {
+  return key.startsWith(GUITAR_KEY_PREFIX) ? 'guitarra' : 'piano';
+}
+
+/** Las notas MIDI de una clave, sin el prefijo del instrumento. */
+export function keyNotes(key: string): number[] {
+  const bare = keyInstrument(key) === 'guitarra' ? key.slice(GUITAR_KEY_PREFIX.length) : key;
+  return bare.split('-').map(Number);
+}
+
+/** Solo las teclas de un instrumento: las medianas y los repasos no deben mezclar los dos. */
+export function historyOf(history: KeyHistory, instrument: Instrument): KeyHistory {
+  return Object.fromEntries(
+    Object.entries(history).filter(([key]) => keyInstrument(key) === instrument),
+  );
 }
 
 /** Una muestra por objetivo de la ronda: a la primera o no, y lo que tardó en acertarlo. */
@@ -50,7 +73,7 @@ export function samplesOf(attempts: readonly Attempt[]): { key: string; sample: 
     const first = group[0];
     if (solved === undefined || first === undefined) continue;
     samples.push({
-      key: targetKey(first.targetNotes),
+      key: targetKey(first.targetNotes, first.instrument),
       sample: {
         ok: first.firstTryCorrect,
         ms: Math.min(MAX_REACTION_MS, Math.max(0, Math.round(solved.reactionMs))),

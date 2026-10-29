@@ -27,7 +27,7 @@ import { isExerciseMode } from '@/core/domain/curriculum';
 import { roundConfigFor } from '@/core/domain/exercise';
 import { findLesson } from '@/core/domain/lessons';
 import type { Lesson, PlayContext } from '@/core/domain/lessons';
-import { REVIEW_LESSON_ID, reviewLesson } from '@/core/domain/review';
+import { reviewInstrumentOf, reviewLesson } from '@/core/domain/review';
 import { createSeededRng } from '@/core/domain/rng';
 import type { Rng } from '@/core/domain/rng';
 import type { Clock } from '@/core/ports/clock';
@@ -153,8 +153,12 @@ export function composeApp(search: string = window.location.search) {
     };
   };
   // Las lecciones del camino y, aparte, el repaso que se arma al momento con los puntos débiles.
-  const resolveLesson = (id: string): Lesson | null =>
-    id === REVIEW_LESSON_ID ? reviewLesson(progress.getSnapshot().state.keys) : findLesson(id);
+  const resolveLesson = (id: string): Lesson | null => {
+    const reviewOf = reviewInstrumentOf(id);
+    return reviewOf === null
+      ? findLesson(id)
+      : reviewLesson(progress.getSnapshot().state.keys, reviewOf);
+  };
   const lessonFlow = new LessonFlow({ session, progress, playContext, resolveLesson });
 
   // Notación, ayuda y ejercicio se recuerdan; `?modo=` fija el ejercicio sin guardarlo. Una lección en

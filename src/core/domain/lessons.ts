@@ -1,6 +1,8 @@
 import { LEVELS } from './curriculum';
 import type { ExerciseMode } from './curriculum';
 import type { RoundConfig } from './exercise';
+import { INSTRUMENTS } from './instrument';
+import type { Instrument } from './instrument';
 import { LESSON_LEVEL, lessonsOf } from './lesson-model';
 import type { Lesson, LessonKind, LessonSpec, Unit } from './lesson-model';
 import type { Midi } from './note';
@@ -239,14 +241,33 @@ export const UNITS: readonly Unit[] = [
   },
 ];
 
+/** Las lecciones del piano (el catálogo de siempre). */
 export const LESSONS: readonly Lesson[] = UNITS.flatMap((unit) => unit.lessons);
 
+/** Las unidades de cada instrumento. */
+const COURSES: Readonly<Record<Instrument, readonly Unit[]>> = {
+  piano: UNITS,
+  guitarra: [],
+};
+
+export function unitsOf(instrument: Instrument): readonly Unit[] {
+  return COURSES[instrument];
+}
+
+export function lessonsFor(instrument: Instrument): readonly Lesson[] {
+  return unitsOf(instrument).flatMap((unit) => unit.lessons);
+}
+
+/** Las lecciones de todos los instrumentos (los ids no se repiten entre ellos). */
+export const ALL_LESSONS: readonly Lesson[] = INSTRUMENTS.flatMap(lessonsFor);
+const ALL_UNITS: readonly Unit[] = INSTRUMENTS.flatMap(unitsOf);
+
 export function findLesson(id: string): Lesson | null {
-  return LESSONS.find((lesson) => lesson.id === id) ?? null;
+  return ALL_LESSONS.find((lesson) => lesson.id === id) ?? null;
 }
 
 export function findUnit(id: string): Unit | null {
-  return UNITS.find((unit) => unit.id === id) ?? null;
+  return ALL_UNITS.find((unit) => unit.id === id) ?? null;
 }
 
 /** La configuración de ronda de una lección. */
@@ -258,6 +279,7 @@ export function lessonConfig(lesson: Lesson): RoundConfig {
     roundSize: lesson.roundSize,
     // Cobertura de notas, salvo en el repaso armado al momento (sus teclas débiles se repiten a propósito).
     coverage: lesson.dynamic !== true,
+    instrument: lesson.instrument,
   };
 }
 
@@ -301,10 +323,13 @@ export const SKIP_STARS = 2;
  * estrellas en ella se abre todo lo de la unidad y la unidad siguiente. Se **deriva** de las
  * estrellas; no se guarda.
  */
-export function lessonAccessMap(starsOf: (lessonId: string) => number): Map<string, LessonAccess> {
+export function lessonAccessMap(
+  starsOf: (lessonId: string) => number,
+  units: readonly Unit[] = UNITS,
+): Map<string, LessonAccess> {
   const access = new Map<string, LessonAccess>();
   const cleared = new Set<string>();
-  for (const unit of UNITS) {
+  for (const unit of units) {
     const reached = unit.requires.every((id) => cleared.has(id));
     const exam = unit.lessons.find((lesson) => lesson.kind === 'prueba');
     const examPassed = exam !== undefined && starsOf(exam.id) >= SKIP_STARS;
@@ -334,15 +359,19 @@ export function lessonAccessMap(starsOf: (lessonId: string) => number): Map<stri
 export function currentLesson(
   access: ReadonlyMap<string, LessonAccess>,
   starsOf: (lessonId: string) => number,
+  units: readonly Unit[] = UNITS,
 ): Lesson | null {
   const skipped = new Set(
-    UNITS.filter((unit) => {
-      const exam = unit.lessons.find((lesson) => lesson.kind === 'prueba');
-      return exam !== undefined && starsOf(exam.id) >= SKIP_STARS;
-    }).map((unit) => unit.id),
+    units
+      .filter((unit) => {
+        const exam = unit.lessons.find((lesson) => lesson.kind === 'prueba');
+        return exam !== undefined && starsOf(exam.id) >= SKIP_STARS;
+      })
+      .map((unit) => unit.id),
   );
   return (
-    LESSONS.find((lesson) => access.get(lesson.id) === 'abierta' && !skipped.has(lesson.unitId)) ??
-    null
+    units
+      .flatMap((unit) => unit.lessons)
+      .find((lesson) => access.get(lesson.id) === 'abierta' && !skipped.has(lesson.unitId)) ?? null
   );
 }

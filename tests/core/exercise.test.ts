@@ -117,6 +117,7 @@ describe('evaluate', () => {
       noteNameMode: 'americana',
       mode: 'notas',
       level: 1,
+      instrument: 'piano',
       velocity: 70,
       helpOn: false,
       targetIndex: 0,

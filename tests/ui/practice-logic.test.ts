@@ -23,6 +23,7 @@ function attempt(target: number, played: number, reactionMs = 640): Attempt {
     noteNameMode: 'latina',
     mode: 'notas',
     level: 1,
+    instrument: 'piano',
     velocity: 96,
     helpOn: true,
     targetIndex: 0,

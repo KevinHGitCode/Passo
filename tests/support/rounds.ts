@@ -1,4 +1,5 @@
 import type { Attempt } from '@/core/domain/exercise';
+import type { Instrument } from '@/core/domain/instrument';
 import type { InputSource } from '@/core/domain/note-event';
 
 export interface Spec {
@@ -7,6 +8,7 @@ export interface Spec {
   readonly firstTry?: boolean;
   readonly source?: InputSource;
   readonly help?: boolean;
+  readonly instrument?: Instrument;
 }
 
 /**
@@ -25,6 +27,7 @@ export function round(specs: readonly Spec[]): Attempt[] {
       noteNameMode: 'latina' as const,
       mode: 'notas' as const,
       level: 0,
+      instrument: spec.instrument ?? ('piano' as const),
       velocity: 90,
       helpOn: spec.help ?? true,
       targetIndex: index,

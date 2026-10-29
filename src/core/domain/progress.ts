@@ -3,7 +3,7 @@ import { MAX_REACTION_MS } from './exercise';
 import type { Attempt } from './exercise';
 import { addSamples, samplesOf, targetKey } from './key-stats';
 import type { KeyHistory, KeySample } from './key-stats';
-import { LESSONS, findLesson } from './lessons';
+import { ALL_LESSONS, findLesson } from './lessons';
 import type { Lesson } from './lessons';
 import { XP_PER_NEW_STAR, pianistLevel, repeatFactor } from './scoring';
 import type { LessonScore, Stars } from './scoring';
@@ -103,7 +103,9 @@ function int(value: unknown, min: number, max: number, fallback: number): number
 
 /** Los objetivos que existen en alguna lección: lo demás guardado se descarta. */
 const KNOWN_KEYS: ReadonlySet<string> = new Set(
-  LESSONS.flatMap((lesson) => lesson.pool.map((target) => targetKey(target.notes))),
+  ALL_LESSONS.flatMap((lesson) =>
+    lesson.pool.map((target) => targetKey(target.notes, lesson.instrument)),
+  ),
 );
 
 function parseStreak(raw: unknown): Streak {

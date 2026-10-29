@@ -134,6 +134,7 @@ describe('el camino de lecciones', () => {
       pool: lesson.pool,
       roundSize: 20,
       coverage: true,
+      instrument: 'piano',
     });
   });
 });

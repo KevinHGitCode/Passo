@@ -3,6 +3,7 @@ import { analyzeFrame, BLOCK_SIZE } from '@/core/domain/frame-analysis';
 import { trackerConfigFor } from '@/core/domain/listening-profile';
 import type { ListeningProfile } from '@/core/domain/listening-profile';
 import type { Midi } from '@/core/domain/note';
+import { detectPitch } from '@/core/domain/pitch';
 import type { NoteEvent } from '@/core/domain/note-event';
 import { NoteTracker } from '@/core/domain/note-tracker';
 import type { Clock } from '@/core/ports/clock';
@@ -12,6 +13,7 @@ import { SILENT_MONITOR } from '@/core/ports/input-monitor';
 import type { ListeningProfileSink } from '@/core/ports/listening-profile-sink';
 import type { InputMonitor, ListenPhase, MonitorSnapshot } from '@/core/ports/input-monitor';
 import type { InputStatus, NoteInput, Unsubscribe } from '@/core/ports/note-input';
+import type { PitchMonitor, PitchReading, PitchTarget } from '@/core/ports/pitch-monitor';
 import type {
   AnalyserLike,
   MediaDevicesLike,
@@ -41,6 +43,8 @@ const TICK_MS = 10;
 const MONITOR_MIN_INTERVAL_MS = 66;
 const HEARD_RETENTION_MS = 1500;
 const LEVEL_STEPS = 64;
+/** Claridad mínima para dar por buena una lectura de tono del afinador. */
+const PITCH_MIN_CLARITY = 0.6;
 /** Hueco máximo (segundos) que se tolera sin reiniciar el seguimiento; menores solo marcan «tras un hueco». */
 const MAX_GAP_SAMPLES_FACTOR = 0.5;
 
@@ -103,7 +107,14 @@ interface Capture {
  * El audio nunca sale del navegador: solo se calculan nivel, altura y ataques.
  */
 export class MicrophoneInput
-  implements NoteInput, InputMonitor, ExpectationSink, ListeningProfileSink, ChordLogSource
+  implements
+    NoteInput,
+    InputMonitor,
+    ExpectationSink,
+    ListeningProfileSink,
+    PitchMonitor,
+    PitchTarget,
+    ChordLogSource
 {
   readonly source = 'microfono';
   private readonly deps: MicrophoneDeps;
@@ -124,6 +135,10 @@ export class MicrophoneInput
   private lastPublishAt = -Infinity;
   private lastHeard: { midi: number; cents: number; until: number } | null = null;
   private lastDeviceName = 'Micrófono';
+  /** Intervalo donde buscar el tono continuo (afinador); `null`: no se mide. */
+  private pitchSearch: { minHz: number; maxHz: number } | null = null;
+  private pitch: PitchReading | null = null;
+  private readonly pitchHandlers = new Set<(reading: PitchReading | null) => void>();
   /** Contexto creado en el gesto mientras se espera el permiso: hay que cerrarlo si se apaga antes. */
   private pendingContext: MicAudioContextLike | null = null;
 
@@ -158,6 +173,21 @@ export class MicrophoneInput
 
   getMonitor(): MonitorSnapshot {
     return this.monitor;
+  }
+
+  getPitch(): PitchReading | null {
+    return this.pitch;
+  }
+
+  subscribePitch(handler: (reading: PitchReading | null) => void): Unsubscribe {
+    this.pitchHandlers.add(handler);
+    return () => this.pitchHandlers.delete(handler);
+  }
+
+  /** Mide el tono continuo solo dentro de este intervalo (afinador); con `null` deja de medir. */
+  setPitchSearch(range: { readonly minHz: number; readonly maxHz: number } | null): void {
+    this.pitchSearch = range === null ? null : { minHz: range.minHz, maxHz: range.maxHz };
+    if (range === null) this.setPitch(null);
   }
 
   subscribe(handler: (event: NoteEvent) => void): Unsubscribe {
@@ -324,6 +354,13 @@ export class MicrophoneInput
       const analysis = analyzeFrame(window, consumed, sampleRate, endAt, gap);
       const monophonic = this.tracker.push(analysis);
       const state = this.tracker.getState();
+      this.measurePitch(
+        capture.buffer.subarray(0, windowEnd),
+        sampleRate,
+        endAt,
+        analysis.rms,
+        state,
+      );
       // Un hueco corto de audio deja el anillo discontinuo: el oyente de acordes olvida lo anterior.
       if (gap) this.emitAll(this.chords.reset(at));
       const chord = this.chords.push(window.subarray(window.length - consumed), sampleRate, endAt, {
@@ -342,6 +379,36 @@ export class MicrophoneInput
       // Un fallo en un fotograma (o en un oyente) no debe detener la escucha.
     }
     this.publish(false);
+  }
+
+  /** Tono continuo para el afinador: solo con un intervalo pedido y con sonido por encima del umbral. */
+  private measurePitch(
+    samples: Float32Array,
+    sampleRate: number,
+    at: number,
+    rms: number,
+    state: ReturnType<NoteTracker['getState']>,
+  ): void {
+    const range = this.pitchSearch;
+    if (range === null) return;
+    let reading: PitchReading | null = null;
+    if (state.phase === 'escuchando' && rms >= state.gate) {
+      const estimate = detectPitch(
+        samples.subarray(Math.max(0, samples.length - FFT_SIZE)),
+        sampleRate,
+        range,
+      );
+      if (estimate !== null && estimate.clarity >= PITCH_MIN_CLARITY) {
+        reading = { frequency: estimate.frequency, clarity: estimate.clarity, at };
+      }
+    }
+    this.setPitch(reading);
+  }
+
+  private setPitch(reading: PitchReading | null): void {
+    if (reading === null && this.pitch === null) return;
+    this.pitch = reading;
+    this.notify(this.pitchHandlers, reading);
   }
 
   private emitAll(events: readonly NoteEvent[]): void {
@@ -420,6 +487,7 @@ export class MicrophoneInput
   }
 
   private publishOff(): void {
+    this.setPitch(null);
     this.lastHeard = null;
     this.monitor = SILENT_MONITOR;
     this.notify(this.monitorHandlers, this.monitor);

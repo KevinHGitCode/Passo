@@ -230,12 +230,15 @@ export function detectPitch(
   const lagMax = Math.min(Math.ceil(coarseSampleRate / minHz), Math.floor(coarse.length / 2) - 1);
   if (lagMax <= lagMin + 2) return null;
 
+  // Se calcula desde el retardo 2 (no desde `lagMin`): con un intervalo estrecho, empezar a mirar en
+  // medio del lóbulo de la propia nota haría pasarlo por el primer lóbulo (el de retardo 0) y saltárselo.
   const nsdf = new Float32Array(lagMax + 2);
-  for (let lag = lagMin - 1; lag <= lagMax + 1; lag++) nsdf[lag] = nsdfAt(coarse, lag);
+  for (let lag = 2; lag <= lagMax + 1; lag++) nsdf[lag] = nsdfAt(coarse, lag);
 
-  // Se salta el primer lóbulo positivo (cerca de lag 0) y se busca el máximo de cada lóbulo posterior.
+  // Se salta el primer lóbulo positivo (cerca de lag 0) y se busca el máximo de cada lóbulo posterior,
+  // aceptando solo los picos que caen dentro del intervalo pedido.
   const peaks: { lag: number; value: number }[] = [];
-  let lag = lagMin;
+  let lag = 2;
   while (lag <= lagMax && (nsdf[lag] as number) > 0) lag++;
   while (lag <= lagMax) {
     while (lag <= lagMax && (nsdf[lag] as number) <= 0) lag++;
@@ -248,7 +251,7 @@ export function detectPitch(
       }
       lag++;
     }
-    if (best > 0) peaks.push({ lag: best, value: bestValue });
+    if (best >= lagMin) peaks.push({ lag: best, value: bestValue });
   }
   if (peaks.length === 0) return null;
 

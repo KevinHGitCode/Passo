@@ -60,6 +60,17 @@ El nivel 1 (Do4–Sol4) usa las teclas `A S D F G`. Para la **mano izquierda** h
 - `?debug` expone `window.__passoChords` con la evidencia de cada medición (ver `docs/validacion-microfono.md`).
 - Límites conocidos de la corrección de octava del «Mi»: con el Mi4 todavía sonando más de 700 ms, un Mi5 real podría leerse como Mi4. Un acorde totalmente equivocado (ninguna nota esperada y ninguna nota de más clara) no da ningún mensaje.
 
+## Instrumentos y guitarra (etapa G1)
+
+- **El tono se juzga; la posición guía.** `Target.notes` es MIDI **sonoro** (Mi2 = 40 … Mi4 = 64). `Target.positions` (cuerda, traste, dedo) solo dice dónde tocarlo; la misma nota puede tocarse en más de un sitio. Los dedos de guitarra son 1 índice … 4 meñique (no se reutiliza `Finger` de piano, donde el 1 es el pulgar).
+- **Guitarra: juicio por nombre.** `RoundConfig.octaveFree` pliega la nota oída a la octava del objetivo si el nombre coincide (solo objetivos de una nota); `evaluate` no tiene ramas por instrumento. El sorteo no repite el mismo nombre seguido. En G2 (posición exacta) se acotará el detector al objetivo.
+- **Nombres sin octava en guitarra** (`noteLabel(midi, notación, instrumento)`): se escribe una octava arriba de como suena. En piano, con octava.
+- **Claves de tecla:** `targetKey(notas, instrumento)` → `"64"` en piano y `"g:64"` en guitarra (una sola función); `historyOf(historia, instrumento)` separa las estadísticas y los repasos (`repaso-debiles` y `repaso-debiles-guitarra`). Los ids de lecciones de guitarra llevan prefijo (`g1-1`).
+- **Catálogo:** `UNITS` y `LESSONS` son de piano; `unitsOf(instrumento)` / `lessonsFor(instrumento)` dan cada camino y `findLesson` busca en todos. `lessonAccessMap` y `currentLesson` reciben las unidades.
+- **Perfil de escucha:** `trackerConfigFor(instrumento)`; el micrófono cambia de perfil **en caliente** (`NoteTracker.reconfigure`, sin recalibrar) siguiendo al instrumento de la **sesión** (`bindProfileToSession`). Guitarra: `minMidi 38`, `maxMidi 79`, `sameNoteRetriggerMs 1200`, `onsetRatio 1.8`, `refractoryMs 250`, `learnTuning false`.
+- **Afinador:** mide el tono continuo (`PitchMonitor`/`PitchTarget`) dentro de ±300 cents de la cuerda elegida; «afinada» = mediana de ≥ 5 lecturas a ±5 cents durante 600 ms, y se sale a ±8. Mientras mide, el micrófono avisa del silencio en cada fotograma. El lector de pantalla oye solo el estado, nunca los cents.
+- **Interfaz:** `data-instrument` en la raíz cambia el acento (azul piano, violeta guitarra) por **tokens por rol**; el instrumento se dice siempre con icono y nombre. Un solo `InstrumentChip` (barra lateral en escritorio, cabecera en móvil, donde la lista es una hoja que sale a `document.body`).
+
 ## Lecciones, estrellas y progreso (Fase 3)
 
 - **Una lección** es una ronda con su propio conjunto de objetivos (10 objetivos si es nueva, 14 si es repaso, 20 si es prueba; 12 en terceras y acordes). Los ids (`u2-3`) se guardan en el progreso: **no se reordenan** (una prueba lo vigila).

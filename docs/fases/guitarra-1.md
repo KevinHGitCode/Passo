@@ -1,6 +1,6 @@
 # Guitarra · etapa 1 (G1): instrumento y notas
 
-> Estado: **plan definitivo**, corregido tras la revisión de los 3 expertos (música y acústica, interfaz, arquitectura e infraestructura). Kevin autorizó implementarlo.
+> Estado: **hecha** (falta validar con la guitarra real). Plan corregido tras la revisión de los 3 expertos (música y acústica, interfaz, arquitectura e infraestructura), implementado y revisado de nuevo al final.
 > Maqueta aprobada por Kevin: https://claude.ai/artifact/5wjCuKZcUuDNKauAgwQcr2 (privada).
 
 ## Para qué
@@ -75,3 +75,47 @@ En esta etapa las lecciones de guitarra son **de octava libre**: `RoundConfig.oc
 ## Validación con la guitarra real (Kevin)
 
 Sección nueva en `docs/validacion-microfono.md` al cerrar la etapa: afinar con el afinador, las seis cuerdas al aire, la unidad 2 y las cuerdas graves, y qué guitarra se usó (acústica, de nailon o eléctrica).
+
+## Decisiones tras la revisión final
+
+Los tres expertos revisaron lo construido (música y acústica, interfaz y arquitectura). Se aplicó lo siguiente:
+
+**Música y acústica**
+
+- **Afinador, cuerda equivocada:** con un intervalo estrecho el detector devolvía un submúltiplo del tono tocado (elegir la cuerda 6 y tocar la 1 leía «0 cents, afinada»). Ahora la lectura solo vale si la fundamental tiene energía frente a sus seis primeros armónicos (`fundamentalShare` ≥ 0,2): los alias dan ≈ 0 y las cuerdas reales ≥ 0,5, incluso con un micrófono que recorta los graves y con ruido.
+- **Afinador, estabilidad:** las lecturas de los primeros 250 ms tras empezar a sonar no cuentan (la cuerda sube 10–30 cents al pulsarla), la ventana es de 350 ms y «Afinada» se deja ver 2 s tras callarse la cuerda (el nailon se apaga pronto).
+- **Guitarra desafinada:** si todas las notas fallan por la misma distancia, la lección dice «tus notas suenan N semitonos más graves/agudos: abre el afinador». El error creíble por micrófono llega a 24 semitonos (`RoundConfig.maxWrongDistance`; el mástil abarca 27).
+- **Octava oída:** `Attempt.heardMidi` guarda la octava real que leyó el micrófono (con `octaveFree`, `playedMidi` guarda la plegada) y el rebote de la cuerda anterior se reconoce como eco aunque se lea en otra octava.
+- **Notas repetidas:** «Mi · cuerda 6» en el progreso y en «lo que más costó»; el repaso pide tres **nombres** distintos; el afinador avisa «acerca el micrófono» cuando casi no oye.
+
+**Arquitectura**
+
+- El resultado de una lección ofrece el repaso **de su instrumento** (antes ofrecía el de piano). Medir el tono nunca cuesta las notas de un fotograma (try/catch propio). El afinador no repinta por cambios de menos de 2 cents. `detectPitch` tiene ahora pruebas directas con intervalos estrechos y un barrido de piano que fija su comportamiento (el cambio del lóbulo inicial no altera nada hasta Re6; por encima, antes salía una octava abajo).
+
+**Interfaz**
+
+- Bloqueante corregido: en móviles de 320–360 px el chip chocaba con «Ajustes» (nombre con puntos suspensivos y «Ajustes» solo con icono hasta 420 px). La hoja del instrumento sale a `document.body` (cubre la barra inferior), deja la página inerte y se nombra por su título; el menú de escritorio se cierra al irse el foco; elegir compara con la preferencia, no con lo que se ve.
+- Afinador: el foco pasa a la cuerda elegida al conectar el micrófono, los anuncios del lector de pantalla esperan 700 ms de estado estable y los mensajes del micrófono son una región viva. Icono propio del afinador, rótulo del mástil a 13, aviso en `#/practica` con guitarra elegida y cabecera de lección sin el «Micrófono» redundante.
+
+## Resultados
+
+- `npm run check`: lint, dependencias (124 módulos, 0 violaciones), formato, **1349 pruebas** (77 archivos) y compilación.
+- **54 pruebas e2e en Edge, 3 de 3 corridas** (49 de las fases 0 a 3 y 5 de guitarra), con videos y capturas en `evidencias/guitarra-1/` (informe en `evidencias/guitarra-1/informe.md`).
+- Pruebas de audio con una guitarra **sintética** (Karplus-Strong, acero y nailon, con y sin pasa-altos de portátil): las 17 notas dan un solo ataque con el nombre correcto; sin el perfil de guitarra, La2 rebotaba en varios ataques.
+
+## Límites conocidos
+
+- **Se juzga el nombre, no la octava ni la cuerda:** el Mi de la cuerda 1 y el de la 6 son intercambiables (24 semitonos) y el Sol de la cuerda 1 (traste 3) se acepta con la 3 al aire. Es la decisión D2; en G2 se acotará el detector al objetivo.
+- **Inarmonicidad:** el tono del afinador sale del periodo de la señal; con parciales muy desplazados (cuerdas gruesas) puede dar +3 cents (B = 1·10⁻⁴) o +9 (B = 3·10⁻⁴), del orden de la tolerancia (±5). Se comprueba con la guitarra real.
+- **Alias de octava del afinador:** con la cuerda 6 elegida, tocar el Mi3 se lee como 82,5 Hz con claridad máxima (es lo que pasa con el armónico del traste 12); se tolera.
+- Los umbrales (fundamental ≥ 0,2, ±5/±8 cents, 600 ms, 250 ms de asentamiento, metas de ritmo 8/10/12 y 9/11/13) vienen de **simulaciones**: la validación real es de Kevin (`docs/validacion-microfono.md`, pasos 37–46).
+- Solo guitarra por micrófono, solo notas naturales hasta el traste 3, afinación estándar; sin práctica libre de guitarra.
+
+## Aplazado y deuda técnica
+
+- Arpegios y acordes (G2), tablatura (G3) y «Mi corazón encantado» (G4); la partitura de la canción la aporta Kevin (no se transcribe de memoria).
+- «Usar micrófono» como botón en el camino (hoy el aviso lleva a Ajustes) y el perfil de escucha propio del afinador (D7); ✓ ✕ ↓ sobre el mástil (hoy el borde de color y la barra de respuesta).
+- `MicrophoneInput` implementa siete interfaces: extraer un `PitchMeter`. `getPitch()` sin consumidor de producción; `pickTarget(..., avoidSameName)` con booleano posicional.
+- El mapa de «Notas que más cuestan» no distingue lo que cambió de cuerda; las cuerdas del afinador podrían ser `radiogroup`; al cruzar 899 px con la lista abierta se pierde el foco; la hoja no usa `env(safe-area-inset-bottom)`.
+- Riesgo asumido: una versión vieja de la app podría pisar datos de guitarra al guardar. Las evidencias (webm y png) pesan en git (~1 MB los videos).
+- Con `?modo=` (desarrollo), salir de una lección no restaura su configuración; `?instrumento=` se guarda en el siguiente cambio de preferencias.

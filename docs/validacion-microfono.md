@@ -123,6 +123,32 @@ Con el micrófono elegido (Ajustes → Cómo toco). Abre `#/` y empieza por la u
 
 Reporta, además de lo de la lista de abajo: **qué lecciones se te atascaron** y cuántos «No te oí bien» seguidos hubo.
 
+## Guitarra (etapa 1): la guitarra real
+
+Todo lo de la guitarra se probó con una guitarra **sintética** (Karplus-Strong) y con un micrófono simulado: no sustituye a la
+tuya. Con el micrófono elegido (Ajustes → Cómo toco) y el chip del camino en **Guitarra**. Antes de empezar, anota **qué guitarra es**
+(acústica de cuerdas de acero, de nailon o eléctrica con amplificador), a qué distancia pones el portátil y si el micrófono dice
+«Windows aplica filtros».
+
+| # | Qué hacer | Qué debe pasar |
+|---|---|---|
+| 37 | Abre **Afinador** (menú lateral o barra inferior), activa el micrófono, elige la cuerda 6 y toca el Mi grave al aire | Sale «Grave», «Aguda» o «Afinada» con los cents; compara con una app de afinar o un afinador de pinza |
+| 38 | Afina las seis cuerdas (de una en una, eligiendo la cuerda en pantalla) | Cada una llega a «Afinada» tras sostenerla un momento; anota cuáles cuestan (la 5 y la 6 son las difíciles por ser graves) |
+| 39 | Deja la cuerda 3 unos 60 cents floja a propósito y luego 120 | Dice «Grave» (no la confunde con otra nota) y, a partir de 50 cents, «Muy grave» |
+| 40 | Abre la lección «Mi · Si · Sol» (unidad 1), activa el micrófono, «Empezar» y toca cada cuerda al aire | Cada pulsación cuenta **una sola vez** (sin «ataques fantasma» que salgan como error); avanza la barra |
+| 41 | Haz «Re · La · Mi» (cuerdas 4, 5 y 6) | Anota qué cuerdas graves no oye o lee en otra nota. **Una nota oída en otra octava debe contar** (se juzga el nombre) |
+| 42 | Toca la misma cuerda dos veces seguidas | La segunda vuelve a contar; si no, anota cuánto esperaste (el rebote se ignora 1,2 s) |
+| 43 | Toca una cuerda y, sin silenciarla, la siguiente | Anota si sale «No te oí bien» o error; si pasa, apunta cuánto tarda en callarse la anterior |
+| 44 | Unidad 2 («Mi · Fa · Sol»): pisa el traste 1 con el índice y el 3 con el anular | La nota oída es la pedida; anota ruidos de púa o de uña que cuenten como error |
+| 45 | Baja la guitarra medio tono (todas las cuerdas) y vuelve a una lección | El afinador dice «Muy grave»; en la lección, tras unos fallos seguidos, aparece «Tus notas suenan 1 semitono más graves: puede que la guitarra esté desafinada. Abre el afinador» |
+| 46 | Cambia a **Piano** con el chip y haz una lección de piano; vuelve a Guitarra | El micrófono vuelve a oír el piano igual que antes (sin recalibrar) y la guitarra vuelve a su perfil |
+| 47 | Afinador con la cuerda 6 elegida: toca la cuerda 1 (aguda) | No debe decir «Afinada» ni dar una lectura (se descarta como otra cuerda); anota qué dice |
+| 48 | Pulsa fuerte y mira el afinador los primeros instantes | La cuerda sube un poco al pulsarla: no debe decir «Aguda» enseguida (los primeros 250 ms no cuentan); anota si lo hace |
+| 49 | Pulsa con la yema (ataque lento) el Mi grave y el La | Anota si la nota se pierde (nada se oye) o llega tarde |
+
+Reporta además: **qué lecciones se atascaron** (cuerdas 5 y 6 sobre todo), cuántos «No te oí bien» seguidos hubo y la cifra
+«Oigo:» de la tira de escucha en las cuerdas graves.
+
 ## Qué reportar
 
 - Modelo de portátil y navegador, y la distancia al piano.

@@ -3,9 +3,12 @@
 Aplicación para aprender piano corrigiendo al instante lo que no se te da bien.
 Nombre: **Passo** (paso a paso: no avanzas hasta que lo dominas).
 
-> Estado: **Fases 0, 1, 2 y 3 completadas** (Fase 1: escucha activa por micrófono; Fase 2: terceras y acordes, manos, notas que caen y ajustes; Fase 3: el juego por niveles con camino, estrellas, XP, racha y progreso guardado). Pendiente de validar con el piano real: `docs/validacion-microfono.md` (pasos 15–29 de la Fase 2 y 30–36 de la Fase 3). Evidencias: `evidencias/fase-3/informe.md`. Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
+> Estado: **Fases 0, 1, 2 y 3 completadas y la etapa 1 de guitarra (G1)** (Fase 1: escucha activa por micrófono; Fase 2: terceras y acordes, manos, notas que caen y ajustes; Fase 3: el juego por niveles con camino, estrellas, XP, racha y progreso guardado). Pendiente de validar con el piano y la guitarra reales: `docs/validacion-microfono.md` (pasos 15–29 de la Fase 2, 30–36 de la Fase 3 y 37–49 de la guitarra). Evidencias: `evidencias/fase-3/informe.md` y `evidencias/guitarra-1/informe.md`. Repositorio **solo local** (sin remoto de GitHub por ahora). Arranque: `npm install` y `npm run dev`; verificación: `npm run check` y `npm run e2e`.
 
 ## Cómo se usa hoy
+
+- **Instrumento:** el chip de arriba a la izquierda («Estás aprendiendo») abre la lista **Mis instrumentos**: piano o guitarra. Cada uno tiene su camino, sus lecciones, sus estrellas y sus notas más flojas; la racha, la experiencia y los minutos del día son de los dos. La elección se recuerda (`?instrumento=guitarra` la fija solo en esa visita).
+- **Guitarra (etapa 1):** tres unidades de notas sueltas (cuerdas al aire, primeras notas y todas las cuerdas hasta el traste 3: 17 notas naturales de Mi2 a Sol4) y el **afinador** (`#/afinador`). Solo con micrófono. Se juzga el **nombre** de la nota, no la octava (la guitarra se escribe una octava arriba de como suena). Más adelante: arpegios y acordes, tablatura y «Mi corazón encantado» compás a compás (ver `docs/fases/guitarra-1.md`).
 
 - **Camino** (`#/`): seis unidades con lecciones cortas (nueva, repaso y prueba). Se abre centrado en tu lección. Cada lección da hasta **3 estrellas** (≥ 70 % para pasar; la 3.ª pide un fallo como máximo y el ritmo), experiencia y **racha** de días (con un día de descanso por semana). Las unidades 1 a 5 son de notas sueltas (lo que el micrófono oye); la 6, de terceras y acordes, es opcional.
 - **Lección** (`#/leccion/<id>`): a pantalla completa; no arranca sola (hay que pulsar «Empezar» o activar el micrófono). Salir con la X pregunta y no guarda lo de esa ronda.
@@ -101,6 +104,7 @@ En código, las capas se agrupan en `core/` (dominio, aplicación, puertos), `ad
 | 1 | **Escucha activa:** detectar la nota que suena por el micrófono (el Yamaha E263 no tiene USB-MIDI) (**hecha**, falta validar con el piano real) | 3 semanas |
 | 2 | **Ajustes, terceras y acordes:** panel de ajustes (entrada: micrófono / MIDI / teclado del PC), terceras y acordes, manos y dedos, notas que caen | 4–5 semanas |
 | 3 | **Passo como juego (diseño «A» del mockup):** camino de unidades y lecciones, estrellas, XP, racha, progreso guardado y estadísticas por tecla (**hecha**, falta validar con el piano real) | 4–5 semanas |
+| G1 | **Guitarra, etapa 1:** instrumento como concepto, chip «Mis instrumentos», diapasón, afinador y tres unidades de notas (**hecha**, falta validar con la guitarra real). Siguen G2 (arpegios y acordes), G3 (tablatura) y G4 (canciones por compases) | 3–4 semanas |
 | 4 | Núcleo de práctica: modos espera y estricto, niveles con negras | 3 semanas |
 | 5 | Entrenamiento por oído: nota por oído e intervalos por oído | 3 semanas |
 | 6 | Ritmo: metrónomo y calificación de tiempo | 3 semanas |

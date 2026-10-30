@@ -1,4 +1,5 @@
 import type { ExerciseMode } from '@/core/domain/curriculum';
+import { guitarPositionOf } from '@/core/domain/guitar-lessons';
 import type { FretPosition, GuitarFinger } from '@/core/domain/instrument';
 import { noteName, pitchName } from '@/core/domain/note';
 import type { Midi, NotationMode } from '@/core/domain/note';
@@ -64,6 +65,13 @@ const FINGER_NAMES: Readonly<Record<GuitarFinger, string>> = {
   3: 'el anular',
   4: 'el meñique',
 };
+
+/** «Mi · cuerda 6»: sin octava el nombre se repite en el mástil, así que se dice en qué cuerda está. */
+export function guitarNoteText(midi: Midi, notation: NotationMode): string {
+  const position = guitarPositionOf(midi);
+  const name = pitchName(midi, notation);
+  return position ? `${name} · cuerda ${position.string}` : name;
+}
 
 /** «Cuerda 1 (la más aguda) · traste 1 · dedo 1, el índice» / «Cuerda 3 · al aire». */
 export function positionText(position: FretPosition): string {

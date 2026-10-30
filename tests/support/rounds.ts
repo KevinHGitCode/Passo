@@ -38,6 +38,7 @@ export function round(specs: readonly Spec[]): Attempt[] {
       attempts.push({
         ...base,
         playedMidi: 61,
+        heardMidi: 61,
         isCorrect: false,
         playedAt: 100,
         reactionMs: 100,
@@ -49,6 +50,7 @@ export function round(specs: readonly Spec[]): Attempt[] {
     attempts.push({
       ...base,
       playedMidi: notes[0] as number,
+      heardMidi: notes[0] as number,
       isCorrect: true,
       playedAt: spec.ms,
       reactionMs: spec.ms,

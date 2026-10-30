@@ -107,6 +107,7 @@ describe('evaluate', () => {
       targetMidi: 62,
       targetNotes: [62],
       playedMidi: 60,
+      heardMidi: 60,
       isCorrect: false,
       shownAt: 1000,
       playedAt: 1300,

@@ -13,6 +13,7 @@ function attempt(target: number, played: number, reactionMs = 640): Attempt {
     targetMidi: target,
     targetNotes: [target],
     playedMidi: played,
+    heardMidi: played,
     isCorrect: target === played,
     shownAt: 0,
     playedAt: reactionMs,

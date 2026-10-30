@@ -29,7 +29,7 @@ import {
   promptText,
   targetDetail,
 } from '../practice/target-text';
-import { CAMINO, hrefOf, navigate } from '../router/routes';
+import { AFINADOR, CAMINO, hrefOf, navigate } from '../router/routes';
 import { ExitDialog } from './ExitDialog';
 import { inputName, lessonKindText, liveStats, thirdStarGoalText } from './lesson-live';
 import { LessonResult } from './LessonResult';
@@ -211,6 +211,18 @@ function LessonTarget({ board }: { readonly board: BoardModel }) {
   );
 }
 
+/** Si todo suena a la misma distancia de lo pedido, la guitarra probablemente está desafinada. */
+export function GuitarOffNote({ semitones }: { readonly semitones: number }) {
+  const count = Math.abs(semitones);
+  return (
+    <>
+      Tus notas suenan {count} {count === 1 ? 'semitono' : 'semitonos'} más{' '}
+      {semitones < 0 ? 'graves' : 'agudos'}: puede que la guitarra esté desafinada.{' '}
+      <a href={hrefOf(AFINADOR)}>Abre el afinador</a>.
+    </>
+  );
+}
+
 /** La barra de abajo: pausa, respuesta a lo último que tocaste o la espera. */
 function LessonFooter({
   board,
@@ -264,13 +276,19 @@ function LessonFooter({
   const many = targetNotes.length > 1;
   return (
     <p className="lesson__idle" data-testid="stage-idle">
-      {snapshot.transposition !== null && snapshot.instrument === 'piano'
-        ? 'Parece que tu teclado está transpuesto. Revisa «Transpose» en el piano.'
-        : micReady
-          ? many
-            ? 'Escuchando tu acorde…'
-            : 'Escuchando tu nota…'
-          : 'Esperando tu nota…'}
+      {snapshot.transposition !== null && snapshot.instrument === 'piano' ? (
+        'Parece que tu teclado está transpuesto. Revisa «Transpose» en el piano.'
+      ) : snapshot.transposition !== null ? (
+        <GuitarOffNote semitones={snapshot.transposition} />
+      ) : micReady ? (
+        many ? (
+          'Escuchando tu acorde…'
+        ) : (
+          'Escuchando tu nota…'
+        )
+      ) : (
+        'Esperando tu nota…'
+      )}
     </p>
   );
 }
@@ -390,9 +408,11 @@ function LessonView({
             <span>Guitarra</span>
           </span>
         ) : null}
-        <span className="chip chip--input" data-testid="input-chip">
-          {inputName(source)}
-        </span>
+        {lesson.instrument === 'guitarra' && source === 'microfono' ? null : (
+          <span className="chip chip--input" data-testid="input-chip">
+            {inputName(source)}
+          </span>
+        )}
         <span className="chip chip--streak" title="Días seguidos">
           <Icon name="flame" size={18} />
           <span>{streak}</span>

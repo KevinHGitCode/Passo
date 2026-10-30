@@ -5,6 +5,9 @@ import type { Clock } from '../ports/clock';
 import type { Unsubscribe } from '../ports/note-input';
 import type { PitchMonitor, PitchTarget } from '../ports/pitch-monitor';
 
+/** Cuánto tiene que cambiar la desviación (cents) para que la pantalla se vuelva a pintar. */
+const MIN_CENTS_STEP = 2;
+
 export interface TunerSnapshot extends TunerState {
   /** La cuerda que se está afinando. */
   readonly string: GuitarString;
@@ -78,9 +81,14 @@ export class TunerService {
   private update(patch: Partial<TunerSnapshot>): void {
     const next = { ...this.snapshot, ...patch };
     const previous = this.snapshot;
+    // Un cambio de menos de 2 cents con el mismo estado no se repinta (la lectura llega ~47 veces por segundo).
+    const steady =
+      next.cents !== null &&
+      previous.cents !== null &&
+      Math.abs(next.cents - previous.cents) < MIN_CENTS_STEP;
     if (
       next.status === previous.status &&
-      next.cents === previous.cents &&
+      (next.cents === previous.cents || steady) &&
       next.far === previous.far &&
       next.string === previous.string &&
       next.open === previous.open

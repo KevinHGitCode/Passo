@@ -52,6 +52,11 @@ export interface RoundConfig {
    * vale con objetivos de una nota.
    */
   readonly octaveFree?: boolean;
+  /**
+   * Hasta cuántos semitonos de distancia es creíble un error por micrófono (más allá es ruido o voz y no
+   * cuenta). Por omisión una octava; la guitarra, con 27 semitonos de mástil, usa dos.
+   */
+  readonly maxWrongDistance?: number;
 }
 
 /** Configuración de una ronda para un modo y nivel, o `null` si ese nivel no existe. */
@@ -79,6 +84,11 @@ export interface Attempt {
   /** Todas las notas del objetivo (una sola en el modo notas). */
   readonly targetNotes: Target['notes'];
   readonly playedMidi: Midi;
+  /**
+   * La nota que de verdad se oyó. Es `playedMidi` salvo con `octaveFree`, donde `playedMidi` guarda la
+   * nota ya plegada a la octava del objetivo (y esta, la octava real: sirve para saber qué lee el micrófono).
+   */
+  readonly heardMidi: Midi;
   readonly isCorrect: boolean;
   readonly shownAt: number;
   readonly playedAt: number;
@@ -293,16 +303,22 @@ function microphoneDoubt(
   targetNote: Midi,
 ): 'eco' | 'octava' | 'lejana' | 'poca-confianza' | null {
   const previous = state.attempts[state.attempts.length - 1];
+  // Con el juicio por nombre, un rebote de la cuerda anterior leído en otra octava también es eco.
+  const sameAsPrevious =
+    previous !== undefined &&
+    (previous.playedMidi === event.note ||
+      (state.config.octaveFree === true &&
+        pitchClass(previous.heardMidi) === pitchClass(event.note)));
   if (
     previous &&
-    previous.playedMidi === event.note &&
+    sameAsPrevious &&
     event.at - previous.playedAt < ECHO_WINDOW_MS &&
     (previous.isCorrect ? state.attemptsOnTarget === 0 : previous.targetMidi === targetNote)
   ) {
     return 'eco';
   }
   if (pitchClass(event.note) === pitchClass(targetNote)) return 'octava';
-  if (Math.abs(event.note - targetNote) > 12) return 'lejana';
+  if (Math.abs(event.note - targetNote) > (state.config.maxWrongDistance ?? 12)) return 'lejana';
   if (event.confidence === 'media') return 'poca-confianza';
   return null;
 }
@@ -319,6 +335,7 @@ function ignored(state: ExerciseState): { state: ExerciseState; outcome: Outcome
 function buildAttempt(
   state: ExerciseState,
   event: NoteEvent,
+  heardMidi: Midi,
   context: EvaluateContext,
   targetMidi: Midi,
   isCorrect: boolean,
@@ -328,6 +345,7 @@ function buildAttempt(
     targetMidi,
     targetNotes: state.target.notes,
     playedMidi: event.note,
+    heardMidi,
     isCorrect,
     shownAt: state.shownAt,
     playedAt: event.at,
@@ -361,6 +379,7 @@ export function evaluate(
 ): { state: ExerciseState; outcome: Outcome } {
   if (state.finished) return ignored(state);
   const event = foldOctave(state, rawEvent);
+  const heardMidi = rawEvent.note;
   if (!isNoteOn(event)) {
     if (!state.held.includes(event.note)) return ignored(state);
     return ignored({ ...state, held: state.held.filter((note) => note !== event.note) });
@@ -397,7 +416,7 @@ export function evaluate(
     ) {
       return ignored({ ...state, wrongGroup: { ...group, lastAt: event.at } });
     }
-    const attempt = buildAttempt(state, event, context, closest, false);
+    const attempt = buildAttempt(state, event, heardMidi, context, closest, false);
     return {
       state: {
         ...state,
@@ -419,7 +438,7 @@ export function evaluate(
     };
   }
 
-  const attempt = buildAttempt(state, event, context, event.note, true);
+  const attempt = buildAttempt(state, event, heardMidi, context, event.note, true);
   const attempts = [...state.attempts, attempt];
   const completedTargets = state.completedTargets + 1;
   if (completedTargets >= state.config.roundSize) {

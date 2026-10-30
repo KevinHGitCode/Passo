@@ -11,7 +11,7 @@ import { PROGRESS_VERSION } from '@/core/domain/progress';
 import { createSeededRng } from '@/core/domain/rng';
 import { stringFrequency } from '@/core/domain/tuner';
 import { CaminoScreen } from '@/ui/screens/CaminoScreen';
-import { LessonScreen } from '@/ui/screens/LessonScreen';
+import { GuitarOffNote, LessonScreen } from '@/ui/screens/LessonScreen';
 import { ProgressScreen } from '@/ui/screens/ProgressScreen';
 import { TunerScreen } from '@/ui/screens/TunerScreen';
 import { FakeCalendar } from '../fakes/fake-calendar';
@@ -153,7 +153,9 @@ describe('el camino de guitarra', () => {
 });
 
 describe('una lección de guitarra', () => {
-  function setup(options: { lessonId?: string; play?: PlayContext } = {}) {
+  function setup(
+    options: { lessonId?: string; play?: PlayContext; seed?: Parameters<typeof stored>[0] } = {},
+  ) {
     const pc = new FakeNoteInput('teclado-pc');
     const mic = new FakeMicInput();
     const clock = new FakeClock(1000);
@@ -164,7 +166,7 @@ describe('una lección de guitarra', () => {
       rng: createSeededRng(5),
       config: LEVEL_1_CONFIG,
     });
-    const { store, progress } = progressWith();
+    const { store, progress } = progressWith(options.seed);
     const play = options.play ?? BOTH;
     const flow = new LessonFlow({ session, progress, playContext: () => play });
     window.location.hash = `#/leccion/${options.lessonId ?? 'g1-1'}`;
@@ -196,6 +198,8 @@ describe('una lección de guitarra', () => {
 
   it('la presentación da el consejo de la guitarra y no el de las notas graves del piano', () => {
     setup({ play: MIC });
+    // La entrada es solo el micrófono: no hace falta repetirlo en la cabecera.
+    expect(screen.queryByTestId('input-chip')).toBeNull();
     expect(screen.getByTestId('tip-guitar').textContent).toContain('afínala');
     expect(screen.queryByTestId('tip-low')).toBeNull();
     expect(screen.getByTestId('instrument-tag').textContent).toContain('Guitarra');
@@ -228,6 +232,44 @@ describe('una lección de guitarra', () => {
     expect(feedback.getAttribute('data-tone')).toBe('ok');
     expect(feedback.textContent).toMatch(/Mi|Si|Sol/);
     expect(feedback.textContent).not.toMatch(/\d/);
+  });
+
+  it('el resultado ofrece el repaso de guitarra cuando hay notas de guitarra flojas, no el de piano', () => {
+    const { playTarget, session } = setup({
+      seed: { keys: { 'g:50': samples(0, 9), 'g:45': samples(0, 9) } },
+    });
+    fireEvent.click(screen.getByTestId('start'));
+    let turn = 0;
+    while (session.getSnapshot().phase === 'en-curso' && turn < 40) playTarget(turn++);
+    expect(screen.getByTestId('result-review').getAttribute('href')).toBe(
+      '#/leccion/repaso-debiles-guitarra',
+    );
+  });
+
+  it('el resultado no ofrece repaso si las notas flojas son solo de piano', () => {
+    const { playTarget, session } = setup({
+      seed: { keys: { '60': samples(0, 9), '62': samples(0, 9) } },
+    });
+    fireEvent.click(screen.getByTestId('start'));
+    let turn = 0;
+    while (session.getSnapshot().phase === 'en-curso' && turn < 40) playTarget(turn++);
+    expect(screen.getByTestId('result')).toBeTruthy();
+    expect(screen.queryByTestId('result-review')).toBeNull();
+  });
+
+  it('«lo que más costó» sale sin octava', () => {
+    const { playTarget, session, pc, clock } = setup();
+    fireEvent.click(screen.getByTestId('start'));
+    // Un error a propósito (otro nombre) y luego se termina bien.
+    act(() => {
+      clock.advance(1000);
+      pc.press((session.getSnapshot().exercise?.target.notes[0] ?? 64) + 1, clock.now());
+    });
+    let turn = 0;
+    while (session.getSnapshot().phase === 'en-curso' && turn < 40) playTarget(turn++);
+    const hard = screen.getByTestId('result-hard').textContent ?? '';
+    expect(hard).toMatch(/Lo que más costó: (Mi|Si|Sol)/);
+    expect(hard).not.toMatch(/(Mi|Si|Sol)\d/);
   });
 
   it('terminar la ronda guarda la lección y las claves de guitarra', () => {
@@ -266,10 +308,11 @@ describe('el progreso de guitarra', () => {
     });
     expect(screen.getByRole('heading', { name: 'Notas que más cuestan' })).toBeTruthy();
     const list = screen.getByTestId('guitarra-notas');
-    const rows = Array.from(list.querySelectorAll('li')).map((li) => li.textContent);
-    // De la más floja a la menos: Mi (2 de 8) antes que Si (7 de 8).
-    expect(rows.map((row) => row?.replace(/\d+ % a la primera/, ''))).toEqual(['Mi', 'Si']);
-    expect(rows.every((row) => / % a la primera$/.test(row ?? ''))).toBe(true);
+    const names = Array.from(list.querySelectorAll('.weak__name')).map((n) => n.textContent);
+    const values = Array.from(list.querySelectorAll('.weak__value')).map((n) => n.textContent);
+    // De la más floja a la menos: Mi (2 de 8) antes que Si (7 de 8), cada una con su cuerda.
+    expect(names).toEqual(['Mi · cuerda 1', 'Si · cuerda 2']);
+    expect(values.every((value) => / % a la primera$/.test(value ?? ''))).toBe(true);
     expect(screen.queryByText('Mapa de tu teclado')).toBeNull();
   });
 
@@ -349,7 +392,7 @@ describe('el afinador', () => {
   it('dice «grave» con los cents, y luego «afinada» tras sostenerla', () => {
     const { mic, play } = setup();
     act(() => mic.makeReady());
-    play(1, -20, 300);
+    play(1, -20, 500);
     expect(screen.getByTestId('tuner-reading').textContent).toBe('Grave · 20 cents');
     expect(document.body.textContent).toContain('Aprieta un poco la clavija');
     play(1, 1, 1000);
@@ -359,21 +402,72 @@ describe('el afinador', () => {
   it('dice «aguda» y «muy aguda»', () => {
     const { mic, play } = setup();
     act(() => mic.makeReady());
-    play(1, 25, 300);
+    play(1, 25, 500);
     expect(screen.getByTestId('tuner-reading').textContent).toBe('Aguda · 25 cents');
     expect(document.body.textContent).toContain('Afloja un poco la clavija');
     play(1, 90, 1000);
     expect(screen.getByTestId('tuner-reading').textContent).toContain('Muy aguda');
   });
 
-  it('el lector de pantalla oye solo el estado, nunca los cents', () => {
-    const { mic, play } = setup();
+  it('el lector de pantalla oye solo el estado, nunca los cents, y solo si se mantiene', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const { mic, play } = setup();
+      act(() => mic.makeReady());
+      play(1, -20, 500);
+      const live = screen.getByTestId('tuner-live');
+      // Todavía no se mantuvo lo bastante: nada que anunciar.
+      expect(live.textContent).toBe('');
+      act(() => {
+        vi.advanceTimersByTime(800);
+      });
+      expect(live.textContent).toBe('Grave, cuerda 1');
+      play(1, -30, 200);
+      act(() => {
+        vi.advanceTimersByTime(800);
+      });
+      expect(live.textContent).toBe('Grave, cuerda 1');
+      expect(live.textContent).not.toMatch(/\d{2}/);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('al conectarse el micrófono el foco pasa a la cuerda elegida (no se pierde)', () => {
+    const { mic } = setup();
+    const activate = screen.getByTestId('tuner-activate');
+    activate.focus();
+    expect(document.activeElement).toBe(activate);
     act(() => mic.makeReady());
-    play(1, -20, 300);
-    const live = screen.getByTestId('tuner-live');
-    expect(live.textContent).toBe('Grave, cuerda 1');
-    play(1, -30, 200);
-    expect(live.textContent).toBe('Grave, cuerda 1');
-    expect(live.textContent).not.toMatch(/\d{2}/);
+    expect(screen.queryByTestId('tuner-activate')).toBeNull();
+    expect(document.activeElement).toBe(screen.getByTestId('tuner-string-1'));
+  });
+});
+
+describe('la guitarra desafinada', () => {
+  it('avisa de cuántos semitonos suenan mal y manda al afinador', () => {
+    const { rerender } = render(<GuitarOffNote semitones={-1} />);
+    expect(document.body.textContent).toContain('1 semitono más graves');
+    expect(document.body.textContent).toContain('desafinada');
+    expect(screen.getByRole('link', { name: 'Abre el afinador' }).getAttribute('href')).toBe(
+      '#/afinador',
+    );
+    rerender(<GuitarOffNote semitones={2} />);
+    expect(document.body.textContent).toContain('2 semitonos más agudos');
+  });
+});
+
+describe('el afinador avisa si apenas se oye', () => {
+  it('con el micrófono flojo, el aviso en vez de la indicación de tocar', () => {
+    const pitch = new FakePitch();
+    const tuner = new TunerService({ pitch, clock: new FakeClock(0) });
+    const mic = new FakeMicInput();
+    render(<TunerScreen tuner={tuner} microphone={mic} notation="latina" />);
+    act(() => {
+      mic.makeReady();
+      mic.setMonitor({ hint: 'debil' });
+    });
+    expect(document.body.textContent).toContain('acerca');
+    expect(document.body.textContent).not.toContain('al aire y déjala sonar');
   });
 });

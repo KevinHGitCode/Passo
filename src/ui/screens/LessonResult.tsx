@@ -2,14 +2,14 @@ import { useEffect, useRef, useSyncExternalStore } from 'react';
 import type { LessonFlow, LessonOutcome } from '@/core/application/lesson-flow';
 import type { ProgressService } from '@/core/application/progress-service';
 import type { NotationMode } from '@/core/domain/note';
-import { REVIEW_LESSON_ID, selectReview } from '@/core/domain/review';
+import { reviewLessonId, selectReview } from '@/core/domain/review';
 import { MIN_ACCURACY, STAR_3_ACCURACY } from '@/core/domain/scoring';
 import { GameButton, GameLink } from '../game/GameButton';
 import { Icon } from '../game/icons';
 import { ProgressRing } from '../game/ProgressRing';
 import { Stars } from '../game/Stars';
 import { formatSeconds } from '../practice/feedback-message';
-import { countLabel, notesText } from '../practice/target-text';
+import { countLabel, guitarNoteText, notesText } from '../practice/target-text';
 import { CAMINO, hrefOf, lessonRoute } from '../router/routes';
 
 /** El texto del botón de repetir: con 2 estrellas anima a la 3.ª; el nombre accesible dice «estrella». */
@@ -67,7 +67,8 @@ export function LessonResult({
   const missed = score.summary.mostMissed;
   const slowest = score.summary.slowest;
   // Solo se ofrece repasar cuando de verdad hay teclas débiles (no por ser «las más lentas»).
-  const review = selectReview(state.keys)?.reason === 'debiles' && !lesson.dynamic;
+  const review =
+    selectReview(state.keys, lesson.instrument)?.reason === 'debiles' && !lesson.dynamic;
   const nextStar = score.stars >= 3 ? null : score.stars + 1;
   // Sin llegar al 70 % lo que toca es repetir: esa es la acción principal.
   const failed = score.stars === 0 && !lesson.dynamic;
@@ -185,7 +186,11 @@ export function LessonResult({
         <div className="result__hard-text">
           <h2 className="result__hard-title">
             {missed
-              ? `Lo que más costó: ${notesText(missed.notes, notation)}`
+              ? `Lo que más costó: ${
+                  lesson.instrument === 'guitarra'
+                    ? guitarNoteText(missed.notes[0], notation)
+                    : notesText(missed.notes, notation)
+                }`
               : 'Nada se te atragantó'}
           </h2>
           <p>
@@ -219,7 +224,7 @@ export function LessonResult({
         {review ? (
           <GameLink
             variant="secondary"
-            href={hrefOf(lessonRoute(REVIEW_LESSON_ID))}
+            href={hrefOf(lessonRoute(reviewLessonId(lesson.instrument)))}
             data-testid="result-review"
           >
             Repasar tus puntos débiles

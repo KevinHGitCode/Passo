@@ -94,7 +94,7 @@ const SHAPES: Readonly<Record<IconName, Shape>> = {
     ],
     strokeWidth: 2.2,
   },
-  tuner: { paths: ['M12 3v10', 'M8 7l4 6 4-6', 'M5 20h14'], strokeWidth: 2.4 },
+  tuner: { paths: ['M4 17a8 8 0 0 1 16 0', 'M12 17l4-6', 'M4 21h16'], strokeWidth: 2.4 },
   chevron: { paths: ['M6 9l6 6 6-6'], strokeWidth: 3 },
 };
 

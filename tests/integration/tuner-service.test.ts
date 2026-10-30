@@ -55,7 +55,7 @@ describe('TunerService', () => {
     const { tuner, play } = setup();
     tuner.open();
     tuner.selectString(5);
-    play(5, -25, 300);
+    play(5, -25, 500);
     expect(tuner.getSnapshot()).toMatchObject({ string: 5, status: 'baja', cents: -25 });
     play(5, 1, 400);
     expect(tuner.getSnapshot().status).toBe('casi');
@@ -66,7 +66,7 @@ describe('TunerService', () => {
   it('cambiar de cuerda empieza de cero y cambia el intervalo buscado', () => {
     const { tuner, pitch, play } = setup();
     tuner.open();
-    play(1, -20, 300);
+    play(1, -20, 500);
     expect(tuner.getSnapshot().status).toBe('baja');
     tuner.selectString(2);
     expect(tuner.getSnapshot()).toMatchObject({ string: 2, status: 'sin-sonido', cents: null });
@@ -86,7 +86,7 @@ describe('TunerService', () => {
   it('sin sonido durante medio segundo vuelve a «sin sonido»', () => {
     const { tuner, pitch, clock, play } = setup();
     tuner.open();
-    play(1, 15, 300);
+    play(1, 15, 500);
     expect(tuner.getSnapshot().status).toBe('alta');
     clock.advance(600);
     pitch.emit(null);
@@ -96,7 +96,7 @@ describe('TunerService', () => {
   it('si la cuerda se calla, los avisos de silencio seguidos devuelven a «sin sonido»', () => {
     const { tuner, pitch, clock, play } = setup();
     tuner.open();
-    play(1, -20, 300);
+    play(1, -20, 500);
     expect(tuner.getSnapshot().status).toBe('baja');
     for (let i = 0; i < 40; i++) {
       clock.advance(20);
@@ -108,7 +108,7 @@ describe('TunerService', () => {
   it('al cerrar deja de seguir, deja de medir y olvida lo medido', () => {
     const { tuner, pitch, play, snapshots } = setup();
     tuner.open();
-    play(1, 15, 300);
+    play(1, 15, 500);
     tuner.close();
     expect(tuner.getSnapshot()).toMatchObject({ open: false, status: 'sin-sonido', cents: null });
     expect(pitch.searches[pitch.searches.length - 1]).toBeNull();
@@ -121,7 +121,7 @@ describe('TunerService', () => {
   it('no avisa si nada cambió', () => {
     const { tuner, play, snapshots } = setup();
     tuner.open();
-    play(1, -20, 200);
+    play(1, -20, 400);
     const count = snapshots.length;
     play(1, -20, 200);
     expect(snapshots.length).toBe(count);

@@ -17,6 +17,7 @@ import {
   GUITAR_REVIEW_LESSON_ID,
   REVIEW_LESSON_ID,
   reviewInstrumentOf,
+  reviewLesson,
   reviewLessonId,
   selectReview,
 } from '@/core/domain/review';
@@ -171,5 +172,17 @@ describe('leer progreso de piano ya guardado', () => {
 
   it('un progreso vacío sigue siendo vacío', () => {
     expect(parseProgress({ version: 1 }).state).toEqual({ ...EMPTY_PROGRESS, version: 1 });
+  });
+});
+
+describe('el repaso de guitarra pide tres nombres distintos', () => {
+  it('tres Mi de distinta cuerda no bastan: se añaden otras notas vecinas', () => {
+    const weak = [...many(6, miss()), ...many(2, ok())];
+    const lesson = reviewLesson({ 'g:40': weak, 'g:52': weak, 'g:64': weak }, 'guitarra');
+    expect(lesson).not.toBeNull();
+    const names = new Set((lesson?.pool ?? []).map((target) => target.notes[0] % 12));
+    expect(names.size).toBeGreaterThanOrEqual(3);
+    expect(lesson?.id).toBe('repaso-debiles-guitarra');
+    expect(lesson?.instrument).toBe('guitarra');
   });
 });

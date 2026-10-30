@@ -3,7 +3,7 @@ import { analyzeFrame, BLOCK_SIZE } from '@/core/domain/frame-analysis';
 import { trackerConfigFor } from '@/core/domain/listening-profile';
 import type { ListeningProfile } from '@/core/domain/listening-profile';
 import type { Midi } from '@/core/domain/note';
-import { detectPitch } from '@/core/domain/pitch';
+import { detectPitch, fundamentalShare } from '@/core/domain/pitch';
 import type { NoteEvent } from '@/core/domain/note-event';
 import { NoteTracker } from '@/core/domain/note-tracker';
 import type { Clock } from '@/core/ports/clock';
@@ -45,6 +45,13 @@ const HEARD_RETENTION_MS = 1500;
 const LEVEL_STEPS = 64;
 /** Claridad mínima para dar por buena una lectura de tono del afinador. */
 const PITCH_MIN_CLARITY = 0.6;
+/**
+ * Presencia mínima de la fundamental en la lectura del afinador. Con el intervalo estrecho, el detector
+ * puede dar un submúltiplo del tono tocado (el Mi4 leído como Mi2 de la cuerda 6): su fundamental casi no
+ * tiene energía (≈ 0 frente a sus seis primeros armónicos), mientras que la de una cuerda bien elegida
+ * pasa de 0,5 incluso con un micrófono que recorta los graves. El umbral hay que confirmarlo con la guitarra real.
+ */
+const PITCH_MIN_FUNDAMENTAL = 0.2;
 /** Hueco máximo (segundos) que se tolera sin reiniciar el seguimiento; menores solo marcan «tras un hueco». */
 const MAX_GAP_SAMPLES_FACTOR = 0.5;
 
@@ -354,13 +361,17 @@ export class MicrophoneInput
       const analysis = analyzeFrame(window, consumed, sampleRate, endAt, gap);
       const monophonic = this.tracker.push(analysis);
       const state = this.tracker.getState();
-      this.measurePitch(
-        capture.buffer.subarray(0, windowEnd),
-        sampleRate,
-        endAt,
-        analysis.rms,
-        state,
-      );
+      try {
+        this.measurePitch(
+          capture.buffer.subarray(0, windowEnd),
+          sampleRate,
+          endAt,
+          analysis.rms,
+          state,
+        );
+      } catch {
+        // Medir el tono (afinador) nunca debe costarle a este fotograma sus eventos de nota.
+      }
       // Un hueco corto de audio deja el anillo discontinuo: el oyente de acordes olvida lo anterior.
       if (gap) this.emitAll(this.chords.reset(at));
       const chord = this.chords.push(window.subarray(window.length - consumed), sampleRate, endAt, {
@@ -393,12 +404,13 @@ export class MicrophoneInput
     if (range === null) return;
     let reading: PitchReading | null = null;
     if (state.phase === 'escuchando' && rms >= state.gate) {
-      const estimate = detectPitch(
-        samples.subarray(Math.max(0, samples.length - FFT_SIZE)),
-        sampleRate,
-        range,
-      );
-      if (estimate !== null && estimate.clarity >= PITCH_MIN_CLARITY) {
+      const window = samples.subarray(Math.max(0, samples.length - FFT_SIZE));
+      const estimate = detectPitch(window, sampleRate, range);
+      if (
+        estimate !== null &&
+        estimate.clarity >= PITCH_MIN_CLARITY &&
+        fundamentalShare(window, sampleRate, estimate.frequency) >= PITCH_MIN_FUNDAMENTAL
+      ) {
         reading = { frequency: estimate.frequency, clarity: estimate.clarity, at };
       }
     }

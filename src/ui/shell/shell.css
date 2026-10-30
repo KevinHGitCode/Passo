@@ -157,9 +157,35 @@
 }
 
 /* El chip de instrumento en la cabecera móvil: ocupa el sitio libre entre la marca y los ajustes. */
+/* Aviso de la práctica libre cuando está elegida la guitarra: la pantalla es de piano. */
+.practice-notice {
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 2px solid var(--border);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 800;
+  text-align: center;
+}
+
 .game-top__instrument {
   flex: 1;
   min-width: 0;
   max-width: 220px;
   margin: 0 10px;
+}
+
+/* En móviles estrechos «Ajustes» queda solo con el icono (el texto sigue para el lector de pantalla). */
+@media (max-width: 420px) {
+  .game-top__instrument {
+    margin: 0 6px;
+  }
+  .game-top .gear > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }

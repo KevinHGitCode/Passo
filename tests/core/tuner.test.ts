@@ -4,7 +4,9 @@ import {
   MIN_READINGS,
   OUT_OF_TUNE_CENTS,
   SEARCH_CENTS,
+  SETTLE_MS,
   SILENCE_MS,
+  TUNED_SILENCE_MS,
   TunerTracker,
   centsFrom,
   searchRange,
@@ -61,27 +63,46 @@ describe('TunerTracker', () => {
     const tracker = new TunerTracker();
     for (let i = 0; i < MIN_READINGS - 1; i++) tracker.push(-20, i * 20);
     expect(tracker.getState().status).toBe('sin-sonido');
-    tracker.push(-20, MIN_READINGS * 20);
-    expect(tracker.getState()).toEqual({ status: 'baja', cents: -20, far: false });
+  });
+
+  it('el ataque no cuenta: los primeros 250 ms tras el silencio no dan «grave» ni «aguda»', () => {
+    const tracker = new TunerTracker();
+    // La cuerda sube 10–30 cents un momento tras pulsarla y luego se asienta en su sitio.
+    feed(tracker, 0, SETTLE_MS - 20, 28);
+    expect(tracker.getState().status).toBe('sin-sonido');
+    feed(tracker, SETTLE_MS - 20, 400, 0);
+    expect(tracker.getState().status).not.toBe('alta');
+  });
+
+  it('una cuerda que se asienta en su sitio no llega a decir «aguda»', () => {
+    const tracker = new TunerTracker();
+    const seen = new Set<string>();
+    for (let at = 0; at < 1500; at += 20) {
+      // +25 cents al atacar, bajando a 0 en lo que dura el asentamiento (≈ 250 ms).
+      tracker.push(Math.max(0, 25 - (25 * at) / SETTLE_MS), at);
+      seen.add(tracker.getState().status);
+    }
+    expect(seen.has('alta')).toBe(false);
+    expect(tracker.getState().status).toBe('afinada');
   });
 
   it('floja, tirante y muy floja', () => {
     const low = new TunerTracker();
-    feed(low, 0, 200, -20);
+    feed(low, 0, 400, -20);
     expect(low.getState()).toEqual({ status: 'baja', cents: -20, far: false });
 
     const high = new TunerTracker();
-    feed(high, 0, 200, 35);
+    feed(high, 0, 400, 35);
     expect(high.getState()).toEqual({ status: 'alta', cents: 35, far: false });
 
     const far = new TunerTracker();
-    feed(far, 0, 200, -(FAR_CENTS + 40));
+    feed(far, 0, 400, -(FAR_CENTS + 40));
     expect(far.getState()).toMatchObject({ status: 'baja', far: true });
   });
 
   it('dentro de ±5 cents pasa por «casi» y solo tras 600 ms queda «afinada»', () => {
     const tracker = new TunerTracker();
-    const end = feed(tracker, 0, 300, 2);
+    const end = feed(tracker, 0, 450, 2);
     expect(tracker.getState().status).toBe('casi');
     feed(tracker, end, IN_TUNE_HOLD_MS, 2);
     expect(tracker.getState()).toEqual({ status: 'afinada', cents: 2, far: false });
@@ -136,12 +157,15 @@ describe('TunerTracker', () => {
     const end = feed(tracker, 0, 1000, 0);
     expect(tracker.getState().status).toBe('afinada');
     const lastReading = end - 20;
-    tracker.push(null, lastReading + SILENCE_MS - 1);
-    expect(tracker.getState().status).toBe('afinada');
+    // «Afinada» se deja ver unos segundos tras callarse la cuerda (el nailon se apaga pronto).
     tracker.push(null, lastReading + SILENCE_MS + 1);
+    expect(tracker.getState().status).toBe('afinada');
+    tracker.push(null, lastReading + TUNED_SILENCE_MS - 1);
+    expect(tracker.getState().status).toBe('afinada');
+    tracker.push(null, lastReading + TUNED_SILENCE_MS + 1);
     expect(tracker.getState()).toEqual({ status: 'sin-sonido', cents: null, far: false });
     // Con pocas lecturas nuevas todavía no opina (lo anterior se olvidó).
-    feed(tracker, end + 2000, 60, 0);
+    feed(tracker, end + 3000, 60, 0);
     expect(tracker.getState().status).toBe('sin-sonido');
   });
 

@@ -1,6 +1,6 @@
 import { evaluate, pickTarget, startRound } from '@/core/domain/exercise';
 import type { RoundConfig } from '@/core/domain/exercise';
-import { GUITAR_UNITS } from '@/core/domain/guitar-lessons';
+import { GUITAR_UNITS, guitarPositionOf } from '@/core/domain/guitar-lessons';
 import { midiAt } from '@/core/domain/instrument';
 import { isBlackKey, pitchClass } from '@/core/domain/note';
 import type { NoteEvent } from '@/core/domain/note-event';
@@ -322,5 +322,29 @@ describe('guardar y leer progreso de guitarra', () => {
       lessons: { 'g9-1': { stars: 3, accuracy: 1000, rhythm: 0, plays: 1, day: '2026-10-29' } },
     });
     expect(state.lessons).toEqual({});
+  });
+});
+
+describe('dónde se toca cada nota del camino', () => {
+  it('las 17 notas tienen una única posición en el mástil, la que enseña la lección', () => {
+    const all = GUITAR_UNITS.flatMap((unit) => unit.lessons).flatMap((lesson) => lesson.pool);
+    const midis = new Set(all.map((target) => target.notes[0]));
+    expect(midis.size).toBe(17);
+    for (const midi of midis) {
+      const position = guitarPositionOf(midi);
+      expect(position, `MIDI ${midi}`).not.toBeNull();
+      expect(position && midiAt(position.string, position.fret)).toBe(midi);
+    }
+  });
+
+  it('el Mi se distingue por su cuerda: 1 (aguda), 4 y 6 (grave)', () => {
+    expect(guitarPositionOf(64)?.string).toBe(1);
+    expect(guitarPositionOf(52)?.string).toBe(4);
+    expect(guitarPositionOf(40)?.string).toBe(6);
+  });
+
+  it('una nota que no es del camino no tiene posición', () => {
+    expect(guitarPositionOf(61)).toBeNull();
+    expect(guitarPositionOf(100)).toBeNull();
   });
 });

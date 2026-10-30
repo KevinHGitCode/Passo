@@ -282,7 +282,7 @@ export function lessonConfig(lesson: Lesson): RoundConfig {
     coverage: lesson.dynamic !== true,
     instrument: lesson.instrument,
     // En esta etapa la guitarra se juzga por el nombre de la nota (ver `RoundConfig.octaveFree`).
-    ...(lesson.instrument === 'guitarra' ? { octaveFree: true } : {}),
+    ...(lesson.instrument === 'guitarra' ? { octaveFree: true, maxWrongDistance: 24 } : {}),
   };
 }
 

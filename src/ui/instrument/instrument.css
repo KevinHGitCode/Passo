@@ -47,8 +47,14 @@
   text-transform: uppercase;
 }
 .inst__name {
+  overflow: hidden;
   font-size: 18px;
   font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inst__text {
+  overflow: hidden;
 }
 .inst__chevron {
   display: grid;
@@ -184,6 +190,21 @@
   }
   .inst__kicker {
     display: none;
+  }
+}
+
+/* En móviles estrechos el nombre baja de tamaño para que quepa junto a «Ajustes». */
+@media (max-width: 420px) {
+  .inst__button {
+    gap: 6px;
+    padding-right: 8px;
+  }
+  .inst__name {
+    font-size: 16px;
+  }
+  .inst__button .inst__tile {
+    width: 34px;
+    height: 34px;
   }
 }
 

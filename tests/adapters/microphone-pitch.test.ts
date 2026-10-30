@@ -93,6 +93,17 @@ describe('MicrophoneInput · tono continuo para el afinador', () => {
     for (const value of centsOf(readings, 6)) expect(Math.abs(value)).toBeGreaterThan(20);
   });
 
+  it('una cuerda aguda tocada con la grave elegida no se lee como «afinada» (alias de submúltiplo)', async () => {
+    // La cuerda 6 (Mi2) elegida y suena el Mi4 de la cuerda 1, cuatro veces más aguda.
+    for (const note of [guitarNote(64, { ms: 2200 }), guitarNote(52, { ms: 2200 })]) {
+      const { h, mic, readings } = await build();
+      mic.setPitchSearch(searchRange(6));
+      h.context.analyser.signal = concat(silence(1300), note, silence(600));
+      h.advance(3400);
+      for (const value of centsOf(readings, 6)) expect(Math.abs(value)).toBeGreaterThan(30);
+    }
+  });
+
   it('con null deja de medir y avisa de que ya no hay lectura', async () => {
     const { h, mic, readings } = await build();
     mic.setPitchSearch(searchRange(6));

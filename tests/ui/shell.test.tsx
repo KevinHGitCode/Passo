@@ -365,6 +365,20 @@ describe('el instrumento en el marco', () => {
     expect(screen.getByTestId('instrument-tag')).toBeTruthy();
   });
 
+  it('la práctica libre avisa de que es de piano cuando está elegida la guitarra', () => {
+    const { go } = setup({ stored: GUITAR });
+    go('#/practica');
+    expect(screen.getByTestId('practica-aviso').textContent).toContain('es de piano');
+    go('#/');
+    expect(screen.queryByTestId('practica-aviso')).toBeNull();
+  });
+
+  it('con piano elegido la práctica libre no avisa de nada', () => {
+    const { go } = setup({ stored: PIANO });
+    go('#/practica');
+    expect(screen.queryByTestId('practica-aviso')).toBeNull();
+  });
+
   it('el afinador apaga el micrófono al salir', () => {
     const { go, mic } = setup({ stored: GUITAR, hash: '#/afinador' });
     const before = mic.stops;

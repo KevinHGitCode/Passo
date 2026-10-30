@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { TunerService, TunerSnapshot } from '@/core/application/tuner-service';
 import { GUITAR_STRINGS, openStringName } from '@/core/domain/instrument';
 import type { GuitarString } from '@/core/domain/instrument';
@@ -7,6 +7,7 @@ import { FAR_CENTS, IN_TUNE_CENTS } from '@/core/domain/tuner';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { InputStatus, NoteInput } from '@/core/ports/note-input';
 import { GameButton } from '../game/GameButton';
+import { hintText } from '../listen/listen-messages';
 import { useInputStatus, useMonitor } from '../practice/hooks';
 import './tuner.css';
 
@@ -61,10 +62,16 @@ function Needle({ cents }: { readonly cents: number | null }) {
  * El afinador de guitarra: eliges una cuerda, la tocas al aire y ves si está grave, aguda o afinada. Tú
  * eliges la cuerda para que una muy floja no se confunda con otra nota.
  */
+/** Un estado debe mantenerse este tiempo antes de anunciarse (la mediana oscila cerca de los límites). */
+const ANNOUNCE_AFTER_MS = 700;
+
 export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
   const snapshot = useSyncExternalStore(tuner.subscribe, tuner.getSnapshot);
   const status = useInputStatus(microphone);
   const monitor = useMonitor(microphone);
+  const stringsRef = useRef<HTMLDivElement>(null);
+  const hadMicMessage = useRef(false);
+  const [announced, setAnnounced] = useState('');
 
   useEffect(() => {
     tuner.open();
@@ -78,6 +85,25 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
   );
   const name = openStringName(snapshot.string, notation);
   const statusText = tunerStatusText(snapshot);
+  const liveText = statusText ? `${statusText}, cuerda ${snapshot.string}` : '';
+
+  // Solo se anuncia un estado que se mantiene un momento: así no se repite al oscilar cerca de un límite.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setAnnounced(liveText), liveText ? ANNOUNCE_AFTER_MS : 0);
+    return () => window.clearTimeout(timer);
+  }, [liveText]);
+
+  // Al conectarse el micrófono el botón «Activar» desaparece: el foco pasa a la cuerda elegida.
+  useEffect(() => {
+    if (message !== null) {
+      hadMicMessage.current = true;
+      return;
+    }
+    if (hadMicMessage.current && document.activeElement === document.body) {
+      stringsRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus();
+    }
+    hadMicMessage.current = false;
+  }, [message]);
   const detail =
     snapshot.status === 'baja'
       ? 'Aprieta un poco la clavija.'
@@ -88,7 +114,9 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
           : snapshot.status === 'afinada'
             ? 'Lista. Puedes pasar a la siguiente cuerda.'
             : listening
-              ? `Toca la cuerda ${snapshot.string} (${name}) al aire y déjala sonar.`
+              ? monitor.hint === 'debil'
+                ? hintText(monitor.hint)
+                : `Toca la cuerda ${snapshot.string} (${name}) al aire y déjala sonar.`
               : '';
 
   return (
@@ -100,7 +128,7 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
         Afinación estándar: Mi · La · Re · Sol · Si · Mi. Elige una cuerda y tócala al aire.
       </p>
 
-      <div className="tuner__strings" role="group" aria-label="Cuerda que afinas">
+      <div className="tuner__strings" role="group" aria-label="Cuerda que afinas" ref={stringsRef}>
         {GUITAR_STRINGS.map((string: GuitarString) => (
           <button
             key={string}
@@ -128,7 +156,7 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
           <span className="tuner__target-name">{name}</span>
         </p>
         {message !== null ? (
-          <div className="tuner__mic" data-testid="tuner-mic">
+          <div className="tuner__mic" role="status" data-testid="tuner-mic">
             <p>{message}</p>
             {status === null || status.kind !== 'conectado' ? (
               <GameButton onClick={() => void microphone?.start()} data-testid="tuner-activate">
@@ -159,7 +187,7 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
 
       {/* Solo cambios de estado: nunca los cents (el monitor emite ~15 veces por segundo). */}
       <div className="sr-only" role="status" aria-live="polite" data-testid="tuner-live">
-        {statusText ? `${statusText}, cuerda ${snapshot.string}` : ''}
+        {announced}
       </div>
     </div>
   );

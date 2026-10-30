@@ -152,7 +152,7 @@
 
 @media (max-width: 480px) {
   .tuner__strings {
-    gap: 6px;
+    gap: 4px;
   }
   .tuner__target-name {
     font-size: 3.2rem;

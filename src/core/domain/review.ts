@@ -1,6 +1,7 @@
 import { historyOf, slowestKeys, targetKey, weakKeys } from './key-stats';
 import type { KeyHistory, KeyStat } from './key-stats';
 import type { Instrument } from './instrument';
+import { pitchClass } from './note';
 import { lessonsFor } from './lessons';
 import type { Lesson } from './lessons';
 import type { Target } from './target';
@@ -86,7 +87,15 @@ export function reviewLesson(history: KeyHistory, instrument: Instrument = 'pian
     for (let i = 0; i < COPIES; i++) pool.push(found.target);
     neighbours.push(...found.pool);
   }
-  const distinct = () => new Set(pool.map((target) => targetKey(target.notes, instrument))).size;
+  // En guitarra se juzga el nombre: tres Mi de distinta cuerda son una sola nota repetida.
+  const distinct = () =>
+    new Set(
+      pool.map((target) =>
+        instrument === 'guitarra'
+          ? pitchClass(target.notes[0])
+          : targetKey(target.notes, instrument),
+      ),
+    ).size;
   for (const target of neighbours) {
     if (distinct() >= MIN_DISTINCT) break;
     if (!pool.includes(target)) pool.push(target);

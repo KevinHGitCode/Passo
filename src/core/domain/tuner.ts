@@ -16,9 +16,12 @@ export const IN_TUNE_HOLD_MS = 600;
 export const OUT_OF_TUNE_CENTS = 8;
 /** Lecturas mínimas para opinar, y cuánto tiempo hacia atrás cuentan. */
 export const MIN_READINGS = 5;
-export const READING_WINDOW_MS = 700;
-/** Sin lecturas durante este tiempo, vuelve a «sin sonido». */
+export const READING_WINDOW_MS = 350;
+/** Tras empezar a sonar, la cuerda «se asienta»: el ataque sube unos 10–30 cents un momento. */
+export const SETTLE_MS = 250;
+/** Sin lecturas durante este tiempo, vuelve a «sin sonido»; «Afinada» se deja ver más tiempo. */
 export const SILENCE_MS = 500;
+export const TUNED_SILENCE_MS = 2000;
 /** A partir de aquí la cuerda está «muy» floja o tirante (se dice distinto). */
 export const FAR_CENTS = 50;
 
@@ -68,6 +71,7 @@ function median(values: readonly number[]): number {
 export class TunerTracker {
   private readings: { cents: number; at: number }[] = [];
   private lastReadingAt = -Infinity;
+  private soundSince: number | null = null;
   private inTuneSince: number | null = null;
   private state: TunerState = NO_SOUND;
 
@@ -78,6 +82,7 @@ export class TunerTracker {
   reset(): TunerState {
     this.readings = [];
     this.lastReadingAt = -Infinity;
+    this.soundSince = null;
     this.inTuneSince = null;
     this.state = NO_SOUND;
     return this.state;
@@ -86,12 +91,20 @@ export class TunerTracker {
   /** `cents` es la desviación medida respecto a la cuerda, o `null` si no se oyó nada claro. */
   push(cents: number | null, at: number): TunerState {
     if (cents !== null) {
-      this.readings.push({ cents, at });
       this.lastReadingAt = at;
-    } else if (at - this.lastReadingAt >= SILENCE_MS) {
+      this.soundSince ??= at;
+      // Las lecturas del ataque (la cuerda sube unos cents al pulsarla) no entran en la mediana.
+      if (at - this.soundSince >= SETTLE_MS) this.readings.push({ cents, at });
+    } else if (
+      at - this.lastReadingAt >=
+      (this.state.status === 'afinada' ? TUNED_SILENCE_MS : SILENCE_MS)
+    ) {
       return this.reset();
     }
     this.readings = this.readings.filter((reading) => at - reading.at <= READING_WINDOW_MS);
+    // Sin sonido nuevo no se opina de nuevo (lo anterior se mantiene), y el ataque no cuenta.
+    if (cents === null || this.soundSince === null) return this.state;
+    if (at - this.soundSince < SETTLE_MS) return this.state;
     if (this.readings.length < MIN_READINGS) return this.state;
 
     const middle = median(this.readings.map((reading) => reading.cents));

@@ -206,6 +206,42 @@ describe('InstrumentChip', () => {
     expect(list.textContent).not.toContain('Agregar');
   });
 
+  it('elegir el instrumento elegido pero no visible (el afinador) sí lo guarda', () => {
+    // La preferencia es piano, pero la pantalla (el afinador) se ve de guitarra.
+    const preferences = new PreferencesService(new FakePreferencesStore({ version: 1 }));
+    const progress = new ProgressService(new FakeProgressStore(null), new FakeCalendar());
+    const onChosen = vi.fn();
+    render(
+      <InstrumentChip
+        instrument="guitarra"
+        preferences={preferences}
+        progress={progress}
+        onChosen={onChosen}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('instrument-chip'));
+    fireEvent.click(screen.getByTestId('instrument-guitarra'));
+    expect(preferences.getSnapshot().instrument).toBe('guitarra');
+    expect(onChosen).toHaveBeenCalledTimes(1);
+  });
+
+  it('en pantallas anchas la lista se cierra al irse el foco de ella', () => {
+    const { button } = setup();
+    fireEvent.click(button());
+    const list = screen.getByTestId('instrument-list');
+    fireEvent.focusOut(list, { relatedTarget: document.body });
+    expect(screen.queryByTestId('instrument-list')).toBeNull();
+  });
+
+  it('el nombre de la lista es el de su título', () => {
+    const { button } = setup();
+    fireEvent.click(button());
+    const list = screen.getByTestId('instrument-list');
+    const titleId = list.getAttribute('aria-labelledby');
+    expect(titleId).toBeTruthy();
+    expect(document.getElementById(titleId ?? '')?.textContent).toBe('Mis instrumentos');
+  });
+
   it('cambiar desde fuera se refleja al volver a abrir', () => {
     const { button, preferences } = setup();
     act(() => preferences.update({ instrument: 'guitarra' }));

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
-import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
+import type { FocusEvent, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { PreferencesService } from '@/core/application/preferences-service';
 import type { ProgressService } from '@/core/application/progress-service';
@@ -74,6 +74,23 @@ export function InstrumentChip({
     return () => document.removeEventListener('keydown', onKey, true);
   }, [open, close]);
 
+  // Con la hoja abierta (pantallas estrechas) el resto de la página queda inerte para el lector de pantalla.
+  useEffect(() => {
+    if (!open || !narrow) return undefined;
+    const root = document.getElementById('root');
+    if (!root) return undefined;
+    root.inert = true;
+    return () => {
+      root.inert = false;
+    };
+  }, [open, narrow]);
+
+  // En pantallas anchas la lista es un menú: se cierra al irse el foco de ella (Tab hacia fuera).
+  const closeOnBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (narrow || !open) return;
+    if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+  };
+
   const trapTab = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (!narrow || event.key !== 'Tab') return;
     const focusable = Array.from(listRef.current?.querySelectorAll<HTMLElement>('button') ?? []);
@@ -90,7 +107,8 @@ export function InstrumentChip({
   };
 
   const choose = (next: Instrument) => {
-    if (next !== instrument) {
+    // Se compara con lo elegido (no con lo que se ve: el afinador y las lecciones fijan el suyo).
+    if (next !== preferences.getSnapshot().instrument) {
       preferences.update({ instrument: next });
       setAnnouncement(`Ahora aprendes ${INSTRUMENT_LABELS[next]}`);
       onChosen?.();
@@ -100,7 +118,7 @@ export function InstrumentChip({
 
   const label = INSTRUMENT_LABELS[instrument];
   return (
-    <div className="inst" data-open={open}>
+    <div className="inst" data-open={open} onBlur={closeOnBlur}>
       <button
         type="button"
         ref={buttonRef}
@@ -131,11 +149,13 @@ export function InstrumentChip({
             className="inst__list"
             role={narrow ? 'dialog' : 'group'}
             aria-modal={narrow ? true : undefined}
-            aria-label="Mis instrumentos"
+            aria-labelledby={`${listId}-titulo`}
             onKeyDown={trapTab}
             data-testid="instrument-list"
           >
-            <h2 className="inst__title">Mis instrumentos</h2>
+            <h2 id={`${listId}-titulo`} className="inst__title">
+              Mis instrumentos
+            </h2>
             {INSTRUMENTS.map((item) => {
               const lessons = lessonsFor(item);
               const done = lessons.filter((lesson) => stars(lesson.id) >= 1).length;

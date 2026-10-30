@@ -7,6 +7,7 @@ import { findLesson, lessonsFor } from '@/core/domain/lessons';
 import type { NotationMode } from '@/core/domain/note';
 import { currentStreak, progressSummary } from '@/core/domain/progress';
 import { reviewLessonId, selectReview } from '@/core/domain/review';
+import { guitarNoteText } from '../practice/target-text';
 import { pianistLevel } from '@/core/domain/scoring';
 import { GameButton, GameLink } from '../game/GameButton';
 import { Icon } from '../game/icons';
@@ -53,7 +54,7 @@ function GuitarWeakNotes({
       {weakest.map((stat) => (
         <li key={stat.key} className="weak__item">
           <span className="weak__name">
-            {noteLabel(keyNotes(stat.key)[0] ?? 40, notation, 'guitarra')}
+            {guitarNoteText(keyNotes(stat.key)[0] ?? 40, notation)}
           </span>
           <span className="weak__value">{Math.round(stat.accuracy * 100)} % a la primera</span>
         </li>

@@ -1,6 +1,7 @@
 import { firstPosition, midiAt } from './instrument';
-import type { GuitarString } from './instrument';
+import type { FretPosition, GuitarString } from './instrument';
 import { lessonsOf } from './lesson-model';
+import type { Midi } from './note';
 import type { LessonKind, LessonSpec, Unit } from './lesson-model';
 import { targetOf } from './target';
 import type { Target } from './target';
@@ -33,6 +34,18 @@ const STRING_6 = onString(6, [0, 1, 3]); // Mi Fa Sol
 const ALL_OPEN = opens([1, 2, 3, 4, 5, 6]);
 const FIRST_TWO_STRINGS = [...STRING_1, ...STRING_2];
 const ALL_NOTES = [...STRING_1, ...STRING_2, ...STRING_3, ...STRING_4, ...STRING_5, ...STRING_6];
+
+/** Dónde se toca una de las 17 notas del camino (la misma nota no se repite entre cuerdas). */
+const POSITIONS = new Map<Midi, FretPosition>(
+  ALL_NOTES.flatMap((target) => {
+    const position = target.positions[0];
+    return position ? [[target.notes[0], position] as const] : [];
+  }),
+);
+
+export function guitarPositionOf(midi: Midi): FretPosition | null {
+  return POSITIONS.get(midi) ?? null;
+}
 
 // ─── Ritmo objetivo (notas/min) ─────────────────────────────────────────────────────────────────
 

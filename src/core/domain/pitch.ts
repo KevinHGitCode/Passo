@@ -149,6 +149,24 @@ export function goertzelMagnitude(
   return Math.sqrt(Math.max(0, s1 * s1 + s2 * s2 - coefficient * s1 * s2));
 }
 
+/**
+ * Cuánta energía tiene la fundamental `f0` respecto al mayor de sus seis primeros armónicos (0–1). Un
+ * submúltiplo del tono real (el Mi4 leído como Mi2) casi no tiene energía en `f0` y da ≈ 0; una cuerda
+ * bien elegida da ≥ 0,5 aunque el micrófono recorte los graves. Con más armónicos que `fundamentalRatio`,
+ * no se deja engañar por el ruido de fondo (que iguala los tres primeros).
+ */
+export function fundamentalShare(samples: Float32Array, sampleRate: number, f0: number): number {
+  const nyquist = sampleRate / 2;
+  let first = 0;
+  let strongest = 0;
+  for (let k = 1; k <= 6 && k * f0 < nyquist; k++) {
+    const magnitude = goertzelMagnitude(samples, sampleRate, k * f0);
+    if (k === 1) first = magnitude;
+    strongest = Math.max(strongest, magnitude);
+  }
+  return strongest === 0 ? 0 : first / strongest;
+}
+
 /** Mayor magnitud de Goertzel en `frequency` con ±25 cents de tolerancia (afinación o inarmonicidad). */
 function peakMagnitude(samples: Float32Array, sampleRate: number, frequency: number): number {
   let peak = 0;

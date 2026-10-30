@@ -218,17 +218,24 @@ export function Shell(props: ShellProps) {
 
   if (route.name === 'practica') {
     return (
-      <App
-        session={props.session}
-        preferences={props.preferences}
-        inputs={props.inputs}
-        inputManager={props.inputManager}
-        audio={props.audio}
-        microphone={props.microphone}
-        debug={props.debug ?? false}
-        devShowSound={props.devShowSound ?? false}
-        brandHref={hrefOf(CAMINO)}
-      />
+      <>
+        {prefs.instrument === 'guitarra' ? (
+          <p className="practice-notice" role="status" data-testid="practica-aviso">
+            La práctica libre es de piano. Tu camino de guitarra sigue en «Aprender».
+          </p>
+        ) : null}
+        <App
+          session={props.session}
+          preferences={props.preferences}
+          inputs={props.inputs}
+          inputManager={props.inputManager}
+          audio={props.audio}
+          microphone={props.microphone}
+          debug={props.debug ?? false}
+          devShowSound={props.devShowSound ?? false}
+          brandHref={hrefOf(CAMINO)}
+        />
+      </>
     );
   }
   return <GameLayout route={route} shell={props} />;

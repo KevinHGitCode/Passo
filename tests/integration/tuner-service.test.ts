@@ -1,36 +1,8 @@
 import { TunerService } from '@/core/application/tuner-service';
 import type { TunerSnapshot } from '@/core/application/tuner-service';
 import { stringFrequency } from '@/core/domain/tuner';
-import type { PitchMonitor, PitchReading, PitchTarget } from '@/core/ports/pitch-monitor';
 import { FakeClock } from '../fakes/fake-clock';
-
-class FakePitch implements PitchMonitor, PitchTarget {
-  readonly searches: ({ minHz: number; maxHz: number } | null)[] = [];
-  private readonly handlers = new Set<(reading: PitchReading | null) => void>();
-  private current: PitchReading | null = null;
-
-  getPitch(): PitchReading | null {
-    return this.current;
-  }
-
-  subscribePitch(handler: (reading: PitchReading | null) => void) {
-    this.handlers.add(handler);
-    return () => this.handlers.delete(handler);
-  }
-
-  setPitchSearch(range: { minHz: number; maxHz: number } | null): void {
-    this.searches.push(range);
-  }
-
-  get listeners(): number {
-    return this.handlers.size;
-  }
-
-  emit(reading: PitchReading | null): void {
-    this.current = reading;
-    this.handlers.forEach((handler) => handler(reading));
-  }
-}
+import { FakePitch } from '../fakes/fake-pitch';
 
 function setup() {
   const pitch = new FakePitch();

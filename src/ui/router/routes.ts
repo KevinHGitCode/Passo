@@ -6,18 +6,21 @@
  * - `#/leccion/<id>`: una lección (el resultado se ve dentro de ella, no tiene dirección propia).
  * - `#/progreso`: lo que llevas.
  * - `#/practica`: la práctica libre (la pantalla de siempre).
+ * - `#/afinador`: el afinador de guitarra.
  */
 export type Route =
   | { readonly name: 'camino' }
   | { readonly name: 'leccion'; readonly lessonId: string }
   | { readonly name: 'progreso' }
-  | { readonly name: 'practica' };
+  | { readonly name: 'practica' }
+  | { readonly name: 'afinador' };
 
 export type RouteName = Route['name'];
 
 export const CAMINO: Route = { name: 'camino' };
 export const PROGRESO: Route = { name: 'progreso' };
 export const PRACTICA: Route = { name: 'practica' };
+export const AFINADOR: Route = { name: 'afinador' };
 
 function decode(part: string): string {
   try {
@@ -34,6 +37,7 @@ export function parseRoute(hash: string): Route {
   if (first === 'leccion' && second) return { name: 'leccion', lessonId: second };
   if (first === 'progreso') return PROGRESO;
   if (first === 'practica') return PRACTICA;
+  if (first === 'afinador') return AFINADOR;
   return CAMINO;
 }
 
@@ -52,6 +56,8 @@ export function hrefOf(route: Route): string {
       return '#/progreso';
     case 'practica':
       return '#/practica';
+    case 'afinador':
+      return '#/afinador';
   }
 }
 
@@ -65,6 +71,7 @@ const TITLES: Readonly<Record<RouteName, string>> = {
   leccion: 'Lección',
   progreso: 'Progreso',
   practica: 'Práctica libre',
+  afinador: 'Afinador',
 };
 
 export function routeTitle(route: Route): string {

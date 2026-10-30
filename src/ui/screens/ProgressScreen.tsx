@@ -1,10 +1,12 @@
 import { useRef, useState, useSyncExternalStore } from 'react';
 import type { ProgressService } from '@/core/application/progress-service';
-import { LESSONS } from '@/core/domain/lessons';
+import { INSTRUMENT_LABELS, noteLabel } from '@/core/domain/instrument';
+import type { Instrument } from '@/core/domain/instrument';
+import { MIN_SAMPLES, historyOf, keyNotes, keyStats } from '@/core/domain/key-stats';
+import { findLesson, lessonsFor } from '@/core/domain/lessons';
 import type { NotationMode } from '@/core/domain/note';
 import { currentStreak, progressSummary } from '@/core/domain/progress';
-import { REVIEW_LESSON_ID, selectReview } from '@/core/domain/review';
-import { noteName } from '@/core/domain/note';
+import { reviewLessonId, selectReview } from '@/core/domain/review';
 import { pianistLevel } from '@/core/domain/scoring';
 import { GameButton, GameLink } from '../game/GameButton';
 import { Icon } from '../game/icons';
@@ -27,22 +29,63 @@ export function formatDuration(ms: number): string {
 }
 
 /** Lo que llevas: nivel, medias, el mapa de tu teclado y cómo evoluciona tu precisión. */
+/** Las notas de guitarra que más cuestan (con 5 intentos o más), de la más floja a la menos. */
+function GuitarWeakNotes({
+  keys,
+  notation,
+}: {
+  readonly keys: ReturnType<typeof historyOf>;
+  readonly notation: NotationMode;
+}) {
+  const weakest = keyStats(keys)
+    .filter((stat) => stat.samples >= MIN_SAMPLES)
+    .sort((a, b) => a.accuracy - b.accuracy)
+    .slice(0, 5);
+  if (weakest.length === 0) {
+    return (
+      <p className="card__sub" data-testid="guitarra-sin-datos">
+        Aquí aparecen las notas que más te cuestan cuando llevas 5 intentos en cada una.
+      </p>
+    );
+  }
+  return (
+    <ul className="weak" data-testid="guitarra-notas">
+      {weakest.map((stat) => (
+        <li key={stat.key} className="weak__item">
+          <span className="weak__name">
+            {noteLabel(keyNotes(stat.key)[0] ?? 40, notation, 'guitarra')}
+          </span>
+          <span className="weak__value">{Math.round(stat.accuracy * 100)} % a la primera</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function ProgressScreen({
   progress,
   notation,
+  instrument = 'piano',
 }: {
   readonly progress: ProgressService;
   readonly notation: NotationMode;
+  readonly instrument?: Instrument;
 }) {
   const { state, saved } = useSyncExternalStore(progress.subscribe, progress.getSnapshot);
   const [confirming, setConfirming] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const summary = progressSummary(state);
+  // Las medias y la curva son del instrumento; el tiempo, los días y la experiencia son de todos.
+  const history = state.history.filter(
+    (entry) => (findLesson(entry.lesson)?.instrument ?? 'piano') === instrument,
+  );
+  const summary = progressSummary({ ...state, history });
   const level = pianistLevel(state.xp);
-  const done = LESSONS.filter((lesson) => (state.lessons[lesson.id]?.stars ?? 0) >= 1).length;
+  const lessons = lessonsFor(instrument);
+  const done = lessons.filter((lesson) => (state.lessons[lesson.id]?.stars ?? 0) >= 1).length;
   const streak = currentStreak(state, progress.today());
-  const review = selectReview(state.keys);
-  const empty = state.history.length === 0 && Object.keys(state.keys).length === 0;
+  const review = selectReview(state.keys, instrument);
+  const ownKeys = historyOf(state.keys, instrument);
+  const empty = history.length === 0 && Object.keys(ownKeys).length === 0;
 
   return (
     <div className="progreso" data-testid="progreso">
@@ -51,7 +94,8 @@ export function ProgressScreen({
           Progreso
         </h1>
         <p className="progreso__sub">
-          {done} de {LESSONS.length} lecciones hechas
+          {instrument === 'guitarra' ? `${INSTRUMENT_LABELS[instrument]}: ` : ''}
+          {done} de {lessons.length} lecciones hechas
           {streak > 0 ? ` · racha de ${streak} ${streak === 1 ? 'día' : 'días'}` : ''}
         </p>
       </header>
@@ -64,7 +108,7 @@ export function ProgressScreen({
 
       <section className="progreso__kpis" aria-label="Resumen">
         <div className="kpi kpi--level">
-          <p className="kpi__label">Nivel de pianista</p>
+          <p className="kpi__label">Tu nivel</p>
           <p className="kpi__big">
             {level.level} · {level.name}
           </p>
@@ -134,18 +178,30 @@ export function ProgressScreen({
       <div className="progreso__grid">
         <section className="card" aria-labelledby="progreso-teclado">
           <h2 id="progreso-teclado" className="card__title">
-            Mapa de tu teclado
+            {instrument === 'guitarra' ? 'Notas que más cuestan' : 'Mapa de tu teclado'}
           </h2>
-          <p className="card__sub">Acierto a la primera por tecla (desde 5 intentos)</p>
-          <KeyHeatmap history={state.keys} notation={notation} />
+          {instrument === 'guitarra' ? (
+            <GuitarWeakNotes keys={ownKeys} notation={notation} />
+          ) : (
+            <>
+              <p className="card__sub">Acierto a la primera por tecla (desde 5 intentos)</p>
+              <KeyHeatmap history={state.keys} notation={notation} />
+            </>
+          )}
           {review !== null ? (
             <div className="progreso__cta">
               <p>
-                {review.reason === 'debiles' ? 'Tu tecla más floja es ' : 'La más lenta es '}
-                <strong>{noteName(Number(review.keys[0]?.key ?? 60), notation)}</strong>. Tres
-                minutos al día suben tu precisión.
+                {review.reason === 'debiles'
+                  ? instrument === 'guitarra'
+                    ? 'Tu nota más floja es '
+                    : 'Tu tecla más floja es '
+                  : 'La más lenta es '}
+                <strong>
+                  {noteLabel(keyNotes(review.keys[0]?.key ?? '60')[0] ?? 60, notation, instrument)}
+                </strong>
+                . Tres minutos al día suben tu precisión.
               </p>
-              <GameLink variant="secondary" href={hrefOf(lessonRoute(REVIEW_LESSON_ID))}>
+              <GameLink variant="secondary" href={hrefOf(lessonRoute(reviewLessonId(instrument)))}>
                 Practicar 3 min
               </GameLink>
             </div>
@@ -156,7 +212,7 @@ export function ProgressScreen({
           <h2 id="progreso-precision" className="card__title">
             Precisión por lección
           </h2>
-          <AccuracyChart entries={state.history.slice(-CHART_LESSONS)} />
+          <AccuracyChart entries={history.slice(-CHART_LESSONS)} />
         </section>
       </div>
 

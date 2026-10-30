@@ -1,4 +1,5 @@
-import { noteName } from '@/core/domain/note';
+import { noteLabel } from '@/core/domain/instrument';
+import type { Instrument } from '@/core/domain/instrument';
 import type { NotationMode } from '@/core/domain/note';
 import type { MonitorSnapshot } from '@/core/ports/input-monitor';
 import type { InputStatus } from '@/core/ports/note-input';
@@ -8,6 +9,7 @@ export interface ListeningStripProps {
   readonly status: InputStatus;
   readonly monitor: MonitorSnapshot;
   readonly notation: NotationMode;
+  readonly instrument?: Instrument;
 }
 
 function MicIcon() {
@@ -35,10 +37,15 @@ function idleText(status: InputStatus, monitor: MonitorSnapshot): string {
  * Tira de altura fija sobre el teclado: nivel de entrada y nota que se oye.
  * Nunca cambia de altura, así el teclado no se mueve entre estados.
  */
-export function ListeningStrip({ status, monitor, notation }: ListeningStripProps) {
+export function ListeningStrip({
+  status,
+  monitor,
+  notation,
+  instrument = 'piano',
+}: ListeningStripProps) {
   const listening = status.kind === 'conectado' && monitor.phase === 'escuchando';
   const notice = listening ? monitorNotice(monitor) : null;
-  const heard = monitor.heard ? noteName(monitor.heard.midi, notation) : '—';
+  const heard = monitor.heard ? noteLabel(monitor.heard.midi, notation, instrument) : '—';
 
   return (
     <div className="listen" data-testid="listen" data-phase={monitor.phase}>

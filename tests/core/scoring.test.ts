@@ -203,7 +203,7 @@ describe('nivel de pianista', () => {
 
   it('los nombres cambian por tramos y el máximo no tiene siguiente', () => {
     expect(pianistLevel(xpToReach(7)).name).toBe('Intérprete');
-    expect(pianistLevel(xpToReach(11)).name).toBe('Pianista');
+    expect(pianistLevel(xpToReach(11)).name).toBe('Músico');
     expect(pianistLevel(xpToReach(16)).name).toBe('Maestro');
     const top = pianistLevel(xpToReach(MAX_LEVEL) + 5000);
     expect(top.level).toBe(MAX_LEVEL);

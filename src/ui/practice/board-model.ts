@@ -6,6 +6,7 @@ import type {
 import type { ExerciseMode } from '@/core/domain/curriculum';
 import { handShape } from '@/core/domain/hand-shape';
 import type { HandShape } from '@/core/domain/hand-shape';
+import { noteLabel } from '@/core/domain/instrument';
 import { noteName, pitchName } from '@/core/domain/note';
 import type { Midi } from '@/core/domain/note';
 import type { Target } from '@/core/domain/target';
@@ -24,7 +25,7 @@ import {
   useSessionSnapshot,
 } from './hooks';
 import { buildKeyVisuals } from './key-visuals';
-import { notesText } from './target-text';
+import { notesText, positionText } from './target-text';
 
 /**
  * Lo que comparten la práctica libre y las lecciones para dibujar el tablero (teclado, cascada, mano,
@@ -45,9 +46,15 @@ export function liveMessage(snapshot: SessionSnapshot): string {
   const { exercise, feedback, notation } = snapshot;
   if (snapshot.phase === 'pausada') return `Ronda en pausa. ${pauseText(snapshot)}`;
   if (!exercise) return '';
-  const target = notesText(exercise.target.notes, notation);
+  const guitar = snapshot.instrument === 'guitarra';
+  const position = exercise.target.positions[0];
+  const target = guitar
+    ? `${noteLabel(exercise.target.notes[0], notation, snapshot.instrument)}${
+        snapshot.help && position ? `: ${positionText(position)}` : ''
+      }`
+    : notesText(exercise.target.notes, notation);
   if (!feedback) return `Toca ${target}`;
-  const message = feedbackMessage(feedback.outcome, notation);
+  const message = feedbackMessage(feedback.outcome, notation, snapshot.instrument);
   if (feedback.outcome.kind === 'acierto') return `${message.title} Ahora toca ${target}`;
   if (feedback.outcome.kind === 'dudoso') return `${message.title}. ${message.detail}`;
   if (feedback.outcome.kind === 'error') {
@@ -113,7 +120,7 @@ export function useBoardModel(
   const targetNotes = exercise?.target.notes ?? null;
   const mode = exercise?.config.mode ?? snapshot.mode;
   const roundSize = exercise?.config.roundSize ?? 0;
-  const message = recent ? feedbackMessage(recent.outcome, notation) : null;
+  const message = recent ? feedbackMessage(recent.outcome, notation, snapshot.instrument) : null;
 
   // En la prueba rápida de la bienvenida se resalta el Do central.
   const onboardingTarget = phase === 'inactiva' && microphone && micReady ? [60] : [];

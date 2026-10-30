@@ -1,0 +1,107 @@
+/* ---------- El mástil de la guitarra (vive dentro del escenario oscuro) ---------- */
+.fretboard {
+  display: block;
+  width: 100%;
+  max-width: 760px;
+  height: auto;
+  margin: 0 auto;
+  font-family: var(--font-display);
+  overflow: visible;
+}
+.fretboard__wood {
+  fill: var(--fret-wood);
+  stroke: transparent;
+  stroke-width: 3;
+}
+.fretboard[data-result='ok'] .fretboard__wood {
+  stroke: var(--ok);
+}
+.fretboard[data-result='error'] .fretboard__wood {
+  stroke: var(--err);
+}
+.fretboard__inlay {
+  fill: var(--fret-inlay);
+}
+.fretboard__band {
+  fill: var(--accent);
+  opacity: 0.16;
+}
+.fretboard__nut {
+  stroke: var(--fret-nut);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+.fretboard__wire {
+  stroke: var(--fret-wire);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.fretboard__string {
+  stroke: var(--fret-string);
+  stroke-linecap: round;
+}
+.fretboard__string--wound {
+  stroke: var(--fret-string-wound);
+}
+.fretboard__label {
+  fill: var(--fret-label);
+  font-size: 13.5px;
+  font-weight: 800;
+}
+.fretboard__label--hint {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* «Ahora»: sólido, con el número del dedo. «Después»: discontinuo. */
+.fretboard__mark circle {
+  stroke-width: 2.5;
+}
+.fretboard__mark--now circle {
+  fill: var(--key-target);
+  stroke: var(--key-target-edge);
+}
+.fretboard__mark--now text {
+  fill: var(--on-accent);
+  font-size: 17px;
+  font-weight: 900;
+}
+.fretboard__mark--later circle {
+  fill: color-mix(in srgb, var(--key-target) 16%, transparent);
+  stroke: var(--key-target);
+  stroke-dasharray: 5 4;
+}
+.fretboard__mark--later text {
+  fill: var(--key-target);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+@media (forced-colors: active) {
+  .fretboard__wood {
+    fill: Canvas;
+    stroke: CanvasText;
+  }
+  .fretboard__wire,
+  .fretboard__string,
+  .fretboard__nut {
+    stroke: CanvasText;
+  }
+  .fretboard__label {
+    fill: CanvasText;
+  }
+  .fretboard__mark--now circle {
+    fill: Highlight;
+    stroke: HighlightText;
+  }
+  .fretboard__mark--now text {
+    fill: HighlightText;
+  }
+  .fretboard__mark--later circle {
+    fill: Canvas;
+    stroke: Highlight;
+  }
+  .fretboard__mark--later text {
+    fill: CanvasText;
+  }
+}

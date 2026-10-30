@@ -1,3 +1,4 @@
+import type { Instrument } from '@/core/domain/instrument';
 import { octaveOf, pitchName } from '@/core/domain/note';
 import type { Midi, NotationMode } from '@/core/domain/note';
 import type { Target } from '@/core/domain/target';
@@ -10,10 +11,13 @@ export function TargetName({
   notes,
   held,
   notation,
+  instrument = 'piano',
 }: {
   readonly notes: Target['notes'];
   readonly held: readonly Midi[];
   readonly notation: NotationMode;
+  /** En guitarra el nombre va sin octava (se escribe una octava más aguda de como suena). */
+  readonly instrument?: Instrument;
 }) {
   if (notes.length === 1) {
     return (
@@ -24,7 +28,9 @@ export function TargetName({
         data-midis={notes[0]}
       >
         {pitchName(notes[0], notation)}
-        <span className="target__octave">{octaveOf(notes[0])}</span>
+        {instrument === 'piano' ? (
+          <span className="target__octave">{octaveOf(notes[0])}</span>
+        ) : null}
       </span>
     );
   }

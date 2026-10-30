@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
 import { InputManager } from '@/core/application/input-manager';
 import { bindInputsToPreferences } from '@/core/application/input-sync';
@@ -8,6 +8,7 @@ import { PracticeSession } from '@/core/application/practice-session';
 import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
 import { ProgressService } from '@/core/application/progress-service';
+import { TunerService } from '@/core/application/tuner-service';
 import { createSeededRng } from '@/core/domain/rng';
 import { Shell } from '@/ui/shell/Shell';
 import { FakeAudioControl } from '../fakes/fake-audio-control';
@@ -15,6 +16,7 @@ import { FakeCalendar } from '../fakes/fake-calendar';
 import { FakeClock } from '../fakes/fake-clock';
 import { FakeMicInput } from '../fakes/fake-mic-input';
 import { FakeNoteInput } from '../fakes/fake-note-input';
+import { FakePitch } from '../fakes/fake-pitch';
 import { FakePreferencesStore } from '../fakes/fake-preferences-store';
 import { FakeProgressStore } from '../fakes/fake-progress-store';
 
@@ -33,6 +35,7 @@ afterEach(() => {
   cleanup();
   window.location.hash = '';
   document.documentElement.removeAttribute('data-theme');
+  document.documentElement.removeAttribute('data-instrument');
   // @ts-expect-error: se restaura el entorno de jsdom (sin matchMedia)
   delete window.matchMedia;
 });
@@ -79,6 +82,7 @@ function setup(options: { hash?: string; narrow?: boolean; stored?: unknown } = 
       microphone={mic}
       progress={progress}
       lessonFlow={lessonFlow}
+      tuner={new TunerService({ pitch: new FakePitch(), clock: new FakeClock(0) })}
     />,
   );
   const go = (hash: string) =>
@@ -291,5 +295,80 @@ describe('accesibilidad del marco', () => {
     scrollTo.mockClear();
     go('#/');
     expect(scrollTo).not.toHaveBeenCalled();
+  });
+});
+
+describe('el instrumento en el marco', () => {
+  const GUITAR = { version: 1, input: 'microfono', instrument: 'guitarra' };
+  const PIANO = { version: 1, input: 'microfono', instrument: 'piano' };
+
+  it('con guitarra marca la raíz, ofrece el afinador en vez de la práctica libre y enseña el camino de guitarra', () => {
+    setup({ stored: GUITAR });
+    expect(document.documentElement.dataset['instrument']).toBe('guitarra');
+    const nav = screen.getByRole('navigation', { name: 'Principal' });
+    expect(within(nav).getByText('Afinador')).toBeTruthy();
+    expect(within(nav).queryByText('Práctica libre')).toBeNull();
+    expect(screen.getByTestId('instrument-chip').getAttribute('aria-label')).toBe(
+      'Instrumento: Guitarra. Cambiar',
+    );
+    expect(screen.getByTestId('node-g1-1')).toBeTruthy();
+    expect(screen.queryByTestId('node-u1-1')).toBeNull();
+  });
+
+  it('en piano la raíz lo dice y la navegación tiene la práctica libre', () => {
+    setup({ stored: PIANO });
+    expect(document.documentElement.dataset['instrument']).toBe('piano');
+    const nav = screen.getByRole('navigation', { name: 'Principal' });
+    expect(within(nav).getByText('Práctica libre')).toBeTruthy();
+    expect(within(nav).queryByText('Afinador')).toBeNull();
+    expect(screen.getByTestId('node-u1-1')).toBeTruthy();
+  });
+
+  it('elegir guitarra en el chip cambia el camino, el color y la navegación', () => {
+    setup({ stored: PIANO });
+    fireEvent.click(screen.getByTestId('instrument-chip'));
+    fireEvent.click(screen.getByTestId('instrument-guitarra'));
+    expect(screen.getByTestId('node-g1-1')).toBeTruthy();
+    expect(document.documentElement.dataset['instrument']).toBe('guitarra');
+    expect(
+      within(screen.getByRole('navigation', { name: 'Principal' })).getByText('Afinador'),
+    ).toBeTruthy();
+  });
+
+  it('en móvil el chip va en la cabecera junto a la marca', () => {
+    setup({ stored: GUITAR, narrow: true });
+    const header = document.querySelector('.game-top');
+    expect(header?.querySelector('[data-testid="instrument-chip"]')).toBeTruthy();
+    expect(within(screen.getByTestId('game-nav-bottom')).getByText('Afinador')).toBeTruthy();
+  });
+
+  it('#/afinador abre el afinador y se ve de guitarra aunque se haya elegido piano', () => {
+    const { go } = setup({ stored: PIANO });
+    go('#/afinador');
+    expect(screen.getByRole('heading', { level: 1, name: 'Afinador' })).toBeTruthy();
+    expect(document.documentElement.dataset['instrument']).toBe('guitarra');
+    expect(document.title).toBe('Afinador · Passo');
+  });
+
+  it('elegir piano estando en el afinador vuelve al camino', () => {
+    const { go } = setup({ stored: GUITAR });
+    go('#/afinador');
+    fireEvent.click(screen.getByTestId('instrument-chip'));
+    fireEvent.click(screen.getByTestId('instrument-piano'));
+    expect(window.location.hash).toBe('#/');
+  });
+
+  it('una lección de guitarra se ve de guitarra aunque se haya elegido piano', () => {
+    const { go } = setup({ stored: PIANO });
+    go('#/leccion/g1-1');
+    expect(document.documentElement.dataset['instrument']).toBe('guitarra');
+    expect(screen.getByTestId('instrument-tag')).toBeTruthy();
+  });
+
+  it('el afinador apaga el micrófono al salir', () => {
+    const { go, mic } = setup({ stored: GUITAR, hash: '#/afinador' });
+    const before = mic.stops;
+    go('#/');
+    expect(mic.stops).toBeGreaterThan(before);
   });
 });

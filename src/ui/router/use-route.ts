@@ -37,8 +37,13 @@ export function useRouteLifecycle(
     if (name !== 'leccion') flow.leave();
     if (before === 'practica' && name !== 'practica') session.reset();
     // El micrófono solo escucha donde hay una pantalla que lo usa: al salir de la lección o de la
-    // práctica se apaga (la luz del equipo no debe quedar encendida); la lección pide un gesto para volver.
-    if ((before === 'leccion' || before === 'practica') && name !== before) microphone?.stop();
+    // práctica o del afinador se apaga (la luz del equipo no debe quedar encendida); hay que activarlo con un gesto.
+    if (
+      (before === 'leccion' || before === 'practica' || before === 'afinador') &&
+      name !== before
+    ) {
+      microphone?.stop();
+    }
   }, [name, session, flow, microphone]);
 }
 

@@ -1,5 +1,7 @@
 import type { Outcome } from '@/core/domain/exercise';
-import { isBlackKey, noteName, pitchClass, pitchName, semitoneDistance } from '@/core/domain/note';
+import { noteLabel } from '@/core/domain/instrument';
+import type { Instrument } from '@/core/domain/instrument';
+import { isBlackKey, pitchClass, pitchName, semitoneDistance } from '@/core/domain/note';
 import type { Midi, NotationMode } from '@/core/domain/note';
 import { pitchesText } from './target-text';
 
@@ -56,8 +58,10 @@ export function describeMistake(target: Midi, played: Midi, notation: NotationMo
 export function feedbackMessage(
   outcome: Exclude<Outcome, { kind: 'ignorado' }>,
   notation: NotationMode,
+  instrument: Instrument = 'piano',
 ): FeedbackMessage {
-  const name = (midi: Midi) => noteName(midi, notation);
+  const name = (midi: Midi) => noteLabel(midi, notation, instrument);
+  const guitar = instrument === 'guitarra';
   switch (outcome.kind) {
     case 'acierto':
       return { tone: 'ok', title: '¡Correcto!', detail: name(outcome.attempt.targetMidi) };
@@ -80,7 +84,13 @@ export function feedbackMessage(
       return {
         tone: 'error',
         title: 'Incorrecto',
-        detail: `Era ${name(outcome.attempt.targetMidi)}, ${verb} ${name(outcome.attempt.playedMidi)} · ${describeMistake(outcome.attempt.targetMidi, outcome.attempt.playedMidi, notation)}`,
+        detail: `Era ${name(outcome.attempt.targetMidi)}, ${verb} ${name(outcome.attempt.playedMidi)} · ${
+          guitar
+            ? describeSemitones(
+                semitoneDistance(outcome.attempt.targetMidi, outcome.attempt.playedMidi),
+              )
+            : describeMistake(outcome.attempt.targetMidi, outcome.attempt.playedMidi, notation)
+        }`,
       };
     }
     case 'dudoso': {
@@ -106,8 +116,9 @@ export function feedbackMessage(
         return {
           tone: 'neutral',
           title: 'No te oí bien',
-          detail:
-            'Oí un sonido que no encaja con la nota pedida. No cuenta como error: toca solo la tecla pedida y mantenla un segundo.',
+          detail: guitar
+            ? 'Oí un sonido que no encaja con la nota pedida. No cuenta como error: toca solo la cuerda pedida y déjala sonar un segundo.'
+            : 'Oí un sonido que no encaja con la nota pedida. No cuenta como error: toca solo la tecla pedida y mantenla un segundo.',
         };
       }
       return {

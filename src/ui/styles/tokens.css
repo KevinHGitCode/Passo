@@ -87,6 +87,21 @@
   --node-exam: #f5b301;
   --node-exam-depth: #b37c00;
   --node-exam-ink: #4a3200;
+
+  /* El color de cada instrumento (la lista de «Mis instrumentos» enseña los dos a la vez). */
+  --instrument-piano: #3454d1;
+  --instrument-guitar: #6b3fc4;
+  --on-instrument: #ffffff;
+
+  /* Diapasón de la guitarra: siempre madera oscura (vive dentro del escenario oscuro). */
+  --fret-wood: #232a38;
+  --fret-wire: #6b7690;
+  --fret-nut: #d7ddea;
+  --fret-string: #cfd6e4;
+  --fret-string-wound: #d8c08a;
+  --fret-inlay: #323b4d;
+  --fret-label: #b6c0d0;
+  --fret-heard: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -223,4 +238,46 @@
   --node-exam: #ffc83d;
   --node-exam-depth: #c28a00;
   --node-exam-ink: #3a2a00;
+}
+
+/*
+ * Guitarra: el acento pasa de azul a violeta. Los componentes del juego leen solo los tokens por rol,
+ * así que basta redefinirlos. Cuatro bloques: claro, oscuro automático, oscuro explícito y el escenario
+ * oscuro (que redeclara sus propios valores y por eso necesita el suyo). El instrumento se dice siempre
+ * también con icono y nombre: el azul y el violeta claros se parecen en luminosidad.
+ */
+:root[data-instrument='guitarra'] {
+  --accent: #6b3fc4;
+  --accent-strong: #3b1f85;
+  --on-accent: #ffffff;
+  --accent-soft: #e4daf8;
+  --accent-depth: #4f2b9c;
+  --key-target: #6b3fc4;
+  --key-target-edge: #4f2b9c;
+  --meter-fill: #6b3fc4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-instrument='guitarra']:not([data-theme='claro']) {
+    --accent: #c4a9ff;
+    --accent-strong: #d9c9ff;
+    --on-accent: #1a0b3d;
+    --accent-soft: #3b2a6e;
+    --accent-depth: #8f6fe0;
+    --key-target: #c4a9ff;
+    --key-target-edge: #8f6fe0;
+    --meter-fill: #c4a9ff;
+  }
+}
+
+:root[data-instrument='guitarra'][data-theme='oscuro'],
+:root[data-instrument='guitarra'] .stage-dark {
+  --accent: #c4a9ff;
+  --accent-strong: #d9c9ff;
+  --on-accent: #1a0b3d;
+  --accent-soft: #3b2a6e;
+  --accent-depth: #8f6fe0;
+  --key-target: #c4a9ff;
+  --key-target-edge: #8f6fe0;
+  --meter-fill: #c4a9ff;
 }

@@ -1,0 +1,165 @@
+/* ---------- El afinador ---------- */
+.tuner {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 8px 0 32px;
+}
+.tuner h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 900;
+}
+.tuner__lead {
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.tuner__strings {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+.tuner__string {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 44px;
+  min-height: 64px;
+  justify-content: center;
+  padding: 6px 4px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.tuner__string[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  box-shadow: 0 3px 0 var(--accent-depth);
+}
+.tuner__string-number {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.tuner__string[aria-pressed='true'] .tuner__string-number {
+  color: inherit;
+}
+.tuner__string-name {
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.tuner__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  min-height: 300px;
+  padding: 24px 20px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--text);
+}
+.tuner__target {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  line-height: 1;
+}
+.tuner__target-kicker {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.tuner__target-name {
+  color: var(--accent);
+  font-size: 4rem;
+  font-weight: 900;
+}
+.tuner__mic {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  font-weight: 700;
+}
+.tuner__mic p {
+  margin: 0;
+}
+
+.tuner__meter {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  height: 22px;
+  border-radius: 99px;
+  background: var(--surface-2);
+}
+.tuner__zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--ok) 45%, transparent);
+}
+.tuner__tick {
+  position: absolute;
+  top: -5px;
+  width: 8px;
+  height: 32px;
+  margin-left: -4px;
+  border-radius: 4px;
+  background: var(--accent);
+  transition: left 0.12s linear;
+}
+.tuner__tick[data-idle='true'] {
+  opacity: 0.35;
+}
+.tuner__reading {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 900;
+}
+.tuner__reading[data-status='afinada'] {
+  color: var(--ok);
+}
+.tuner__reading[data-status='baja'],
+.tuner__reading[data-status='alta'] {
+  color: var(--err);
+}
+.tuner__detail {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .tuner__strings {
+    gap: 6px;
+  }
+  .tuner__target-name {
+    font-size: 3.2rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tuner__tick {
+    transition: none;
+  }
+}

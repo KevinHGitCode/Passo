@@ -19,9 +19,16 @@ import { liveMessage, pauseText, useBoardModel } from '../practice/board-model';
 import type { BoardModel } from '../practice/board-model';
 import type { FeedbackMessage } from '../practice/feedback-message';
 import { useInputStatus } from '../practice/hooks';
+import { GuitarBoard } from '../practice/GuitarBoard';
 import { PracticeKeyboard } from '../practice/PracticeKeyboard';
 import { TargetName } from '../practice/TargetName';
-import { countLabel, pcKeysText, promptText, targetDetail } from '../practice/target-text';
+import {
+  countLabel,
+  pcKeysText,
+  positionText,
+  promptText,
+  targetDetail,
+} from '../practice/target-text';
 import { CAMINO, hrefOf, navigate } from '../router/routes';
 import { ExitDialog } from './ExitDialog';
 import { inputName, lessonKindText, liveStats, thirdStarGoalText } from './lesson-live';
@@ -117,7 +124,13 @@ function LessonIntro({
           color.
         </p>
       ) : null}
-      {source === 'microfono' && lowestNote(lesson) < LOW_NOTE ? (
+      {lesson.instrument === 'guitarra' && source === 'microfono' ? (
+        <p className="lesson-intro__tip" data-testid="tip-guitar">
+          Toca una cuerda cada vez y deja que la anterior se calle. Acerca el micrófono a la boca de
+          la guitarra y afínala antes con el afinador.
+        </p>
+      ) : null}
+      {lesson.instrument === 'piano' && source === 'microfono' && lowestNote(lesson) < LOW_NOTE ? (
         <p className="lesson-intro__tip" data-testid="tip-low">
           Son notas graves: si el micrófono no las oye bien, acerca el portátil al altavoz del
           piano.
@@ -126,8 +139,9 @@ function LessonIntro({
       {blocked !== null ? (
         <div className="lesson-intro__block" data-testid="lesson-blocked">
           <p>
-            Esta lección necesita piano MIDI o teclado del PC, o la beta «Oír varias notas a la vez»
-            del micrófono.
+            {blocked === 'necesita-microfono'
+              ? 'La guitarra se toca con el micrófono. Cámbialo en Ajustes, en «Cómo toco».'
+              : 'Esta lección necesita piano MIDI o teclado del PC, o la beta «Oír varias notas a la vez» del micrófono.'}
           </p>
           <div className="lesson-intro__actions">
             <GameButton onClick={onOpenSettings}>Abrir ajustes</GameButton>
@@ -173,10 +187,19 @@ function LessonTarget({ board }: { readonly board: BoardModel }) {
   return (
     <div className="lesson-target target" data-testid="target">
       <span className="target__label">{promptText(mode)}</span>
-      <TargetName notes={targetNotes} held={exercise.held} notation={notation} />
+      <TargetName
+        notes={targetNotes}
+        held={exercise.held}
+        notation={notation}
+        instrument={snapshot.instrument}
+      />
       <span className="target__hint" data-testid="target-detail">
-        {targetDetail(exercise.target, notation) ||
-          (help ? 'La tecla resaltada del teclado' : 'Búscala en el teclado')}
+        {snapshot.instrument === 'guitarra'
+          ? help && exercise.target.positions[0]
+            ? positionText(exercise.target.positions[0])
+            : 'Búscala en el mástil'
+          : targetDetail(exercise.target, notation) ||
+            (help ? 'La tecla resaltada del teclado' : 'Búscala en el teclado')}
       </span>
       <span className="lesson-target__errors" data-testid="counters">
         <span className="sr-only">
@@ -241,7 +264,7 @@ function LessonFooter({
   const many = targetNotes.length > 1;
   return (
     <p className="lesson__idle" data-testid="stage-idle">
-      {snapshot.transposition !== null
+      {snapshot.transposition !== null && snapshot.instrument === 'piano'
         ? 'Parece que tu teclado está transpuesto. Revisa «Transpose» en el piano.'
         : micReady
           ? many
@@ -361,6 +384,12 @@ function LessonView({
             <span key={i} className="lesson__segment" data-done={i < snapshot.hits} />
           ))}
         </div>
+        {lesson.instrument === 'guitarra' ? (
+          <span className="chip chip--instrument" data-testid="instrument-tag">
+            <Icon name="guitar" size={18} />
+            <span>Guitarra</span>
+          </span>
+        ) : null}
         <span className="chip chip--input" data-testid="input-chip">
           {inputName(source)}
         </span>
@@ -417,10 +446,19 @@ function LessonView({
           <LessonTarget board={board} />
         )}
         {microphone && micStatus ? (
-          <ListeningStrip status={micStatus} monitor={monitor} notation={snapshot.notation} />
+          <ListeningStrip
+            status={micStatus}
+            monitor={monitor}
+            notation={snapshot.notation}
+            instrument={lesson.instrument}
+          />
         ) : null}
-        <PracticeKeyboard board={board} />
-        {source === 'teclado-pc' && microphone === undefined ? (
+        {lesson.instrument === 'guitarra' ? (
+          <GuitarBoard board={board} />
+        ) : (
+          <PracticeKeyboard board={board} />
+        )}
+        {lesson.instrument === 'piano' && source === 'teclado-pc' && microphone === undefined ? (
           <p className="pc-hint" data-testid="pc-hint">
             {pcKeysText(lesson.pool[0]?.hand ?? 'derecha')}
           </p>

@@ -14,12 +14,18 @@ export type IconName =
   | 'chart'
   | 'keys'
   | 'gear'
-  | 'target';
+  | 'target'
+  | 'guitar'
+  | 'piano'
+  | 'tuner'
+  | 'chevron';
 
 interface Shape {
   readonly paths: readonly string[];
   /** Relleno en vez de trazo. */
   readonly filled?: boolean;
+  /** Relleno y trazo a la vez (siluetas con detalles finos). */
+  readonly solid?: boolean;
   readonly strokeWidth?: number;
 }
 
@@ -70,6 +76,26 @@ const SHAPES: Readonly<Record<IconName, Shape>> = {
       'M12 12h.01',
     ],
   },
+  guitar: {
+    paths: [
+      'M3.5 15.5a5 5 0 1 0 10 0 5 5 0 1 0-10 0Z',
+      'M9.4 11.4a3.2 3.2 0 1 0 6.4 0 3.2 3.2 0 1 0-6.4 0Z',
+      'M13 11 20.5 3.5',
+      'M18.5 2.5l3 3',
+    ],
+    solid: true,
+    strokeWidth: 2.2,
+  },
+  piano: {
+    paths: [
+      'M5.5 5h13A2.5 2.5 0 0 1 21 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5v-9A2.5 2.5 0 0 1 5.5 5Z',
+      'M9 13v6M15 13v6',
+      'M7.5 5v8M12 5v8M16.5 5v8',
+    ],
+    strokeWidth: 2.2,
+  },
+  tuner: { paths: ['M12 3v10', 'M8 7l4 6 4-6', 'M5 20h14'], strokeWidth: 2.4 },
+  chevron: { paths: ['M6 9l6 6 6-6'], strokeWidth: 3 },
 };
 
 export function Icon({
@@ -87,8 +113,8 @@ export function Icon({
       height={size}
       aria-hidden="true"
       focusable="false"
-      fill={shape.filled ? 'currentColor' : 'none'}
-      stroke={shape.filled ? 'none' : 'currentColor'}
+      fill={shape.filled || shape.solid ? 'currentColor' : 'none'}
+      stroke={shape.filled && !shape.solid ? 'none' : 'currentColor'}
       strokeWidth={shape.strokeWidth ?? 2.4}
       strokeLinecap="round"
       strokeLinejoin="round"

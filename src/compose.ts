@@ -24,6 +24,7 @@ import { bindProfileToSession } from '@/core/application/profile-sync';
 import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
 import { ProgressService } from '@/core/application/progress-service';
+import { TunerService } from '@/core/application/tuner-service';
 import { isExerciseMode } from '@/core/domain/curriculum';
 import { isInstrument } from '@/core/domain/instrument';
 import { roundConfigFor } from '@/core/domain/exercise';
@@ -189,9 +190,13 @@ export function composeApp(search: string = window.location.search) {
     window.addEventListener('pagehide', () => manager.stopAll());
   }
 
+  // El afinador de guitarra mide el tono continuo del micrófono, solo mientras su pantalla está abierta.
+  const tuner = new TunerService({ pitch: microphone, clock });
+
   return {
     session,
     preferences,
+    tuner,
     /** Progreso guardado y flujo de las lecciones (las usa el marco del camino). */
     progress,
     lessonFlow,

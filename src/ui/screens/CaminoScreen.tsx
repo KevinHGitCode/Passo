@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { CSSProperties } from 'react';
 import type { ProgressService } from '@/core/application/progress-service';
-import { LESSONS, UNITS, currentLesson, lessonAccessMap, playBlock } from '@/core/domain/lessons';
+import { noteLabel } from '@/core/domain/instrument';
+import type { Instrument } from '@/core/domain/instrument';
+import { keyNotes } from '@/core/domain/key-stats';
+import {
+  currentLesson,
+  lessonAccessMap,
+  lessonsFor,
+  playBlock,
+  unitsOf,
+} from '@/core/domain/lessons';
 import type { Lesson, PlayContext, Unit } from '@/core/domain/lessons';
-import { noteName } from '@/core/domain/note';
 import type { NotationMode } from '@/core/domain/note';
 import {
   DAILY_GOAL_MINUTES,
@@ -13,14 +21,14 @@ import {
   weekActivity,
 } from '@/core/domain/progress';
 import type { Progress } from '@/core/domain/progress';
-import { REVIEW_LESSON_ID, selectReview } from '@/core/domain/review';
+import { reviewLessonId, selectReview } from '@/core/domain/review';
 import { pianistLevel } from '@/core/domain/scoring';
 import { GameButton, GameLink } from '../game/GameButton';
 import { Icon } from '../game/icons';
 import { LessonNode } from '../game/LessonNode';
 import type { NodeState } from '../game/LessonNode';
 import type { StarCount } from '../game/Stars';
-import { hrefOf, lessonRoute } from '../router/routes';
+import { AFINADOR, hrefOf, lessonRoute } from '../router/routes';
 import { inputName } from './lesson-live';
 import './camino.css';
 
@@ -43,8 +51,11 @@ const REASON_UNIT =
   'Termina la unidad anterior, o aprueba su prueba con 2 estrellas, para abrir esta.';
 const REASON_INPUT =
   'Necesita piano MIDI o teclado del PC, o la beta «Oír varias notas a la vez» del micrófono.';
+const REASON_MIC = 'La guitarra se toca con el micrófono: cámbialo en Ajustes, en «Cómo toco».';
 
 export interface CaminoScreenProps {
+  /** El camino que se muestra (cada instrumento tiene el suyo). */
+  readonly instrument?: Instrument;
   readonly progress: ProgressService;
   /** Con qué se puede tocar ahora (decide qué lecciones están disponibles). */
   readonly play: PlayContext;
@@ -114,19 +125,34 @@ function SideCards({
   state,
   today,
   notation,
+  instrument,
 }: {
   readonly state: Progress;
   readonly today: string;
   readonly notation: NotationMode;
+  readonly instrument: Instrument;
 }) {
   const streak = currentStreak(state, today);
   const week = weekActivity(state, today);
   const minutes = minutesOn(state, today);
   const level = pianistLevel(state.xp);
-  const review = selectReview(state.keys);
+  const review = selectReview(state.keys, instrument);
   const practicedToday = week.some((day) => day.today && day.practiced);
   return (
     <>
+      {instrument === 'guitarra' ? (
+        <section className="card" aria-labelledby="card-afinar" data-testid="card-afinar">
+          <h2 id="card-afinar" className="card__title">
+            Afina antes de empezar
+          </h2>
+          <p className="card__note">
+            Con una cuerda floja, todas las notas saldrían como error. Dura un minuto.
+          </p>
+          <GameLink variant="secondary" block href={hrefOf(AFINADOR)}>
+            Abrir el afinador
+          </GameLink>
+        </section>
+      ) : null}
       <section className="card" aria-labelledby="card-racha">
         <h2 id="card-racha" className="card__title">
           Racha
@@ -226,7 +252,9 @@ function SideCards({
           <ul className="weak">
             {review.keys.map((stat) => (
               <li key={stat.key} className="weak__item">
-                <span className="weak__name">{noteName(Number(stat.key), notation)}</span>
+                <span className="weak__name">
+                  {noteLabel(keyNotes(stat.key)[0] ?? 60, notation, instrument)}
+                </span>
                 <span className="weak__value">{Math.round(stat.accuracy * 100)} %</span>
               </li>
             ))}
@@ -234,7 +262,7 @@ function SideCards({
           <GameLink
             variant="secondary"
             block
-            href={hrefOf(lessonRoute(REVIEW_LESSON_ID))}
+            href={hrefOf(lessonRoute(reviewLessonId(instrument)))}
             data-testid="practicar-debiles"
           >
             Practicar 3 min
@@ -247,6 +275,7 @@ function SideCards({
 
 function UnitSection({
   unit,
+  lessons,
   state,
   access,
   current,
@@ -255,6 +284,8 @@ function UnitSection({
   onExplain,
 }: {
   readonly unit: Unit;
+  /** Todas las lecciones del camino (para repartir la ola de los nodos). */
+  readonly lessons: readonly Lesson[];
   readonly state: Progress;
   readonly access: ReturnType<typeof lessonAccessMap>;
   readonly current: Lesson | null;
@@ -290,11 +321,13 @@ function UnitSection({
         <ol className="path">
           {unit.lessons.map((lesson, index) => {
             const nodeState = nodeStateOf(lesson, access, current, play);
-            const globalIndex = LESSONS.indexOf(lesson);
+            const globalIndex = lessons.indexOf(lesson);
             const shift = SHIFTS[globalIndex % SHIFTS.length] ?? 0;
             const reason =
               nodeState === 'bloqueada-entrada'
-                ? REASON_INPUT
+                ? playBlock(lesson, play) === 'necesita-microfono'
+                  ? REASON_MIC
+                  : REASON_INPUT
                 : nodeState === 'bloqueada'
                   ? index === 0
                     ? REASON_UNIT
@@ -313,7 +346,7 @@ function UnitSection({
                   stars={stars(lesson.id) as StarCount}
                   href={hrefOf(lessonRoute(lesson.id))}
                   reason={reason}
-                  bubble={firstVisit && lesson.id === 'u1-1' ? 'Empieza aquí' : 'Empezar'}
+                  bubble={firstVisit && lesson.id === lessons[0]?.id ? 'Empieza aquí' : 'Empezar'}
                   onExplain={
                     reason ? () => onExplain(reason, nodeState === 'bloqueada-entrada') : undefined
                   }
@@ -329,14 +362,22 @@ function UnitSection({
 }
 
 /** El camino de aprendizaje: unidades con sus lecciones, y a un lado la racha, la meta y lo débil. */
-export function CaminoScreen({ progress, play, notation, onOpenSettings }: CaminoScreenProps) {
+export function CaminoScreen({
+  instrument = 'piano',
+  progress,
+  play,
+  notation,
+  onOpenSettings,
+}: CaminoScreenProps) {
   const { state, saved } = useSyncExternalStore(progress.subscribe, progress.getSnapshot);
   const [explanation, setExplanation] = useState<Explanation | null>(null);
   const noteRef = useRef<HTMLDivElement>(null);
   const today = progress.today();
-  const access = lessonAccessMap(starsOf(state));
-  const current = currentLesson(access, starsOf(state));
-  const firstVisit = Object.keys(state.lessons).length === 0;
+  const units = unitsOf(instrument);
+  const lessons = lessonsFor(instrument);
+  const access = lessonAccessMap(starsOf(state), units);
+  const current = currentLesson(access, starsOf(state), units);
+  const firstVisit = lessons.every((lesson) => state.lessons[lesson.id] === undefined);
   const streak = currentStreak(state, today);
   const practicedToday = (state.daily[today]?.lessons ?? 0) > 0;
   const source = play.sources.length === 1 ? (play.sources[0] ?? null) : null;
@@ -387,10 +428,11 @@ export function CaminoScreen({ progress, play, notation, onOpenSettings }: Camin
           </div>
         ) : null}
         <ol className="units">
-          {UNITS.map((unit) => (
+          {units.map((unit) => (
             <UnitSection
               key={unit.id}
               unit={unit}
+              lessons={lessons}
               state={state}
               access={access}
               current={current}
@@ -402,7 +444,7 @@ export function CaminoScreen({ progress, play, notation, onOpenSettings }: Camin
         </ol>
       </div>
       <aside className="camino__side" aria-label="Tu día">
-        <SideCards state={state} today={today} notation={notation} />
+        <SideCards state={state} today={today} notation={notation} instrument={instrument} />
       </aside>
     </div>
   );

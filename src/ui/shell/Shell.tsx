@@ -2,18 +2,22 @@ import { useEffect, useRef, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 import type { LessonFlow } from '@/core/application/lesson-flow';
 import type { ProgressService } from '@/core/application/progress-service';
+import type { TunerService } from '@/core/application/tuner-service';
 import type { PlayContext } from '@/core/domain/lessons';
 import { App } from '../App';
 import type { AppProps } from '../App';
+import { activeInstrument, useInstrumentAttribute } from '../instrument/active-instrument';
+import { InstrumentChip } from '../instrument/InstrumentChip';
 import { useIsNarrow } from '../practice/hooks';
 import { CaminoScreen } from '../screens/CaminoScreen';
 import { LessonScreen } from '../screens/LessonScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
+import { TunerScreen } from '../screens/TunerScreen';
 import { usePlayContext } from '../screens/use-play-context';
 import { SettingsButton, SettingsPanel } from '../settings/SettingsPanel';
 import { useSettingsPanel } from '../settings/use-settings-panel';
 import { useTheme } from '../theme/use-theme';
-import { hrefOf, CAMINO } from '../router/routes';
+import { hrefOf, navigate, CAMINO } from '../router/routes';
 import type { Route } from '../router/routes';
 import { useRoute, useRouteAnnouncer, useRouteLifecycle } from '../router/use-route';
 import { GameNav } from './GameNav';
@@ -23,6 +27,7 @@ import './shell.css';
 export interface ShellProps extends AppProps {
   readonly progress: ProgressService;
   readonly lessonFlow: LessonFlow;
+  readonly tuner: TunerService;
 }
 
 /** Debajo de este ancho la navegación pasa a una barra inferior y los ajustes a la cabecera. */
@@ -43,14 +48,15 @@ function Screen({
   readonly gear: ReactNode;
   readonly openSettings: () => void;
 }): ReactNode {
-  const { notation } = useSyncExternalStore(
-    shell.preferences.subscribe,
-    shell.preferences.getSnapshot,
-  );
+  const prefs = useSyncExternalStore(shell.preferences.subscribe, shell.preferences.getSnapshot);
+  const { notation } = prefs;
+  const instrument = activeInstrument(route, prefs.instrument);
   switch (route.name) {
     case 'camino':
       return (
         <CaminoScreen
+          key={instrument}
+          instrument={instrument}
           progress={shell.progress}
           play={play}
           notation={notation}
@@ -76,7 +82,16 @@ function Screen({
       );
     }
     case 'progreso':
-      return <ProgressScreen progress={shell.progress} notation={notation} />;
+      return (
+        <ProgressScreen
+          key={instrument}
+          progress={shell.progress}
+          notation={notation}
+          instrument={instrument}
+        />
+      );
+    case 'afinador':
+      return <TunerScreen tuner={shell.tuner} microphone={shell.microphone} notation={notation} />;
     case 'practica':
       return null;
   }
@@ -85,6 +100,8 @@ function Screen({
 /** El marco de las pantallas del juego: navegación, ajustes y la pantalla que toque. */
 function GameLayout({ route, shell }: { readonly route: Route; readonly shell: ShellProps }) {
   const { session, preferences, inputs, inputManager, microphone, lessonFlow } = shell;
+  const prefs = useSyncExternalStore(preferences.subscribe, preferences.getSnapshot);
+  const instrument = activeInstrument(route, prefs.instrument);
   const settings = useSettingsPanel(session);
   const gearRef = useRef<HTMLButtonElement>(null);
   // Al cerrar los ajustes el foco vuelve al engranaje (si no, se perdería).
@@ -107,6 +124,14 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
     >
       Saltar al contenido
     </button>
+  );
+  const instrumentChip = (
+    <InstrumentChip
+      instrument={instrument}
+      preferences={preferences}
+      progress={shell.progress}
+      onChosen={route.name === 'afinador' ? () => navigate(CAMINO) : undefined}
+    />
   );
   const gear = (
     <SettingsButton open={settings.open} onToggle={settings.toggle} buttonRef={gearRef} />
@@ -157,6 +182,7 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
           <a className="game-brand" href={hrefOf(CAMINO)}>
             Passo
           </a>
+          <div className="game-top__instrument">{instrumentChip}</div>
           {gear}
         </header>
       ) : (
@@ -164,14 +190,15 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
           <a className="game-brand" href={hrefOf(CAMINO)}>
             Passo
           </a>
-          <GameNav route={route} />
+          {instrumentChip}
+          <GameNav route={route} instrument={instrument} />
           <div className="game-side__foot">{gear}</div>
         </aside>
       )}
       <main className="game-main" id="contenido" tabIndex={-1}>
         {screen}
       </main>
-      {narrow ? <GameNav route={route} bottom /> : null}
+      {narrow ? <GameNav route={route} bottom instrument={instrument} /> : null}
       {panel}
     </div>
   );
@@ -184,6 +211,8 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
 export function Shell(props: ShellProps) {
   const route = useRoute();
   useTheme(props.preferences);
+  const prefs = useSyncExternalStore(props.preferences.subscribe, props.preferences.getSnapshot);
+  useInstrumentAttribute(activeInstrument(route, prefs.instrument));
   useRouteLifecycle(route, props.session, props.lessonFlow, props.microphone);
   useRouteAnnouncer(route);
 

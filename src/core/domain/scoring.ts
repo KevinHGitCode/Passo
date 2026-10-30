@@ -168,7 +168,7 @@ function levelName(level: number): string {
   if (level <= 2) return 'Principiante';
   if (level <= 6) return 'Aprendiz';
   if (level <= 10) return 'Intérprete';
-  if (level <= 15) return 'Pianista';
+  if (level <= 15) return 'Músico';
   return 'Maestro';
 }
 

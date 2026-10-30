@@ -15,6 +15,7 @@ const {
   preferences,
   progress,
   lessonFlow,
+  tuner,
   inputs,
   inputManager,
   audio,
@@ -31,6 +32,7 @@ createRoot(root).render(
       preferences={preferences}
       progress={progress}
       lessonFlow={lessonFlow}
+      tuner={tuner}
       inputs={inputs}
       inputManager={inputManager}
       audio={audio}

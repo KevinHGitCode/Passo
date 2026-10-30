@@ -1,4 +1,5 @@
 import type { ExerciseMode } from '@/core/domain/curriculum';
+import type { FretPosition, GuitarFinger } from '@/core/domain/instrument';
 import { noteName, pitchName } from '@/core/domain/note';
 import type { Midi, NotationMode } from '@/core/domain/note';
 import type { ChordInfo, Finger, Hand, Target } from '@/core/domain/target';
@@ -55,6 +56,27 @@ export function targetDetail(target: Target, notation: NotationMode): string {
   if (target.hand) parts.push(handText(target.hand));
   if (target.fingers.length > 0) parts.push(fingersText(target.fingers));
   return parts.join(' · ');
+}
+
+const FINGER_NAMES: Readonly<Record<GuitarFinger, string>> = {
+  1: 'el índice',
+  2: 'el medio',
+  3: 'el anular',
+  4: 'el meñique',
+};
+
+/** «Cuerda 1 (la más aguda) · traste 1 · dedo 1, el índice» / «Cuerda 3 · al aire». */
+export function positionText(position: FretPosition): string {
+  const string =
+    position.string === 1
+      ? 'Cuerda 1 (la más aguda)'
+      : position.string === 6
+        ? 'Cuerda 6 (la más grave)'
+        : `Cuerda ${position.string}`;
+  const fret = position.fret === 0 ? 'al aire' : `traste ${position.fret}`;
+  const finger =
+    position.finger === null ? null : `dedo ${position.finger}, ${FINGER_NAMES[position.finger]}`;
+  return [string, fret, finger].filter((part) => part !== null).join(' · ');
 }
 
 /** Teclas del PC que hacen de piano: la fila de arriba (mano derecha) y la de abajo (mano izquierda). */

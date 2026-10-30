@@ -1,0 +1,198 @@
+/* ---------- El chip de instrumento y su lista ---------- */
+.inst {
+  position: relative;
+}
+.inst__button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 6px 12px 6px 8px;
+  border: 2px solid var(--accent);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 4px 0 var(--accent-depth);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.inst__button:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--accent-depth);
+}
+.inst__tile {
+  display: grid;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.inst__text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.inst__kicker {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.inst__name {
+  font-size: 18px;
+  font-weight: 900;
+}
+.inst__chevron {
+  display: grid;
+  flex: none;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+.inst[data-open='true'] .inst__chevron {
+  transform: rotate(180deg);
+}
+
+.inst__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(18 23 34 / 0.35);
+}
+.inst__list {
+  position: absolute;
+  z-index: 41;
+  top: calc(100% + 8px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: max(100%, 300px);
+  padding: 10px;
+  border: 2px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 18px 40px rgb(18 23 34 / 0.25);
+}
+.inst__title {
+  margin: 4px 6px 2px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.inst__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.inst__item[aria-current='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+/* Cada fila lleva el acento de su instrumento (no el del que se está viendo). */
+.inst__item[data-instrument='piano'] .inst__tile,
+.inst__item[data-instrument='piano'] .inst__fill {
+  background: var(--instrument-piano);
+  color: var(--on-instrument);
+}
+.inst__item[data-instrument='guitarra'] .inst__tile,
+.inst__item[data-instrument='guitarra'] .inst__fill {
+  background: var(--instrument-guitar);
+  color: var(--on-instrument);
+}
+.inst__sub {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+.inst__current {
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 800;
+}
+.inst__bar {
+  display: block;
+  height: 8px;
+  margin-top: 4px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--surface-2);
+}
+.inst__fill {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+}
+.inst__check {
+  display: grid;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ok);
+  color: var(--on-ok);
+}
+.inst__close {
+  min-height: 48px;
+  margin-top: 4px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* En pantallas estrechas, la lista es una hoja desde abajo. */
+@media (max-width: 899px) {
+  .inst__list {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    max-height: 85vh;
+    overflow: auto;
+    padding: 14px 16px 22px;
+    border-radius: 26px 26px 0 0;
+    border-width: 2px 0 0;
+  }
+  .inst__button {
+    min-height: 48px;
+    box-shadow: 0 3px 0 var(--accent-depth);
+  }
+  .inst__kicker {
+    display: none;
+  }
+}
+
+/* Etiqueta del instrumento en la cabecera de una lección (solo se lee). */
+.chip--instrument {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}

@@ -93,6 +93,18 @@ describe('TunerService', () => {
     expect(tuner.getSnapshot().status).toBe('sin-sonido');
   });
 
+  it('si la cuerda se calla, los avisos de silencio seguidos devuelven a «sin sonido»', () => {
+    const { tuner, pitch, clock, play } = setup();
+    tuner.open();
+    play(1, -20, 300);
+    expect(tuner.getSnapshot().status).toBe('baja');
+    for (let i = 0; i < 40; i++) {
+      clock.advance(20);
+      pitch.emit(null);
+    }
+    expect(tuner.getSnapshot()).toMatchObject({ status: 'sin-sonido', cents: null });
+  });
+
   it('al cerrar deja de seguir, deja de medir y olvida lo medido', () => {
     const { tuner, pitch, play, snapshots } = setup();
     tuner.open();

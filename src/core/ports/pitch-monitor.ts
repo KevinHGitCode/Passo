@@ -13,7 +13,7 @@ export interface PitchReading {
 export interface PitchMonitor {
   /** La última lectura, o `null` si no suena nada claro dentro del intervalo buscado. */
   getPitch(): PitchReading | null;
-  /** Avisa con cada lectura, y con `null` cuando se deja de oír. */
+  /** Avisa con cada lectura y, mientras se mide, con `null` en cada fotograma sin sonido. */
   subscribePitch(handler: (reading: PitchReading | null) => void): Unsubscribe;
 }
 

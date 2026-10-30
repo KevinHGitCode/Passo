@@ -107,6 +107,18 @@ describe('MicrophoneInput · tono continuo para el afinador', () => {
     expect(readings).toHaveLength(count);
   });
 
+  it('mientras mide, el silencio se avisa en cada fotograma (no una sola vez)', async () => {
+    const { h, mic, readings } = await build();
+    mic.setPitchSearch(searchRange(6));
+    h.context.analyser.signal = concat(silence(1300), guitarNote(40, { ms: 800 }), silence(3000));
+    h.advance(3000);
+    expect(mic.getPitch()).toBeNull();
+    const nullsBefore = readings.filter((reading) => reading === null).length;
+    h.advance(500);
+    const nullsAfter = readings.filter((reading) => reading === null).length;
+    expect(nullsAfter - nullsBefore).toBeGreaterThan(10);
+  });
+
   it('al apagar el micrófono la lectura se borra', async () => {
     const { h, mic } = await build();
     mic.setPitchSearch(searchRange(6));

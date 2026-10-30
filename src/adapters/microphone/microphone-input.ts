@@ -406,9 +406,11 @@ export class MicrophoneInput
   }
 
   private setPitch(reading: PitchReading | null): void {
-    if (reading === null && this.pitch === null) return;
+    const changed = reading !== null || this.pitch !== null;
     this.pitch = reading;
-    this.notify(this.pitchHandlers, reading);
+    // Mientras se mide, el silencio se avisa en cada fotograma: así quien sigue el tono sabe cuánto
+    // lleva sin oír nada (una sola notificación de «ya no suena» no basta para olvidar lo anterior).
+    if (changed || this.pitchSearch !== null) this.notify(this.pitchHandlers, reading);
   }
 
   private emitAll(events: readonly NoteEvent[]): void {

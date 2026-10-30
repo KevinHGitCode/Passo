@@ -155,3 +155,11 @@
 .game-main h1 {
   width: fit-content;
 }
+
+/* El chip de instrumento en la cabecera móvil: ocupa el sitio libre entre la marca y los ajustes. */
+.game-top__instrument {
+  flex: 1;
+  min-width: 0;
+  max-width: 220px;
+  margin: 0 10px;
+}

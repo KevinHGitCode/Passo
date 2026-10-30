@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
-import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import type { PreferencesService } from '@/core/application/preferences-service';
 import type { ProgressService } from '@/core/application/progress-service';
 import { INSTRUMENTS, INSTRUMENT_LABELS } from '@/core/domain/instrument';
@@ -19,6 +20,14 @@ export interface InstrumentChipProps {
   readonly progress: ProgressService;
   /** Se llama tras elegir otro instrumento (p. ej. para salir del afinador, que es de guitarra). */
   readonly onChosen?: (() => void) | undefined;
+}
+
+/**
+ * En pantallas estrechas la hoja sale a `document.body`: el encabezado fijo crea su propia capa y, dentro de
+ * ella, la hoja quedaría por debajo de la barra inferior.
+ */
+function Overlay({ portal, children }: { readonly portal: boolean; readonly children: ReactNode }) {
+  return portal ? createPortal(children, document.body) : <>{children}</>;
 }
 
 /**
@@ -114,7 +123,7 @@ export function InstrumentChip({
         </span>
       </button>
       {open ? (
-        <>
+        <Overlay portal={narrow}>
           <div className="inst__backdrop" onClick={() => close(true)} aria-hidden="true" />
           <div
             id={listId}
@@ -173,7 +182,7 @@ export function InstrumentChip({
               </button>
             ) : null}
           </div>
-        </>
+        </Overlay>
       ) : null}
       <div className="sr-only" role="status" aria-live="polite" data-testid="instrument-live">
         {announcement}

@@ -340,6 +340,7 @@ de micrófono…) está en [docs/archivado.md](docs/archivado.md).
 
 | Documento | Contenido |
 |---|---|
+| [docs/case-study.md](docs/case-study.md) | Estudio de caso: problema, decisiones técnicas, resultado y lo que falta |
 | [docs/vision.md](docs/vision.md) | Problema, idea central, modos de práctica y diseño visual |
 | [docs/metodo.md](docs/metodo.md) | Cómo se trabaja: fases, expertos, pruebas y evidencias |
 | [docs/convenciones.md](docs/convenciones.md) | Reglas del dominio: notas, intentos, micrófono, lecciones, instrumentos y rutas |

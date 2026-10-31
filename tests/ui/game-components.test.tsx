@@ -151,6 +151,24 @@ describe('LessonNode', () => {
     expect(screen.getByRole('link', { name: 'Mi · Fa · Sol, siguiente' })).toBeTruthy();
   });
 
+  it('con onOpen, tocar el nodo abre la ventana en vez de seguir el enlace', () => {
+    const onOpen = vi.fn();
+    render(<LessonNode {...base} state="abierta" href="#/leccion/u1-1" onOpen={onOpen} />);
+    const link = screen.getByRole('link', { name: 'Mi · Fa · Sol, abierta' });
+    expect(link.getAttribute('aria-haspopup')).toBe('dialog');
+    expect(fireEvent.click(link)).toBe(false);
+    expect(onOpen).toHaveBeenCalledWith(link);
+  });
+
+  it('con Ctrl o Mayús el enlace se sigue (no se llama a onOpen)', () => {
+    const onOpen = vi.fn();
+    render(<LessonNode {...base} state="abierta" href="#/x" onOpen={onOpen} />);
+    const link = screen.getByRole('link');
+    expect(fireEvent.click(link, { ctrlKey: true })).toBe(true);
+    expect(fireEvent.click(link, { shiftKey: true })).toBe(true);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
   it('el globo solo aparece en la lección actual', () => {
     render(<LessonNode {...base} state="abierta" href="#/x" bubble="Empezar" />);
     expect(screen.queryByText('Empezar')).toBeNull();

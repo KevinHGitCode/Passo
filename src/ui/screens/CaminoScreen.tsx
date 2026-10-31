@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { CSSProperties } from 'react';
 import type { ProgressService } from '@/core/application/progress-service';
 import { noteLabel } from '@/core/domain/instrument';
@@ -29,6 +29,7 @@ import { LessonNode } from '../game/LessonNode';
 import type { NodeState } from '../game/LessonNode';
 import type { StarCount } from '../game/Stars';
 import { AFINADOR, hrefOf, lessonRoute } from '../router/routes';
+import { LessonStartDialog } from './LessonStartDialog';
 import { inputName } from './lesson-live';
 import './camino.css';
 
@@ -282,6 +283,7 @@ function UnitSection({
   play,
   firstVisit,
   onExplain,
+  onOpen,
 }: {
   readonly unit: Unit;
   /** Todas las lecciones del camino (para repartir la ola de los nodos). */
@@ -292,6 +294,7 @@ function UnitSection({
   readonly play: PlayContext;
   readonly firstVisit: boolean;
   readonly onExplain: (text: string, settings: boolean) => void;
+  readonly onOpen: (lesson: Lesson, nodeState: NodeState, opener: HTMLElement) => void;
 }) {
   const stars = starsOf(state);
   const done = unit.lessons.filter((lesson) => stars(lesson.id) >= 1).length;
@@ -345,6 +348,7 @@ function UnitSection({
                   title={lesson.title}
                   stars={stars(lesson.id) as StarCount}
                   href={hrefOf(lessonRoute(lesson.id))}
+                  onOpen={(opener) => onOpen(lesson, nodeState, opener)}
                   reason={reason}
                   bubble={firstVisit && lesson.id === lessons[0]?.id ? 'Empieza aquí' : 'Empezar'}
                   onExplain={
@@ -371,12 +375,15 @@ export function CaminoScreen({
 }: CaminoScreenProps) {
   const { state, saved } = useSyncExternalStore(progress.subscribe, progress.getSnapshot);
   const [explanation, setExplanation] = useState<Explanation | null>(null);
+  const [starting, setStarting] = useState<{ lesson: Lesson; done: boolean } | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
   const noteRef = useRef<HTMLDivElement>(null);
   const today = progress.today();
   const units = unitsOf(instrument);
   const lessons = lessonsFor(instrument);
-  const access = lessonAccessMap(starsOf(state), units);
-  const current = currentLesson(access, starsOf(state), units);
+  const stars = starsOf(state);
+  const access = lessonAccessMap(stars, units);
+  const current = currentLesson(access, stars, units);
   const firstVisit = lessons.every((lesson) => state.lessons[lesson.id] === undefined);
   const streak = currentStreak(state, today);
   const practicedToday = (state.daily[today]?.lessons ?? 0) > 0;
@@ -387,6 +394,15 @@ export function CaminoScreen({
     document.querySelector('.game-node--actual')?.scrollIntoView?.({ block: 'center' });
   }, []);
 
+  // Al cerrar la ventana de la lección el foco vuelve al nodo desde el que se abrió (cuando el resto de la
+  // pantalla ya no está inerte).
+  const closeStart = useCallback(() => setStarting(null), []);
+  const wasStarting = useRef(false);
+  useEffect(() => {
+    if (wasStarting.current && starting === null) openerRef.current?.focus({ preventScroll: true });
+    wasStarting.current = starting !== null;
+  }, [starting]);
+
   // La explicación de un bloqueo se ve aunque esté lejos del nodo (y caduca si cambia la entrada).
   useEffect(() => {
     if (explanation) noteRef.current?.scrollIntoView?.({ block: 'nearest' });
@@ -394,7 +410,7 @@ export function CaminoScreen({
 
   return (
     <div className="camino" data-testid="camino">
-      <div className="camino__main">
+      <div className="camino__main" inert={starting !== null}>
         <h1 id="camino-titulo" tabIndex={-1} data-route-heading>
           Aprender
         </h1>
@@ -439,13 +455,26 @@ export function CaminoScreen({
               play={play}
               firstVisit={firstVisit}
               onExplain={(text, settings) => setExplanation({ text, settings, play })}
+              onOpen={(lesson, nodeState, opener) => {
+                openerRef.current = opener;
+                setStarting({ lesson, done: nodeState === 'hecha' });
+              }}
             />
           ))}
         </ol>
       </div>
-      <aside className="camino__side" aria-label="Tu día">
+      <aside className="camino__side" aria-label="Tu día" inert={starting !== null}>
         <SideCards state={state} today={today} notation={notation} instrument={instrument} />
       </aside>
+      {starting ? (
+        <LessonStartDialog
+          lesson={starting.lesson}
+          stars={stars(starting.lesson.id) as StarCount}
+          done={starting.done}
+          source={source}
+          onClose={closeStart}
+        />
+      ) : null}
     </div>
   );
 }

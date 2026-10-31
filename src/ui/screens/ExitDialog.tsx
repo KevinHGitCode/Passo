@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { GameButton } from '../game/GameButton';
+import { useDialogKeys } from '../game/use-dialog-keys';
 
 /**
  * «¿Salir de la lección?»: aparece al pulsar la X con la ronda a medias. La ronda queda en pausa
@@ -13,30 +14,7 @@ export function ExitDialog({
   readonly onExit: () => void;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onContinue();
-      } else if (event.key === 'Tab') {
-        // El foco no sale del diálogo con el tabulador.
-        const buttons = dialogRef.current?.querySelectorAll<HTMLElement>('button');
-        const first = buttons?.[0];
-        const last = buttons?.[buttons.length - 1];
-        if (!first || !last) return;
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onContinue]);
+  useDialogKeys(dialogRef, onContinue);
 
   return (
     <div className="exit-backdrop" data-testid="exit-backdrop">

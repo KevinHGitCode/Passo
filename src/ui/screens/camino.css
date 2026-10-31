@@ -258,3 +258,64 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* ---------- La ventana de una lección ---------- */
+.start-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(8 10 14 / 0.62);
+}
+.start-dialog {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: min(420px, 100%);
+  padding: 22px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: 0 20px 50px -20px var(--shadow);
+}
+.start-dialog__kind {
+  margin: 0;
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.start-dialog__title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+.start-dialog__text {
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.start-dialog__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-self: stretch;
+  margin-top: 12px;
+}
+/* En pantallas estrechas la ventana sube desde abajo, al alcance del pulgar. */
+@media (max-width: 599px) {
+  .start-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+  .start-dialog {
+    width: 100%;
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  }
+}

@@ -72,6 +72,9 @@ test('Fase 3 · una lección de principio a fin: se guarda, desbloquea la siguie
   await chooseInput(page, 'teclado-pc');
   await page.goto('/?seed=7#/');
   await page.getByTestId('node-u1-1').getByRole('link').click();
+  // Tocar la lección abre una ventana; la lección empieza con «Empezar».
+  await expect(page.getByTestId('start-dialog')).toContainText('Do · Re · Mi');
+  await page.getByTestId('start-lesson').click();
   await expect(page).toHaveURL(/#\/leccion\/u1-1$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Do · Re · Mi' })).toBeFocused();
   await expect(page.getByTestId('lesson-intro')).toContainText('Lección nueva');

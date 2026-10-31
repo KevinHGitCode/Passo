@@ -303,3 +303,86 @@ describe('el camino · entrada, centrado y explicaciones', () => {
     expect(screen.queryByTestId('explicacion')).toBeNull();
   });
 });
+
+describe('el camino · la ventana de una lección', () => {
+  const dialog = () => screen.getByTestId('start-dialog');
+  const open = (id: string) => fireEvent.click(within(node(id)).getByRole('link'));
+
+  it('tocar una lección abre su ventana en vez de entrar de golpe', () => {
+    setup({ seed: null });
+    window.location.hash = '#/';
+    open('u1-1');
+    expect(window.location.hash).toBe('#/');
+    expect(dialog().getAttribute('role')).toBe('dialog');
+    expect(dialog().getAttribute('aria-modal')).toBe('true');
+    const view = within(dialog());
+    expect(view.getByRole('heading', { level: 2, name: 'Do · Re · Mi' })).toBeTruthy();
+    expect(view.getByText('Lección nueva')).toBeTruthy();
+    expect(view.getByText(/Para pasar: 70 %/)).toBeTruthy();
+  });
+
+  it('«Empezar» lleva a la lección y el foco entra en él al abrirse', () => {
+    setup({ seed: null });
+    open('u1-1');
+    const start = screen.getByTestId('start-lesson');
+    expect(start.getAttribute('href')).toBe('#/leccion/u1-1');
+    expect(start.textContent).toBe('Empezar');
+    expect(document.activeElement).toBe(start);
+  });
+
+  it('«Ahora no» y Esc la cierran sin cambiar de pantalla, y el foco vuelve al nodo', () => {
+    setup({ seed: null });
+    window.location.hash = '#/';
+    open('u1-1');
+    fireEvent.click(screen.getByTestId('start-cancel'));
+    expect(screen.queryByTestId('start-dialog')).toBeNull();
+    expect(document.activeElement).toBe(within(node('u1-1')).getByRole('link'));
+    open('u1-1');
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByTestId('start-dialog')).toBeNull();
+    expect(window.location.hash).toBe('#/');
+  });
+
+  it('pulsar fuera de la ventana también la cierra', () => {
+    setup({ seed: null });
+    open('u1-1');
+    fireEvent.click(screen.getByTestId('start-backdrop'));
+    expect(screen.queryByTestId('start-dialog')).toBeNull();
+  });
+
+  it('mientras está abierta el resto de la pantalla queda inerte y el tabulador no sale', () => {
+    setup({ seed: null });
+    open('u1-1');
+    expect(document.querySelector('.camino__main')?.hasAttribute('inert')).toBe(true);
+    screen.getByTestId('start-cancel').focus();
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(screen.getByTestId('start-lesson'));
+  });
+
+  it('una lección hecha ofrece «Repetir» y muestra sus estrellas', () => {
+    setup({ seed: { lessons: { 'u1-1': { stars: 2 } } } });
+    open('u1-1');
+    expect(screen.getByTestId('start-lesson').textContent).toBe('Repetir');
+    expect(within(dialog()).getByRole('img', { name: '2 de 3 estrellas' })).toBeTruthy();
+  });
+
+  it('una prueba lo dice en la ventana', () => {
+    setup({ seed: null });
+    open('u1-4');
+    expect(within(dialog()).getByText('Prueba')).toBeTruthy();
+    expect(dialog().getAttribute('data-kind')).toBe('prueba');
+  });
+
+  it('con Ctrl el enlace funciona como siempre (no abre la ventana)', () => {
+    setup({ seed: null });
+    fireEvent.click(within(node('u1-1')).getByRole('link'), { ctrlKey: true });
+    expect(screen.queryByTestId('start-dialog')).toBeNull();
+  });
+
+  it('una lección bloqueada sigue explicando por qué, sin ventana', () => {
+    setup({ seed: null });
+    fireEvent.click(within(node('u1-2')).getByRole('button'));
+    expect(screen.queryByTestId('start-dialog')).toBeNull();
+    expect(screen.getByTestId('explicacion')).toBeTruthy();
+  });
+});

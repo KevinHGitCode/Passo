@@ -18,6 +18,11 @@ export interface LessonNodeProps {
   readonly stars: StarCount;
   /** Dirección de la lección (nodos abiertos). */
   readonly href?: string | undefined;
+  /**
+   * Al tocar un nodo abierto: abre la ventana de la lección en vez de entrar de golpe. Con Ctrl, Mayús o
+   * el botón central el enlace funciona como siempre (abre la lección en otra pestaña).
+   */
+  readonly onOpen?: ((opener: HTMLElement) => void) | undefined;
   /** Lo que explica un nodo bloqueado al pulsarlo (abre Ajustes, dice qué falta…). */
   readonly onExplain?: (() => void) | undefined;
   /** Texto que explica el bloqueo para lectores de pantalla. */
@@ -51,6 +56,7 @@ export function LessonNode({
   title,
   stars,
   href,
+  onOpen,
   onExplain,
   reason,
   bubble,
@@ -78,7 +84,19 @@ export function LessonNode({
           {circle}
         </button>
       ) : (
-        <a className="game-node__target" href={href} aria-label={name}>
+        <a
+          className="game-node__target"
+          href={href}
+          aria-label={name}
+          aria-haspopup={onOpen ? 'dialog' : undefined}
+          onClick={(event) => {
+            const plain = event.button === 0 && !(event.ctrlKey || event.metaKey || event.shiftKey);
+            if (onOpen && plain) {
+              event.preventDefault();
+              onOpen(event.currentTarget);
+            }
+          }}
+        >
           {circle}
         </a>
       )}

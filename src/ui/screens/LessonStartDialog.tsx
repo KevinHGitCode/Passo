@@ -9,6 +9,9 @@ import { hrefOf, lessonRoute } from '../router/routes';
 import { countLabel } from '../practice/target-text';
 import { lessonKindText, thirdStarGoalText } from './lesson-live';
 
+/** El % va pegado a su número (si no, en pantallas estrechas se parte la línea entre los dos). */
+const NBSP = '\u00a0';
+
 /**
  * La ventanita que sale al tocar una lección del camino: qué se va a tocar, cuánto hay que acertar y un
  * «Empezar» (o «Repetir» si ya está hecha). Solo la lección se abre desde aquí: no se entra de golpe. El
@@ -59,8 +62,8 @@ export function LessonStartDialog({
         </h2>
         <Stars value={stars} size="md" />
         <p id="start-text" className="start-dialog__text">
-          {lesson.roundSize} {countLabel(lesson.mode).toLowerCase()} · Para pasar: 70 % · 3.ª
-          estrella: {thirdStarGoalText(lesson, source)}
+          {lesson.roundSize} {countLabel(lesson.mode).toLowerCase()} · Para pasar: 70{NBSP}% · 3.ª
+          estrella: {thirdStarGoalText(lesson, source).replaceAll(' %', `${NBSP}%`)}
         </p>
         <div className="start-dialog__actions">
           <GameLink size="lg" href={hrefOf(lessonRoute(lesson.id))} data-testid="start-lesson">

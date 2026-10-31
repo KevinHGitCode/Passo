@@ -318,7 +318,7 @@ describe('el camino · la ventana de una lección', () => {
     const view = within(dialog());
     expect(view.getByRole('heading', { level: 2, name: 'Do · Re · Mi' })).toBeTruthy();
     expect(view.getByText('Lección nueva')).toBeTruthy();
-    expect(view.getByText(/Para pasar: 70 %/)).toBeTruthy();
+    expect(view.getByText(/Para pasar: 70\s%/)).toBeTruthy();
   });
 
   it('«Empezar» lleva a la lección y el foco entra en él al abrirse', () => {

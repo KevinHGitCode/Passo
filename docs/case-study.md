@@ -89,7 +89,7 @@ método y unas convenciones escritas.
 
 ---
 
-> El código es público: [KevinHGitCode/Passo](https://github.com/KevinHGitCode/Passo). La guía para
-> correrlo está en el [README](../README.md).
+> Versión pública, sin código: [passo-showcase](https://github.com/KevinHGitCode/passo-showcase). La guía para
+> correr el proyecto está en el [README](../README.md).
 
 **Contacto:** [GitHub](https://github.com/KevinHGitCode) · kevinhafiddiazgarcia@gmail.com

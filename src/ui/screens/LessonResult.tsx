@@ -10,7 +10,7 @@ import { ProgressRing } from '../game/ProgressRing';
 import { Stars } from '../game/Stars';
 import { formatSeconds } from '../practice/feedback-message';
 import { countLabel, guitarNoteText, notesText } from '../practice/target-text';
-import { CAMINO, hrefOf, lessonRoute } from '../router/routes';
+import { caminoOf, hrefOf, lessonRoute } from '../router/routes';
 
 /** El texto del botón de repetir: con 2 estrellas anima a la 3.ª; el nombre accesible dice «estrella». */
 function retryLabel(nextStar: number | null, dynamic: boolean, spoken: boolean): string {
@@ -232,7 +232,7 @@ export function LessonResult({
         ) : null}
         <GameLink
           variant={failed ? 'secondary' : 'primary'}
-          href={hrefOf(CAMINO)}
+          href={hrefOf(caminoOf(lesson.instrument))}
           data-testid="result-continue"
         >
           {failed ? 'Volver al camino' : 'Continuar'}

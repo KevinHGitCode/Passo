@@ -264,7 +264,7 @@ describe('lección · salir', () => {
     setup();
     window.location.hash = '#/leccion/u2-1';
     fireEvent.click(screen.getByTestId('lesson-exit'));
-    expect(window.location.hash).toBe('#/');
+    expect(window.location.hash).toBe('#/piano');
     expect(screen.queryByTestId('exit-dialog')).toBeNull();
   });
 
@@ -317,7 +317,7 @@ describe('lección · salir', () => {
     playCorrect();
     fireEvent.click(screen.getByTestId('lesson-exit'));
     fireEvent.click(screen.getByTestId('exit-leave'));
-    expect(window.location.hash).toBe('#/');
+    expect(window.location.hash).toBe('#/piano');
     expect(store.saves).toHaveLength(0);
   });
 
@@ -384,7 +384,7 @@ describe('lección · el resultado', () => {
     const { finishRound } = setup();
     fireEvent.click(screen.getByTestId('start'));
     finishRound();
-    expect(screen.getByTestId('result-continue').getAttribute('href')).toBe('#/');
+    expect(screen.getByTestId('result-continue').getAttribute('href')).toBe('#/piano');
   });
 
   it('«Repetir para…» deja la lección lista otra vez; sin 3.ª estrella pide mejorar', () => {

@@ -17,8 +17,9 @@ import { usePlayContext } from '../screens/use-play-context';
 import { SettingsButton, SettingsPanel } from '../settings/SettingsPanel';
 import { useSettingsPanel } from '../settings/use-settings-panel';
 import { useTheme } from '../theme/use-theme';
-import { hrefOf, navigate, CAMINO } from '../router/routes';
+import { CAMINO, caminoOf, hrefOf, navigate, progresoOf } from '../router/routes';
 import type { Route } from '../router/routes';
+import { useCanonicalRoute, useInstrumentFromRoute } from '../router/use-instrument-route';
 import { useRoute, useRouteAnnouncer, useRouteLifecycle } from '../router/use-route';
 import { GameNav } from './GameNav';
 import '../game/game.css';
@@ -130,7 +131,11 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
       instrument={instrument}
       preferences={preferences}
       progress={shell.progress}
-      onChosen={route.name === 'afinador' ? () => navigate(CAMINO) : undefined}
+      onChosen={(next) => {
+        // La dirección sigue al instrumento; el afinador (de guitarra) vuelve al camino del elegido.
+        if (route.name === 'progreso') navigate(progresoOf(next));
+        else if (route.name === 'camino' || route.name === 'afinador') navigate(caminoOf(next));
+      }}
     />
   );
   const gear = (
@@ -179,7 +184,7 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
       {skipToContent}
       {narrow ? (
         <header className="game-top">
-          <a className="game-brand" href={hrefOf(CAMINO)}>
+          <a className="game-brand" href={hrefOf(caminoOf(instrument))}>
             Passo
           </a>
           <div className="game-top__instrument">{instrumentChip}</div>
@@ -187,7 +192,7 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
         </header>
       ) : (
         <aside className="game-side">
-          <a className="game-brand" href={hrefOf(CAMINO)}>
+          <a className="game-brand" href={hrefOf(caminoOf(instrument))}>
             Passo
           </a>
           {instrumentChip}
@@ -212,7 +217,10 @@ export function Shell(props: ShellProps) {
   const route = useRoute();
   useTheme(props.preferences);
   const prefs = useSyncExternalStore(props.preferences.subscribe, props.preferences.getSnapshot);
-  useInstrumentAttribute(activeInstrument(route, prefs.instrument));
+  const shown = activeInstrument(route, prefs.instrument);
+  useInstrumentAttribute(shown);
+  useInstrumentFromRoute(route, props.preferences);
+  useCanonicalRoute(route, shown);
   useRouteLifecycle(route, props.session, props.lessonFlow, props.microphone);
   useRouteAnnouncer(route);
 

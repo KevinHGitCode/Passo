@@ -6,7 +6,8 @@ import type { Route } from '../router/routes';
 
 /**
  * Con qué instrumento se ve la pantalla. Una lección fija el suyo (aunque las preferencias digan otro),
- * la práctica libre es de piano y el afinador de guitarra; el resto sigue lo elegido.
+ * la práctica libre es de piano y el afinador de guitarra; el camino y el progreso, el que diga la dirección
+ * (`#/guitarra`) o, si no dice ninguno, el elegido.
  */
 export function activeInstrument(route: Route, preferred: Instrument): Instrument {
   switch (route.name) {
@@ -14,6 +15,9 @@ export function activeInstrument(route: Route, preferred: Instrument): Instrumen
       return (
         findLesson(route.lessonId)?.instrument ?? reviewInstrumentOf(route.lessonId) ?? preferred
       );
+    case 'camino':
+    case 'progreso':
+      return route.instrument ?? preferred;
     case 'practica':
       return 'piano';
     case 'afinador':

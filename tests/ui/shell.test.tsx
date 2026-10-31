@@ -121,7 +121,7 @@ describe('el marco del juego', () => {
     const hrefs = [
       ...screen.getByRole('navigation', { name: 'Principal' }).querySelectorAll('a'),
     ].map((a) => a.getAttribute('href'));
-    expect(hrefs).toEqual(['#/', '#/progreso', '#/practica']);
+    expect(hrefs).toEqual(['#/piano', '#/piano/progreso', '#/practica']);
   });
 
   it('en pantallas estrechas la navegación pasa abajo y los ajustes a la cabecera', () => {
@@ -355,7 +355,7 @@ describe('el instrumento en el marco', () => {
     go('#/afinador');
     fireEvent.click(screen.getByTestId('instrument-chip'));
     fireEvent.click(screen.getByTestId('instrument-piano'));
-    expect(window.location.hash).toBe('#/');
+    expect(window.location.hash).toBe('#/piano');
   });
 
   it('una lección de guitarra se ve de guitarra aunque se haya elegido piano', () => {
@@ -384,5 +384,67 @@ describe('el instrumento en el marco', () => {
     const before = mic.stops;
     go('#/');
     expect(mic.stops).toBeGreaterThan(before);
+  });
+});
+
+describe('la dirección dice el instrumento', () => {
+  const GUITAR = { version: 1, input: 'microfono', instrument: 'guitarra' };
+  const PIANO = { version: 1, input: 'microfono', instrument: 'piano' };
+
+  it('la dirección corta se reescribe con el instrumento, sin añadir una entrada al historial', () => {
+    const before = window.history.length;
+    setup({ stored: GUITAR });
+    expect(window.location.hash).toBe('#/guitarra');
+    expect(window.history.length).toBe(before);
+    expect(screen.getByRole('heading', { level: 1, name: 'Aprender' })).toBeTruthy();
+  });
+
+  it('también el progreso: #/progreso pasa a #/guitarra/progreso', () => {
+    setup({ stored: GUITAR, hash: '#/progreso' });
+    expect(window.location.hash).toBe('#/guitarra/progreso');
+  });
+
+  it('la práctica libre y el afinador conservan su dirección', () => {
+    const { go } = setup({ stored: PIANO, hash: '#/practica' });
+    expect(window.location.hash).toBe('#/practica');
+    go('#/afinador');
+    expect(window.location.hash).toBe('#/afinador');
+  });
+
+  it('elegir otro instrumento en el camino cambia la dirección', () => {
+    setup({ stored: PIANO, hash: '#/piano' });
+    fireEvent.click(screen.getByTestId('instrument-chip'));
+    fireEvent.click(screen.getByTestId('instrument-guitarra'));
+    expect(window.location.hash).toBe('#/guitarra');
+    expect(document.documentElement.dataset['instrument']).toBe('guitarra');
+  });
+
+  it('elegir otro instrumento en el progreso se queda en el progreso', () => {
+    setup({ stored: PIANO, hash: '#/piano/progreso' });
+    fireEvent.click(screen.getByTestId('instrument-chip'));
+    fireEvent.click(screen.getByTestId('instrument-guitarra'));
+    expect(window.location.hash).toBe('#/guitarra/progreso');
+  });
+
+  it('abrir #/guitarra (un enlace, «atrás») cambia el instrumento elegido', () => {
+    const { go, preferences } = setup({ stored: PIANO, hash: '#/piano' });
+    go('#/guitarra');
+    expect(preferences.getSnapshot().instrument).toBe('guitarra');
+    expect(document.documentElement.dataset['instrument']).toBe('guitarra');
+    go('#/piano');
+    expect(preferences.getSnapshot().instrument).toBe('piano');
+  });
+
+  it('los enlaces de la navegación llevan el instrumento', () => {
+    setup({ stored: GUITAR });
+    const hrefs = [
+      ...screen.getByRole('navigation', { name: 'Principal' }).querySelectorAll('a'),
+    ].map((a) => a.getAttribute('href'));
+    expect(hrefs).toEqual(['#/guitarra', '#/guitarra/progreso', '#/afinador']);
+  });
+
+  it('la marca «Passo» lleva al camino del instrumento', () => {
+    setup({ stored: GUITAR });
+    expect(document.querySelector('.game-brand')?.getAttribute('href')).toBe('#/guitarra');
   });
 });

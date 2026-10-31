@@ -2,9 +2,11 @@ import {
   CAMINO,
   PRACTICA,
   PROGRESO,
+  caminoOf,
   hrefOf,
   lessonRoute,
   parseRoute,
+  progresoOf,
   routeKey,
   routeTitle,
 } from '@/ui/router/routes';
@@ -57,5 +59,49 @@ describe('rutas', () => {
     expect(routeTitle(PRACTICA)).toBe('Práctica libre');
     expect(routeTitle(lessonRoute('u1-1'))).toBe('Lección');
     expect(routeTitle(PROGRESO)).toBe('Progreso');
+  });
+});
+
+describe('rutas · el instrumento en la dirección', () => {
+  it('#/piano y #/guitarra son el camino de cada instrumento', () => {
+    expect(parseRoute('#/piano')).toEqual({ name: 'camino', instrument: 'piano' });
+    expect(parseRoute('#/guitarra')).toEqual({ name: 'camino', instrument: 'guitarra' });
+    expect(parseRoute('#/guitarra/')).toEqual(caminoOf('guitarra'));
+  });
+
+  it('con «progreso» detrás es el progreso de ese instrumento', () => {
+    expect(parseRoute('#/guitarra/progreso')).toEqual(progresoOf('guitarra'));
+    expect(parseRoute('#/piano/progreso')).toEqual(progresoOf('piano'));
+  });
+
+  it('algo desconocido tras el instrumento lleva a su camino', () => {
+    expect(parseRoute('#/guitarra/nada')).toEqual(caminoOf('guitarra'));
+    expect(parseRoute('#/guitarra?x=1')).toEqual(caminoOf('guitarra'));
+  });
+
+  it('las direcciones sin instrumento siguen valiendo (enlaces y favoritos viejos)', () => {
+    expect(parseRoute('#/')).toEqual(CAMINO);
+    expect(parseRoute('#/progreso')).toEqual(PROGRESO);
+    expect(hrefOf(CAMINO)).toBe('#/');
+    expect(hrefOf(PROGRESO)).toBe('#/progreso');
+  });
+
+  it('hrefOf y parseRoute son inversos también con instrumento', () => {
+    for (const route of [
+      caminoOf('piano'),
+      caminoOf('guitarra'),
+      progresoOf('piano'),
+      progresoOf('guitarra'),
+    ]) {
+      expect(parseRoute(hrefOf(route))).toEqual(route);
+    }
+    expect(hrefOf(caminoOf('guitarra'))).toBe('#/guitarra');
+    expect(hrefOf(progresoOf('guitarra'))).toBe('#/guitarra/progreso');
+  });
+
+  it('la clave no cambia con el instrumento (cambiar de instrumento no mueve el foco)', () => {
+    expect(routeKey(caminoOf('piano'))).toBe(routeKey(caminoOf('guitarra')));
+    expect(routeTitle(caminoOf('guitarra'))).toBe('Aprender');
+    expect(routeTitle(progresoOf('guitarra'))).toBe('Progreso');
   });
 });

@@ -18,8 +18,8 @@ export interface InstrumentChipProps {
   readonly instrument: Instrument;
   readonly preferences: PreferencesService;
   readonly progress: ProgressService;
-  /** Se llama tras elegir otro instrumento (p. ej. para salir del afinador, que es de guitarra). */
-  readonly onChosen?: (() => void) | undefined;
+  /** Se llama tras elegir otro instrumento, con el elegido (cambia la dirección de la pantalla). */
+  readonly onChosen?: ((next: Instrument) => void) | undefined;
 }
 
 /**
@@ -111,7 +111,7 @@ export function InstrumentChip({
     if (next !== preferences.getSnapshot().instrument) {
       preferences.update({ instrument: next });
       setAnnouncement(`Ahora aprendes ${INSTRUMENT_LABELS[next]}`);
-      onChosen?.();
+      onChosen?.(next);
     }
     close(true);
   };

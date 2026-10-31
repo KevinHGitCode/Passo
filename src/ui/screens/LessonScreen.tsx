@@ -29,7 +29,7 @@ import {
   promptText,
   targetDetail,
 } from '../practice/target-text';
-import { AFINADOR, CAMINO, hrefOf, navigate } from '../router/routes';
+import { AFINADOR, CAMINO, caminoOf, hrefOf, navigate } from '../router/routes';
 import { ExitDialog } from './ExitDialog';
 import { inputName, lessonKindText, liveStats, thirdStarGoalText } from './lesson-live';
 import { LessonResult } from './LessonResult';
@@ -354,9 +354,9 @@ function LessonView({
       session.pause();
       setConfirming(true);
     } else {
-      navigate(CAMINO);
+      navigate(caminoOf(lesson.instrument));
     }
-  }, [status, session]);
+  }, [status, session, lesson.instrument]);
   const keepGoing = useCallback(() => {
     setConfirming(false);
     session.resume();
@@ -496,7 +496,9 @@ function LessonView({
         {monitor.hint ? hintText(monitor.hint) : liveMessage(snapshot)}
       </div>
 
-      {confirming ? <ExitDialog onContinue={keepGoing} onExit={() => navigate(CAMINO)} /> : null}
+      {confirming ? (
+        <ExitDialog onContinue={keepGoing} onExit={() => navigate(caminoOf(lesson.instrument))} />
+      ) : null}
     </div>
   );
 }

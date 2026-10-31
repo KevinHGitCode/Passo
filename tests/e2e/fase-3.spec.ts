@@ -118,7 +118,7 @@ test('Fase 3 · una lección de principio a fin: se guarda, desbloquea la siguie
 
   await test.step('Continuar: la lección queda hecha y la siguiente es la actual', async () => {
     await page.getByTestId('result-continue').click();
-    await expect(page).toHaveURL(/#\/$/);
+    await expect(page).toHaveURL(/#\/piano$/);
     await expect(page.getByTestId('node-u1-1')).toHaveAttribute('data-state', 'hecha');
     await expect(page.getByTestId('node-u1-1').getByRole('img')).toHaveAccessibleName(
       '3 de 3 estrellas',
@@ -163,7 +163,7 @@ test('Fase 3 · salir a media lección pregunta y no guarda nada', async ({ page
 
   await page.getByTestId('lesson-exit').click();
   await page.getByTestId('exit-leave').click();
-  await expect(page).toHaveURL(/#\/$/);
+  await expect(page).toHaveURL(/#\/piano$/);
   await expect(page.getByTestId('camino')).toBeVisible();
   await expect(page.getByTestId('node-u1-1')).toHaveAttribute('data-state', 'actual');
   expect(await page.evaluate(() => window.localStorage.getItem('passo.progreso'))).toBeNull();
@@ -277,7 +277,7 @@ test('Fase 3 · el progreso: mapa del teclado, curva de precisión, cifras y bor
   });
   await page.goto('/?seed=7#/');
   await page.getByTestId('game-nav').getByRole('link', { name: 'Progreso' }).click();
-  await expect(page).toHaveURL(/#\/progreso$/);
+  await expect(page).toHaveURL(/#\/piano\/progreso$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Progreso' })).toBeFocused();
   await expect(page).toHaveTitle('Progreso · Passo');
   await expect(page.getByTestId('kpi-accuracy')).toHaveText(/^\d+ %$/);
@@ -347,7 +347,7 @@ test('Fase 3 · la práctica libre sigue a un clic y la marca «Passo» vuelve a
   await page.getByTestId('start').click();
   await expect(page.getByTestId('target')).toBeVisible();
   await page.getByRole('link', { name: 'Passo' }).click();
-  await expect(page).toHaveURL(/#\/$/);
+  await expect(page).toHaveURL(/#\/piano$/);
   await expect(page.getByTestId('camino')).toBeVisible();
   // Al volver al camino la ronda libre se descarta: la práctica vuelve a la bienvenida.
   await page.getByTestId('game-nav').getByRole('link', { name: 'Práctica libre' }).click();

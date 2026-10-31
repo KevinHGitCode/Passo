@@ -348,14 +348,15 @@ function LessonView({
     if (blocked) flow.abandonRound();
   }, [blocked, flow]);
 
+  // Con la ronda empezada la X siempre pregunta (aunque aún no haya aciertos); antes de empezar no hay nada que perder.
   const requestExit = useCallback(() => {
-    if (status === 'en-curso' && snapshot.hits > 0) {
+    if (status === 'en-curso') {
       session.pause();
       setConfirming(true);
     } else {
       navigate(CAMINO);
     }
-  }, [status, snapshot.hits, session]);
+  }, [status, session]);
   const keepGoing = useCallback(() => {
     setConfirming(false);
     session.resume();

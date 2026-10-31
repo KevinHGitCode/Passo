@@ -260,13 +260,22 @@ describe('lección · la ronda', () => {
 });
 
 describe('lección · salir', () => {
-  it('sin aciertos, la X vuelve al camino directamente', () => {
+  it('antes de empezar la ronda, la X vuelve al camino directamente', () => {
     setup();
-    fireEvent.click(screen.getByTestId('start'));
     window.location.hash = '#/leccion/u2-1';
     fireEvent.click(screen.getByTestId('lesson-exit'));
     expect(window.location.hash).toBe('#/');
     expect(screen.queryByTestId('exit-dialog')).toBeNull();
+  });
+
+  it('con la ronda empezada pregunta aunque todavía no haya aciertos', () => {
+    const { session } = setup();
+    fireEvent.click(screen.getByTestId('start'));
+    window.location.hash = '#/leccion/u2-1';
+    fireEvent.click(screen.getByTestId('lesson-exit'));
+    expect(screen.getByTestId('exit-dialog')).toBeTruthy();
+    expect(session.getSnapshot().phase).toBe('pausada');
+    expect(window.location.hash).toBe('#/leccion/u2-1');
   });
 
   it('con la ronda a medias pregunta y la deja en pausa', () => {

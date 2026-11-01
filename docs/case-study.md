@@ -68,9 +68,8 @@ le cuesta:
   interfaz y experiencia, arquitectura; agentes de IA), commits pequeños, evidencias en video y cierre.
 
 ## Números del repositorio
-~13.800 líneas de código y ~18.600 de pruebas (TypeScript) · 1.375 pruebas unitarias, de integración y
-de interfaz en 77 archivos · 58 pruebas de extremo a extremo en Edge · 166 commits en 19 días
-(13–31 de octubre de 2026).
+1.375 pruebas unitarias, de integración y de interfaz · 58 pruebas de extremo a extremo en Edge ·
+contraste AA comprobado por pruebas. Desarrollado en 19 días (13–31 de octubre de 2026).
 
 ## Resultado
 Fases 0 a 3 y la etapa 1 de guitarra completadas: escucha por micrófono, ajustes, terceras y acordes,

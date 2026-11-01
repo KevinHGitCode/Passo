@@ -355,4 +355,4 @@ de micrófono…) está en [docs/archivado.md](docs/archivado.md).
 
 ---
 
-<p align="center"><sub>Proyecto personal de Kevin. Sin licencia pública por ahora.</sub></p>
+<p align="center"><sub>Proyecto personal de Kevin Díaz. © 2026, todos los derechos reservados: el código se publica para verlo, no para reutilizarlo ni comercializarlo (ver <a href="LICENSE">LICENSE</a>).</sub></p>

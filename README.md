@@ -7,6 +7,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/KevinHGitCode/Passo/actions/workflows/ci.yml"><img src="https://github.com/KevinHGitCode/Passo/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+</p>
+
+<p align="center">
   <img src="docs/img/camino.png" alt="El camino de aprendizaje de piano: unidades con lecciones, estrellas, racha, meta del día y puntos débiles" width="880" />
 </p>
 

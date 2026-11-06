@@ -74,6 +74,18 @@ describe('avanzar por la guía', () => {
     expect(jumpTo(startRun([3, 1]), 5)).toBeNull();
   });
 
+  it('recuerda cómo terminó la cuerda anterior: afinada, saltada o ninguna', () => {
+    expect(startRun().last).toBeNull();
+    expect(advance(startRun(), 0).last).toBe('afinada');
+    expect(skip(startRun()).last).toBe('saltada');
+    expect(jumpTo(advance(startRun(), 0), 3)?.last).toBeNull();
+  });
+
+  it('saltar a la cuerda en la que ya estás no cambia nada', () => {
+    const run = advance(startRun(), 1);
+    expect(jumpTo(run, 5)).toBe(run);
+  });
+
   it('pausar y seguir cambia solo la pausa', () => {
     const run = startRun();
     const paused = setPaused(run, true);

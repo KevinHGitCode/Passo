@@ -50,6 +50,8 @@ export interface GuidedView {
   readonly missing: readonly GuitarString[];
   /** La cuerda que viene después de la actual. */
   readonly next: GuitarString | null;
+  /** Cómo terminó la cuerda anterior (para el aviso del lector de pantalla). */
+  readonly last: 'afinada' | 'saltada' | null;
   /** Los cents con los que quedó cada cuerda al darla por buena. */
   readonly finals: Readonly<Partial<Record<GuitarString, number>>>;
 }
@@ -178,9 +180,14 @@ export class TunerService {
     this.playing = true;
     const id = ++this.toneId;
     this.update({ ...NO_SOUND, tone: true });
-    tone.playTone(referenceTone(string, stringFrequency(string, this.options())), () =>
-      this.toneEnded(id),
-    );
+    try {
+      tone.playTone(referenceTone(string, stringFrequency(string, this.options())), () =>
+        this.toneEnded(id),
+      );
+    } catch {
+      // Un fallo del audio no debe dejar el afinador esperando una nota que no suena.
+      this.toneEnded(id);
+    }
   }
 
   /** Corta la nota de referencia si suena. */
@@ -305,6 +312,7 @@ export class TunerService {
     this.heldSince = null;
     const string = this.run === null ? null : currentString(this.run);
     if (string === null) {
+      this.stopReference();
       this.tracker.reset();
       this.update({ ...NO_SOUND, strings: this.marks(this.deps.clock.now()) });
       return;
@@ -363,6 +371,7 @@ export class TunerService {
       complete: isComplete(run, marks),
       missing: missingStrings(marks),
       next: nextString(run),
+      last: run.last,
       finals: run.finals,
     };
     this.viewCache = { run, marks, view };

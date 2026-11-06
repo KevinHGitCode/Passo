@@ -78,13 +78,18 @@ export function tunerHint(
         icon: 'up',
       };
     case 'alta':
-      if (snapshot.far) return { text: 'Afloja la clavija: está muy aguda.', icon: 'down' };
+      if (snapshot.far) {
+        return {
+          text: 'Afloja la clavija: está muy aguda. Baja por debajo de la nota y vuelve a subir.',
+          icon: 'down',
+        };
+      }
       return {
         text: snapshot.near ? 'Casi: baja un poquito la clavija.' : 'Afloja un poco la clavija.',
         icon: 'down',
       };
     case 'afinando':
-      return { text: 'Casi: mantén la cuerda sonando.', icon: 'wait' };
+      return { text: 'Ahí está: mantén la cuerda sonando.', icon: 'wait' };
     case 'afinada':
       return { text: 'Lista. Puedes pasar a la siguiente cuerda.', icon: 'check' };
     case 'sin-sonido':
@@ -163,10 +168,9 @@ export function formatCents(cents: number): string {
 
 /** Los consejos de «Cómo afinar bien». */
 export const TUNING_TIPS: readonly string[] = [
-  'Afina siempre subiendo hacia la nota. Si te pasas, afloja bien por debajo y vuelve a subir.',
   'Toca una sola cuerda, suave, y silencia las demás con la mano.',
   'Con cuerdas nuevas: estíralas con cuidado y repite la afinación varias veces.',
   'No subas más de un tono las cuerdas 1 y 2: se pueden romper.',
   'Pon el micrófono a 20–30 cm de la boca de la guitarra y lejos del ventilador.',
-  'Comprobación por oído: pisa el traste 5 de una cuerda (el 4 en la cuerda 3) y compárala con la siguiente al aire; deben sonar igual.',
+  'Comprobación por oído: pisa el traste 5 de una cuerda (el 4 en la cuerda 3) y compárala con la siguiente al aire: no deben oírse batidos. La cuerda 1 no tiene siguiente.',
 ];

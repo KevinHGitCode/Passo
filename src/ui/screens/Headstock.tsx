@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { RefObject } from 'react';
 import type { TunerSnapshot } from '@/core/application/tuner-service';
 import { GUITAR_STRINGS, openStringName } from '@/core/domain/instrument';
@@ -26,13 +27,29 @@ const LINES: Readonly<Record<GuitarString, { from: readonly [number, number]; to
 const ORDER: readonly GuitarString[] = [...GUITAR_STRINGS].reverse();
 
 export interface HeadstockProps {
-  readonly snapshot: Pick<TunerSnapshot, 'status' | 'string' | 'strings' | 'guided'>;
+  readonly status: TunerSnapshot['status'];
+  readonly string: GuitarString;
+  readonly strings: TunerSnapshot['strings'];
+  readonly guided: TunerSnapshot['guided'];
   readonly notation: NotationMode;
   readonly onSelect: (string: GuitarString) => void;
   readonly groupRef?: RefObject<HTMLDivElement | null>;
 }
 
-export function Headstock({ snapshot, notation, onSelect, groupRef }: HeadstockProps) {
+/**
+ * Solo se vuelve a dibujar si cambia algo del clavijero (la cuerda, su estado, las marcas o la guía), no con
+ * cada lectura de cents.
+ */
+export const Headstock = memo(function Headstock({
+  status,
+  string: current,
+  strings,
+  guided,
+  notation,
+  onSelect,
+  groupRef,
+}: HeadstockProps) {
+  const snapshot = { status, string: current, strings, guided };
   return (
     <div
       className="headstock"
@@ -106,4 +123,4 @@ export function Headstock({ snapshot, notation, onSelect, groupRef }: HeadstockP
       })}
     </div>
   );
-}
+});

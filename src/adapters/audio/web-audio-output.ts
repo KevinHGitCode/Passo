@@ -57,14 +57,16 @@ interface Voice {
 /** El tono de referencia que suena ahora (solo uno a la vez). */
 interface ActiveTone {
   readonly oscillators: readonly OscillatorLike[];
-  readonly nodes: readonly GainLike[];
   readonly master: GainLike;
-  /** Termina el tono una sola vez: suelta los nodos y avisa. */
-  readonly end: () => void;
+  /**
+   * Termina el tono una sola vez: avisa y suelta los nodos, enseguida o pasados `cleanupMs` (para dejar
+   * oír el final suave y que no haya un clic).
+   */
+  readonly finish: (cleanupMs: number) => void;
 }
 
 /** Volumen del tono de referencia (antes de la ganancia general). */
-const TONE_PEAK = 0.55;
+const TONE_PEAK = 0.75;
 /** Si el audio está bloqueado el tono no avanza: se da por terminado un poco después de lo previsto. */
 const TONE_GRACE_MS = 300;
 const TONE_STOP_S = 0.06;
@@ -180,27 +182,31 @@ export class WebAudioOutput implements AudioOutput, AudioControl, ToneOutput {
 
     let finished = false;
     const timer: { id?: ReturnType<typeof setTimeout> } = {};
-    const end = () => {
+    const finish = (cleanupMs: number) => {
       if (finished) return;
       finished = true;
       if (timer.id !== undefined) clearTimeout(timer.id);
-      oscillators.forEach((oscillator) => {
-        oscillator.onended = null;
-        oscillator.disconnect();
-      });
-      nodes.forEach((node) => node.disconnect());
-      master.disconnect();
-      if (this.tone?.end === end) this.tone = null;
+      if (this.tone?.finish === finish) this.tone = null;
+      const release = () => {
+        oscillators.forEach((oscillator) => {
+          oscillator.onended = null;
+          oscillator.disconnect();
+        });
+        nodes.forEach((node) => node.disconnect());
+        master.disconnect();
+      };
+      if (cleanupMs > 0) setTimeout(release, cleanupMs);
+      else release();
       onEnd();
     };
-    this.tone = { oscillators, nodes, master, end };
+    this.tone = { oscillators, master, finish };
     oscillators.forEach((oscillator) => {
       oscillator.start(now);
       oscillator.stop(now + seconds + 0.02);
     });
     const last = oscillators[oscillators.length - 1];
-    if (last) last.onended = end;
-    timer.id = setTimeout(end, tone.durationMs + TONE_GRACE_MS);
+    if (last) last.onended = () => finish(0);
+    timer.id = setTimeout(() => finish(0), tone.durationMs + TONE_GRACE_MS);
   }
 
   stopTone(): void {
@@ -214,7 +220,8 @@ export class WebAudioOutput implements AudioOutput, AudioControl, ToneOutput {
       active.master.gain.exponentialRampToValueAtTime(0.0001, now + TONE_STOP_S);
       active.oscillators.forEach((oscillator) => oscillator.stop(now + TONE_STOP_S + 0.02));
     }
-    active.end();
+    // Se avisa al momento, pero los nodos se sueltan cuando el fundido ya terminó.
+    active.finish((TONE_STOP_S + 0.03) * 1000);
   }
 
   private oscillator(

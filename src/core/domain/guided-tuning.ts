@@ -27,12 +27,14 @@ export interface GuidedRun {
   /** 1 la primera vuelta; 2 el repaso. */
   readonly lap: Lap;
   readonly paused: boolean;
+  /** Cómo terminó la cuerda anterior: afinada o saltada (`null` al empezar o al saltar con una clavija). */
+  readonly last: 'afinada' | 'saltada' | null;
   /** Los cents con los que quedó cada cuerda al darla por buena. */
   readonly finals: Readonly<Partial<Record<GuitarString, number>>>;
 }
 
 export function startRun(queue: readonly GuitarString[] = LOW_TO_HIGH, lap: Lap = 1): GuidedRun {
-  return { queue, index: 0, lap, paused: false, finals: {} };
+  return { queue, index: 0, lap, paused: false, last: null, finals: {} };
 }
 
 export function isFinished(run: GuidedRun): boolean {
@@ -59,19 +61,21 @@ export function advance(run: GuidedRun, cents: number | null): GuidedRun {
   return {
     ...run,
     index: run.index + 1,
+    last: 'afinada',
     finals: cents === null ? run.finals : { ...run.finals, [string]: cents },
   };
 }
 
 /** «Siguiente cuerda» sin haberla afinado. */
 export function skip(run: GuidedRun): GuidedRun {
-  return isFinished(run) ? run : { ...run, index: run.index + 1 };
+  return isFinished(run) ? run : { ...run, index: run.index + 1, last: 'saltada' };
 }
 
 /** Salta a una cuerda de la pasada (tocando su clavija) sin perder lo hecho; `null` si no está en ella. */
 export function jumpTo(run: GuidedRun, string: GuitarString): GuidedRun | null {
   const index = run.queue.indexOf(string);
-  return index === -1 ? null : { ...run, index };
+  if (index === -1) return null;
+  return index === run.index ? run : { ...run, index, last: null };
 }
 
 export function setPaused(run: GuidedRun, paused: boolean): GuidedRun {

@@ -152,6 +152,24 @@ describe('WebAudioOutput · la nota de referencia', () => {
     expect(onEnd).toHaveBeenCalledTimes(1);
   });
 
+  it('stopTone avisa al momento pero suelta los nodos cuando el fundido ya terminó (sin clic)', () => {
+    vi.useFakeTimers();
+    try {
+      const { context, output } = setup();
+      const onEnd = vi.fn();
+      output.playTone(tone, onEnd);
+      output.stopTone();
+      expect(onEnd).toHaveBeenCalledTimes(1);
+      // El final suave todavía se está oyendo: nada desconectado.
+      expect(context.oscillators.every((o) => o.connected)).toBe(true);
+      vi.advanceTimersByTime(200);
+      expect(context.oscillators.every((o) => !o.connected)).toBe(true);
+      expect(onEnd).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('un tono nuevo corta el anterior', () => {
     const { context, output } = setup();
     const first = vi.fn();

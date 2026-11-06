@@ -143,6 +143,11 @@ const TUNER_PAIRS: readonly [string, string, number, string][] = [
   ['warn-strong', 'surface', TEXT, 'el título cuando faltan cuerdas'],
   ['ok', 'surface', TEXT, 'la marca «afinada» de la lista final'],
   ['warn', 'surface', TEXT, 'la marca «falta» de la lista final'],
+  ['text-muted', 'surface-2', TEXT, 'el número de una clavija sin afinar'],
+  ['text-muted', 'err-soft', TEXT, 'el número de una clavija grave o aguda'],
+  ['text-muted', 'ok-soft', TEXT, 'el número de una clavija afinada'],
+  ['text', 'err-soft', TEXT, 'la nota de una clavija grave o aguda'],
+  ['text', 'ok-soft', TEXT, 'la nota de una clavija afinada'],
 ];
 
 describe('contraste de los tokens del juego', () => {

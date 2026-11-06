@@ -101,13 +101,28 @@
 }
 @media (min-width: 1100px) {
   .headstock {
-    min-height: 400px;
+    min-height: 320px;
+  }
+  /* El clavijero no se estira hasta la altura del medidor: sería un hueco vacío. */
+  .tuner__card--clavijero {
+    align-self: start;
   }
 }
 @media (max-width: 480px) {
   .headstock {
     --peg: 48px;
-    min-height: 220px;
+    min-height: 170px;
+    grid-template-rows: repeat(3, minmax(calc(var(--peg) + 6px), 1fr));
+  }
+  /* En el móvil lo importante (la nota y el medidor) tiene que verse sin bajar mucho. */
+  .tuner__card--clavijero .tuner__muted {
+    display: none;
+  }
+}
+/* Una sola columna: el La₄, que se toca poco, va al final. */
+@media (max-width: 1099px) {
+  .tuner__ref {
+    order: 3;
   }
 }
 .headstock__body {
@@ -277,7 +292,7 @@
 }
 .tuner__name {
   color: var(--accent);
-  font-size: clamp(4.5rem, 9vw, 7rem);
+  font-size: clamp(3.5rem, 9vw, 7rem);
   font-weight: 900;
   line-height: 1.05;
 }
@@ -423,6 +438,7 @@
   line-height: 1;
 }
 .tuner__read b[data-idle='true'] {
+  min-width: 0;
   color: var(--text-muted);
 }
 .tuner__read span {
@@ -542,7 +558,22 @@
 .tuner__guide-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
+}
+.tuner__link {
+  min-height: 44px;
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  color: var(--accent-strong);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.tuner__guide-note {
+  margin: 0;
 }
 .tuner__summary {
   display: flex;
@@ -622,6 +653,17 @@
 }
 
 @media (max-width: 480px) {
+  /* En el móvil lo importante (la nota y el medidor) tiene que verse sin bajar mucho. */
+  .tuner__legend,
+  .tuner__guide-note {
+    display: none;
+  }
+  .tuner__summary-list li {
+    grid-template-columns: 4.4em 2.2em minmax(0, 1fr) auto;
+    gap: 6px;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+  }
   .tuner__card {
     padding: 16px;
   }
@@ -652,5 +694,23 @@
   }
   .peg--active {
     outline: 3px solid Highlight;
+  }
+}
+@media (forced-colors: active) {
+  .tuner__mid {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
+  .tuner__steps-bar li {
+    background: GrayText;
+    forced-color-adjust: none;
+  }
+  .tuner__steps-bar li[data-state='hecha'],
+  .tuner__steps-bar li[data-state='actual'] {
+    background: Highlight;
+  }
+  /* El triángulo de la aguja se dibuja con bordes: sin fondo. */
+  .tuner__needle::before {
+    background: none;
   }
 }

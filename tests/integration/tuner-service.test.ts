@@ -311,6 +311,29 @@ describe('TunerService · la nota de referencia', () => {
     expect(tuner.getSnapshot()).toMatchObject({ tone: false, open: false });
   });
 
+  it('si el audio falla al tocar, el afinador no se queda esperando una nota que no suena', () => {
+    const { tuner, tone, play } = withTone();
+    tuner.open();
+    tuner.selectString(5);
+    tone.failing = true;
+    expect(() => tuner.playReference()).not.toThrow();
+    expect(tuner.getSnapshot().tone).toBe(false);
+    tone.failing = false;
+    play(5, -25, 1200);
+    expect(tuner.getSnapshot()).toMatchObject({ status: 'baja', cents: -25 });
+  });
+
+  it('el aviso tardío de un tono ya cortado no apaga el nuevo', () => {
+    const { tuner, tone } = withTone();
+    tuner.open();
+    tuner.playReference();
+    tuner.stopReference();
+    tuner.playReference();
+    expect(tuner.getSnapshot().tone).toBe(true);
+    tone.finishLate(0);
+    expect(tuner.getSnapshot().tone).toBe(true);
+  });
+
   it('pedirla mientras suena no la repite; que termine un tono viejo no corta el nuevo', () => {
     const { tuner, tone } = withTone();
     tuner.open();
@@ -365,6 +388,20 @@ describe('TunerService · el modo guiado «Afinar las 6»', () => {
     const range = pitch.searches[pitch.searches.length - 1];
     expect(range?.minHz).toBeLessThan(stringFrequency(6));
     expect(range?.maxHz).toBeGreaterThan(stringFrequency(6));
+  });
+
+  it('saltar la última cuerda corta la nota de referencia que sonaba', () => {
+    const tone = new FakeTone();
+    const service = new TunerService({ pitch: new FakePitch(), clock: new FakeClock(0), tone });
+    service.open();
+    service.startGuided();
+    for (let n = 0; n < 5; n++) service.skipGuided();
+    service.playReference();
+    expect(service.getSnapshot().tone).toBe(true);
+    service.skipGuided();
+    expect(service.getSnapshot().guided?.finished).toBe(true);
+    expect(service.getSnapshot().tone).toBe(false);
+    expect(tone.stops).toBeGreaterThanOrEqual(1);
   });
 
   it('con el afinador cerrado no empieza', () => {

@@ -12,9 +12,16 @@ import { formatCents } from './tuner-messages';
 const stringLabel = (string: GuitarString, notation: NotationMode): string =>
   `cuerda ${string} (${openStringName(string, notation)})`;
 
-/** Lo que dice la pasada al terminar: el título y la frase de debajo. */
+const list = (strings: readonly GuitarString[], notation: NotationMode): string =>
+  strings.map((string) => stringLabel(string, notation)).join(', ');
+
+/**
+ * Lo que dice la pasada al terminar: el título y la frase de debajo. «Faltan» son las que nunca se afinaron;
+ * las que se afinaron hace rato (pasaron a «revisar») se piden aparte, no como «faltan».
+ */
 export function guidedSummaryText(
   view: GuidedView,
+  marks: StringMarks,
   notation: NotationMode,
 ): { readonly title: string; readonly text: string } {
   if (view.complete && view.lap === 2) {
@@ -29,21 +36,33 @@ export function guidedSummaryText(
       text: 'Al tensar unas, otras se mueven. Repasa las 6 una vez más.',
     };
   }
-  const missing = view.missing.map((string) => stringLabel(string, notation)).join(', ');
-  return { title: 'Faltan cuerdas por afinar', text: `Faltan: ${missing}.` };
+  const toTune = view.missing.filter((string) => marks[string] === 'sin-afinar');
+  const toCheck = view.missing.filter((string) => marks[string] === 'revisar');
+  if (toTune.length === 0) {
+    return {
+      title: 'Revisa estas cuerdas',
+      text: `Hace rato que las afinaste: ${list(toCheck, notation)}. Compruébalas otra vez.`,
+    };
+  }
+  const check = toCheck.length > 0 ? ` Revisa: ${list(toCheck, notation)}.` : '';
+  return {
+    title: 'Faltan cuerdas por afinar',
+    text: `Faltan: ${list(toTune, notation)}.${check}`,
+  };
 }
 
-/** Lo que se anuncia al lector de pantalla cuando la guía avanza o termina (un solo aviso por paso). */
+/**
+ * Lo que se anuncia al lector de pantalla cuando la guía empieza, avanza, termina o se cierra (un solo aviso
+ * por paso).
+ */
 export function guidedAnnouncement(
   view: GuidedView | null,
   previous: GuidedView | null,
   marks: StringMarks,
   notation: NotationMode,
 ): string {
-  if (view === null) return '';
-  if (view.finished) {
-    return view.complete ? guidedSummaryText(view, notation).title : 'Faltan cuerdas por afinar';
-  }
+  if (view === null) return previous === null ? '' : 'Guía cerrada';
+  if (view.finished) return guidedSummaryText(view, marks, notation).title;
   const current = view.queue[view.index];
   if (current === undefined) return '';
   const here = `Sigue la ${stringLabel(current, notation)}`;
@@ -52,13 +71,11 @@ export function guidedAnnouncement(
   }
   const before = previous.queue[previous.index];
   if (before === undefined || before === current) return '';
-  const name = openStringName(before, notation);
-  return marks[before] === 'afinada'
-    ? `${name} afinada. ${here}`
-    : `Pasas a la cuerda ${current}. ${here}`;
+  if (view.last === 'afinada') return `${openStringName(before, notation)} afinada. ${here}`;
+  return `Pasas a la cuerda ${current}. ${here}`;
 }
 
-/** La cabecera de la guía: en qué cuerda va, los seis pasos y los controles. */
+/** La cabecera de la guía: en qué paso va, los seis pasos y los controles. */
 export function GuidedSteps({
   view,
   onSkip,
@@ -76,7 +93,7 @@ export function GuidedSteps({
     <div className="tuner__guide" data-testid="tuner-guide">
       <div className="tuner__steps">
         <p className="tuner__steps-title" data-testid="tuner-guide-step">
-          Cuerda {view.index + 1} de {view.queue.length} · vuelta {view.lap}
+          Paso {view.index + 1} de {view.queue.length} · vuelta {view.lap}
         </p>
         <ol className="tuner__steps-bar" aria-hidden="true">
           {view.queue.map((string, position) => (
@@ -100,13 +117,18 @@ export function GuidedSteps({
         >
           {view.paused ? 'Seguir' : 'Pausar'}
         </GameButton>
-        <GameButton variant="secondary" onClick={onExit} data-testid="guided-exit">
+        <button
+          type="button"
+          className="tuner__link"
+          onClick={onExit}
+          aria-keyshortcuts="Escape"
+          data-testid="guided-exit"
+        >
           Salir de la guía
-        </GameButton>
+        </button>
       </div>
-      <p className="tuner__muted">
-        Pasa sola cuando la cuerda queda afinada 1,5 s. Toca una clavija para saltar a otra. Esc
-        sale de la guía.
+      <p className="tuner__muted tuner__guide-note">
+        Pasa sola al quedar afinada. Toca una clavija para saltar a otra; Esc sale.
       </p>
     </div>
   );
@@ -128,7 +150,7 @@ export function GuidedSummary({
   readonly onContinue: () => void;
   readonly onExit: () => void;
 }) {
-  const { title, text } = guidedSummaryText(view, notation);
+  const { title, text } = guidedSummaryText(view, marks, notation);
   return (
     <div className="tuner__summary" data-testid="tuner-summary" data-complete={view.complete}>
       <h2 className="tuner__summary-title" data-testid="tuner-summary-title">
@@ -137,14 +159,18 @@ export function GuidedSummary({
       <p className="tuner__summary-text">{text}</p>
       <ul className="tuner__summary-list" aria-label="Cómo quedó cada cuerda">
         {LOW_TO_HIGH.map((string) => {
-          const tuned = marks[string] === 'afinada';
+          const mark = marks[string];
           const cents = view.finals[string];
           return (
-            <li key={string} data-tuned={tuned}>
+            <li key={string} data-tuned={mark === 'afinada'}>
               <span>Cuerda {string}</span>
               <span>{openStringName(string, notation)}</span>
-              <span>{tuned && cents !== undefined ? `${formatCents(cents)} cents` : '—'}</span>
-              <span className="tuner__summary-mark">{tuned ? '✓ afinada' : 'falta'}</span>
+              <span>
+                {mark === 'afinada' && cents !== undefined ? `${formatCents(cents)} cents` : '—'}
+              </span>
+              <span className="tuner__summary-mark">
+                {mark === 'afinada' ? '✓ afinada' : mark === 'revisar' ? '↻ revisar' : 'falta'}
+              </span>
             </li>
           );
         })}

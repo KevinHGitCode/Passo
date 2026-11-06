@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { GuidedView, TunerService, TunerSnapshot } from '@/core/application/tuner-service';
 import { openStringName } from '@/core/domain/instrument';
@@ -13,11 +13,12 @@ import {
   NEAR_CENTS,
   stringFrequency,
 } from '@/core/domain/tuner';
-import type { InputMonitor } from '@/core/ports/input-monitor';
+import { SILENT_MONITOR } from '@/core/ports/input-monitor';
+import type { InputMonitor, MonitorSnapshot } from '@/core/ports/input-monitor';
 import type { InputStatus, NoteInput } from '@/core/ports/note-input';
 import { GameButton } from '../game/GameButton';
 import { hintText } from '../listen/listen-messages';
-import { useInputStatus, useMonitor } from '../practice/hooks';
+import { useInputStatus } from '../practice/hooks';
 import { GuidedSteps, GuidedSummary, guidedAnnouncement } from './GuidedTuner';
 import { Headstock } from './Headstock';
 import {
@@ -104,6 +105,28 @@ function HintGlyph({ icon }: { readonly icon: HintIcon }) {
   );
 }
 
+/**
+ * Lo único que el afinador necesita del monitor del micrófono: la fase y el aviso. El monitor emite unas 15
+ * veces por segundo (el nivel); así la pantalla no se redibuja con cada una.
+ */
+function useMonitorSlice(
+  monitor: InputMonitor | undefined,
+): Pick<MonitorSnapshot, 'phase' | 'hint'> {
+  const cache = useRef<Pick<MonitorSnapshot, 'phase' | 'hint'>>({ phase: 'apagado', hint: null });
+  const subscribe = useCallback(
+    (onChange: () => void) => (monitor ? monitor.subscribeMonitor(onChange) : () => undefined),
+    [monitor],
+  );
+  const getSnapshot = useCallback(() => {
+    const current = monitor ? monitor.getMonitor() : SILENT_MONITOR;
+    const last = cache.current;
+    if (last.phase === current.phase && last.hint === current.hint) return last;
+    cache.current = { phase: current.phase, hint: current.hint };
+    return cache.current;
+  }, [monitor]);
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+
 /** Un estado debe mantenerse este tiempo antes de anunciarse (la mediana oscila cerca de los límites). */
 const ANNOUNCE_AFTER_MS = 700;
 /** Cada cuánto se mira si alguna cuerda afinada ya pasó a «revisar». */
@@ -112,7 +135,7 @@ const REFRESH_MS = 30_000;
 export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
   const snapshot: TunerSnapshot = useSyncExternalStore(tuner.subscribe, tuner.getSnapshot);
   const status = useInputStatus(microphone);
-  const monitor = useMonitor(microphone);
+  const monitor = useMonitorSlice(microphone);
   const groupRef = useRef<HTMLDivElement>(null);
   const hadMicMessage = useRef(false);
   const [announced, setAnnounced] = useState('');
@@ -135,9 +158,11 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
   const name = openStringName(snapshot.string, notation);
   const role = stringRole(snapshot.string);
   const statusText = tunerStatusText(snapshot);
+  // Con la guía en marcha, «afinada» ya lo dice el aviso de la guía («Mi afinada. Sigue la cuerda 5»).
+  const guideRunning = snapshot.guided !== null && !snapshot.guided.finished;
   const liveText = snapshot.tone
     ? `Suena la nota de referencia, cuerda ${snapshot.string}`
-    : statusText
+    : statusText && !(guideRunning && snapshot.status === 'afinada')
       ? `${statusText}, cuerda ${snapshot.string}`
       : '';
   const tone = tunerTone(snapshot);
@@ -145,6 +170,18 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
   const guided = snapshot.guided;
   // Cambiar el La₄ mueve todas las cuentas: no mientras la guía o la nota de referencia están en marcha.
   const refLocked = guided !== null || snapshot.tone;
+
+  // Al empezar la guía, llegar a su pantalla final o salir de ella, el botón pulsado desaparece y el foco se
+  // perdería (y con él Esc y las teclas rápidas): pasa a la cuerda elegida.
+  const guideStage = guided === null ? 'fuera' : guided.finished ? 'final' : 'en-marcha';
+  const previousStage = useRef(guideStage);
+  useEffect(() => {
+    if (previousStage.current === guideStage) return;
+    previousStage.current = guideStage;
+    if (document.activeElement === null || document.activeElement === document.body) {
+      groupRef.current?.querySelector<HTMLElement>('input:checked')?.focus({ preventScroll: true });
+    }
+  }, [guideStage]);
 
   // La guía avisa una sola vez por paso: «Re afinada. Sigue la cuerda 3 (Sol)». No mueve el foco.
   const [guideNote, setGuideNote] = useState('');
@@ -169,7 +206,7 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
       return;
     }
     if (hadMicMessage.current && document.activeElement === document.body) {
-      groupRef.current?.querySelector<HTMLElement>('input:checked')?.focus();
+      groupRef.current?.querySelector<HTMLElement>('input:checked')?.focus({ preventScroll: true });
     }
     hadMicMessage.current = false;
   }, [message]);
@@ -182,6 +219,8 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
 
   const target = stringFrequency(snapshot.string, { referenceHz: snapshot.referenceHz });
   const heard = snapshot.cents === null ? null : target * 2 ** (snapshot.cents / 1200);
+
+  const selectString = useCallback((string: GuitarString) => tuner.selectString(string), [tuner]);
 
   const toggleReference = () => {
     if (snapshot.tone) tuner.stopReference();
@@ -199,7 +238,7 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
     if (event.key === 'r' || event.key === 'R') {
       if (!snapshot.canReference) return;
       event.preventDefault();
-      toggleReference();
+      if (!event.repeat) toggleReference();
       return;
     }
     if (!/^[1-6]$/.test(event.key)) return;
@@ -230,6 +269,7 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
           −
         </button>
         <output className="tuner__ref-value" aria-live="polite" data-testid="tuner-ref-value">
+          <span className="sr-only">La₄ </span>
           {snapshot.referenceHz} Hz
         </output>
         <button
@@ -259,7 +299,10 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
       </div>
 
       <div className="tuner__cols">
-        <section className="tuner__card stage-dark" aria-labelledby="tuner-clavijero">
+        <section
+          className="tuner__card tuner__card--clavijero stage-dark"
+          aria-labelledby="tuner-clavijero"
+        >
           <h2 className="tuner__kicker" id="tuner-clavijero">
             Clavijero
           </h2>
@@ -268,12 +311,15 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
             cuerda.
           </p>
           <Headstock
-            snapshot={snapshot}
+            status={snapshot.status}
+            string={snapshot.string}
+            strings={snapshot.strings}
+            guided={snapshot.guided}
             notation={notation}
-            onSelect={(string) => tuner.selectString(string)}
+            onSelect={selectString}
             groupRef={groupRef}
           />
-          <p className="tuner__legend">
+          <p className="tuner__legend" aria-hidden="true">
             <span>○ sin afinar</span>
             <span>↑ súbela</span>
             <span>↓ bájala</span>
@@ -285,7 +331,9 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
 
         <section
           className="tuner__card tuner__panel stage-dark"
-          aria-label={`Cuerda ${snapshot.string}, ${name}`}
+          aria-label={
+            guided?.finished ? 'Resumen de la guía' : `Cuerda ${snapshot.string}, ${name}`
+          }
           data-tone={tone}
           data-status={snapshot.status}
         >
@@ -333,6 +381,9 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
                   <p className="tuner__hz" aria-hidden="true">
                     Meta {formatHz(target)} Hz
                     {heard === null ? '' : ` · oigo ${formatHz(heard)} Hz`}
+                    {snapshot.referenceHz === REFERENCE_A4_HZ
+                      ? ''
+                      : ` · La₄ ${snapshot.referenceHz}`}
                   </p>
                   <Ruler cents={snapshot.cents} />
                   <p className="tuner__ends" aria-hidden="true">
@@ -341,9 +392,9 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
                   </p>
                   <p className="tuner__read" aria-hidden="true">
                     <b data-testid="tuner-cents" data-idle={snapshot.cents === null}>
-                      {snapshot.cents === null ? '–' : formatCents(snapshot.cents)}
+                      {snapshot.cents === null ? '—' : formatCents(snapshot.cents)}
                     </b>
-                    <span>cents</span>
+                    {snapshot.cents === null ? null : <span>cents</span>}
                     {chip ? (
                       <em data-testid="tuner-reading" data-status={snapshot.status}>
                         {chip}

@@ -116,6 +116,30 @@ const FRETBOARD_PAIRS: readonly [string, string, number, string][] = [
   ['text-muted', 'surface', TEXT, 'texto secundario en el escenario'],
 ];
 
+/** El afinador (clavijero y medidor) en el escenario oscuro de la guitarra. */
+const TUNER_PAIRS: readonly [string, string, number, string][] = [
+  ['accent', 'surface', TEXT, 'la nota grande'],
+  ['text-muted', 'surface', TEXT, 'las leyendas, los Hz y las etiquetas'],
+  ['text-muted', 'surface-2', GRAPHIC, 'el aro de una clavija sin afinar'],
+  ['err', 'surface', GRAPHIC, 'la aguja fuera de tono'],
+  ['err', 'err-soft', GRAPHIC, 'el aro de una clavija grave o aguda'],
+  ['ok', 'surface', GRAPHIC, 'la zona verde y la aguja afinada'],
+  ['ok', 'ok-soft', GRAPHIC, 'el aro de una clavija afinada'],
+  ['warn', 'surface', GRAPHIC, 'la zona «casi» y la aguja ámbar'],
+  ['warn', 'surface-2', GRAPHIC, 'el aro de una clavija por revisar'],
+  ['err', 'surface', TEXT, 'la cifra de cents y la etiqueta fuera de tono'],
+  ['warn', 'surface', TEXT, 'la cifra de cents y la etiqueta «casi»'],
+  ['ok', 'surface', TEXT, 'la cifra de cents y la etiqueta afinada'],
+  ['ok-strong', 'ok-soft', TEXT, 'la instrucción «Lista»'],
+  ['warn-strong', 'warn-soft', TEXT, 'la instrucción «Casi»'],
+  ['text', 'surface-2', TEXT, 'la instrucción neutra'],
+  ['accent-strong', 'surface', TEXT, 'el plegable «Cómo afinar bien»'],
+  ['accent', 'fret-wood', GRAPHIC, 'la cuerda elegida sobre la cabeza'],
+  ['fret-string', 'fret-wood', GRAPHIC, 'las cuerdas de la cabeza'],
+  ['fret-string-wound', 'fret-wood', GRAPHIC, 'las cuerdas entorchadas de la cabeza'],
+  ['fret-wire', 'surface', GRAPHIC, 'el borde de la cabeza'],
+];
+
 describe('contraste de los tokens del juego', () => {
   for (const [themeName, theme] of themes) {
     describe(themeName, () => {
@@ -177,5 +201,18 @@ describe('contraste de los tokens del juego', () => {
       expect(DARK[name], `--${name} falta en data-theme=oscuro`).toBeDefined();
       expect(DARK_AUTO[name], `--${name} falta en el oscuro automático`).toBeDefined();
     }
+  });
+});
+
+describe('el afinador en el escenario oscuro de la guitarra', () => {
+  it.each(TUNER_PAIRS)('%s sobre %s ≥ %f (%s)', (foreground, background, minimum, what) => {
+    const fg = GUITAR_STAGE[foreground];
+    const bg = GUITAR_STAGE[background];
+    expect(fg, `falta --${foreground}`).toBeDefined();
+    expect(bg, `falta --${background}`).toBeDefined();
+    expect(
+      contrast(fg as string, bg as string),
+      `${what}: ${fg} sobre ${bg}`,
+    ).toBeGreaterThanOrEqual(minimum);
   });
 });

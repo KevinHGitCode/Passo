@@ -322,6 +322,10 @@ describe('el progreso de guitarra', () => {
   });
 });
 
+/** El botón de opción de una cuerda del clavijero. */
+const radio = (string: number): HTMLInputElement =>
+  screen.getByTestId(`tuner-string-${string}`).querySelector('input') as HTMLInputElement;
+
 describe('el afinador', () => {
   function setup() {
     const pitch = new FakePitch();
@@ -352,7 +356,7 @@ describe('el afinador', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Afinador' })).toBeTruthy();
     expect(screen.getByTestId('tuner-target').textContent).toContain('Mi');
     for (let n = 1; n <= 6; n++) expect(screen.getByTestId(`tuner-string-${n}`)).toBeTruthy();
-    expect(screen.getByTestId('tuner-string-1').getAttribute('aria-pressed')).toBe('true');
+    expect(radio(1).checked).toBe(true);
   });
 
   it('al salir deja de medir', () => {
@@ -383,8 +387,8 @@ describe('el afinador', () => {
     const { mic } = setup();
     act(() => mic.makeReady());
     fireEvent.click(screen.getByTestId('tuner-string-3'));
-    expect(screen.getByTestId('tuner-string-3').getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByTestId('tuner-string-1').getAttribute('aria-pressed')).toBe('false');
+    expect(radio(3).checked).toBe(true);
+    expect(radio(1).checked).toBe(false);
     expect(screen.getByTestId('tuner-target').textContent).toContain('Sol');
     expect(document.body.textContent).toContain('Toca la cuerda 3 (Sol) al aire');
   });
@@ -393,7 +397,8 @@ describe('el afinador', () => {
     const { mic, play } = setup();
     act(() => mic.makeReady());
     play(1, -20, 500);
-    expect(screen.getByTestId('tuner-reading').textContent).toBe('Grave · 20 cents');
+    expect(screen.getByTestId('tuner-reading').textContent).toBe('Grave');
+    expect(screen.getByTestId('tuner-cents').textContent).toBe('−20');
     expect(document.body.textContent).toContain('Aprieta un poco la clavija');
     play(1, 1, 1000);
     expect(screen.getByTestId('tuner-reading').textContent).toBe('Afinada');
@@ -403,7 +408,8 @@ describe('el afinador', () => {
     const { mic, play } = setup();
     act(() => mic.makeReady());
     play(1, 25, 500);
-    expect(screen.getByTestId('tuner-reading').textContent).toBe('Aguda · 25 cents');
+    expect(screen.getByTestId('tuner-reading').textContent).toBe('Aguda');
+    expect(screen.getByTestId('tuner-cents').textContent).toBe('+25');
     expect(document.body.textContent).toContain('Afloja un poco la clavija');
     play(1, 90, 1000);
     expect(screen.getByTestId('tuner-reading').textContent).toContain('Muy aguda');
@@ -440,7 +446,7 @@ describe('el afinador', () => {
     expect(document.activeElement).toBe(activate);
     act(() => mic.makeReady());
     expect(screen.queryByTestId('tuner-activate')).toBeNull();
-    expect(document.activeElement).toBe(screen.getByTestId('tuner-string-1'));
+    expect(document.activeElement).toBe(radio(1));
   });
 });
 

@@ -443,6 +443,18 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+.tuner__acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.tuner__acts .tuner__glyph {
+  width: 22px;
+  height: 22px;
+  margin-right: 8px;
+  vertical-align: -5px;
+}
 .tuner__tips summary {
   min-height: 44px;
   padding: 10px 0;

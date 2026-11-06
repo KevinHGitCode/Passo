@@ -191,7 +191,7 @@ export function composeApp(search: string = window.location.search) {
   }
 
   // El afinador de guitarra mide el tono continuo del micrófono, solo mientras su pantalla está abierta.
-  const tuner = new TunerService({ pitch: microphone, clock });
+  const tuner = new TunerService({ pitch: microphone, clock, tone: audio });
 
   return {
     session,

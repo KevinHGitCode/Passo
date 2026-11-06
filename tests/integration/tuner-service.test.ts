@@ -3,6 +3,7 @@ import type { TunerSnapshot } from '@/core/application/tuner-service';
 import { stringFrequency } from '@/core/domain/tuner';
 import { FakeClock } from '../fakes/fake-clock';
 import { FakePitch } from '../fakes/fake-pitch';
+import { FakeTone } from '../fakes/fake-tone';
 
 function setup() {
   const pitch = new FakePitch();
@@ -188,5 +189,138 @@ describe('TunerService · lo que recuerda de cada cuerda', () => {
     tuner.close();
     tuner.open();
     expect(tuner.getSnapshot().strings[1]).toBe('sin-afinar');
+  });
+});
+
+describe('TunerService · la nota de referencia', () => {
+  function withTone() {
+    const pitch = new FakePitch();
+    const clock = new FakeClock(0);
+    const tone = new FakeTone();
+    const tuner = new TunerService({ pitch, clock, tone });
+    const play = (string: 1 | 2 | 3 | 4 | 5 | 6, cents: number, ms: number) => {
+      const end = clock.now() + ms;
+      while (clock.now() < end) {
+        clock.advance(20);
+        pitch.emit({
+          frequency: stringFrequency(string) * 2 ** (cents / 1200),
+          clarity: 0.95,
+          at: clock.now(),
+        });
+      }
+    };
+    return { pitch, clock, tone, tuner, play };
+  }
+
+  it('sin salida de tono no hay referencia y pedirla no hace nada', () => {
+    const { tuner } = setup();
+    tuner.open();
+    expect(tuner.getSnapshot().canReference).toBe(false);
+    tuner.playReference();
+    expect(tuner.getSnapshot().tone).toBe(false);
+  });
+
+  it('suena la nota de la cuerda elegida con su frecuencia y su timbre', () => {
+    const { tuner, tone } = withTone();
+    tuner.open();
+    tuner.selectString(6);
+    expect(tuner.getSnapshot().canReference).toBe(true);
+    tuner.playReference();
+    expect(tuner.getSnapshot().tone).toBe(true);
+    expect(tone.played).toHaveLength(1);
+    expect(tone.played[0]?.frequency).toBeCloseTo(stringFrequency(6), 6);
+    expect(tone.played[0]?.durationMs).toBe(2500);
+    // Cuerdas graves: más peso en los armónicos que en la fundamental.
+    expect(tone.played[0]?.harmonics).toHaveLength(6);
+    expect(tone.played[0]?.harmonics[0]).toBeLessThan(tone.played[0]?.harmonics[1] ?? 0);
+  });
+
+  it('las cuerdas agudas llevan menos armónicos y la fundamental manda', () => {
+    const { tuner, tone } = withTone();
+    tuner.open();
+    tuner.selectString(2);
+    tuner.playReference();
+    expect(tone.played[0]?.harmonics).toEqual([1, 0.5, 0.3, 0.2]);
+  });
+
+  it('con el afinador cerrado no suena', () => {
+    const { tuner, tone } = withTone();
+    tuner.playReference();
+    expect(tone.played).toHaveLength(0);
+    expect(tuner.getSnapshot().tone).toBe(false);
+  });
+
+  it('mientras suena no mide, aunque el micrófono oiga la propia nota', () => {
+    const { tuner, play, tone } = withTone();
+    tuner.open();
+    tuner.selectString(5);
+    tuner.playReference();
+    play(5, 0, 2000);
+    expect(tuner.getSnapshot()).toMatchObject({ status: 'sin-sonido', tone: true });
+    expect(tuner.getSnapshot().strings[5]).toBe('sin-afinar');
+    tone.finish();
+    expect(tuner.getSnapshot().tone).toBe(false);
+  });
+
+  it('tras acabar sigue sin medir 500 ms (la cola de la sala) y luego mide con normalidad', () => {
+    const { tuner, play, tone, clock } = withTone();
+    tuner.open();
+    tuner.selectString(5);
+    tuner.playReference();
+    tone.finish();
+    play(5, 0, 480);
+    expect(tuner.getSnapshot().status).toBe('sin-sonido');
+    clock.advance(40);
+    play(5, -25, 600);
+    expect(tuner.getSnapshot()).toMatchObject({ status: 'baja', cents: -25, tone: false });
+  });
+
+  it('lo medido antes de la referencia se olvida: no queda «afinada» de la nota que suena', () => {
+    const { tuner, play, tone } = withTone();
+    tuner.open();
+    tuner.selectString(4);
+    play(4, -20, 600);
+    expect(tuner.getSnapshot().status).toBe('baja');
+    tuner.playReference();
+    expect(tuner.getSnapshot()).toMatchObject({ status: 'sin-sonido', cents: null });
+    tone.finish();
+    expect(tuner.getSnapshot()).toMatchObject({ status: 'sin-sonido', cents: null });
+  });
+
+  it('stopReference la corta y deja la medición en pausa un momento', () => {
+    const { tuner, tone, play } = withTone();
+    tuner.open();
+    tuner.playReference();
+    tuner.stopReference();
+    expect(tone.stops).toBe(1);
+    expect(tuner.getSnapshot().tone).toBe(false);
+    play(1, 0, 400);
+    expect(tuner.getSnapshot().status).toBe('sin-sonido');
+  });
+
+  it('cambiar de cuerda o cerrar corta la referencia', () => {
+    const { tuner, tone } = withTone();
+    tuner.open();
+    tuner.playReference();
+    tuner.selectString(3);
+    expect(tone.stops).toBe(1);
+    expect(tuner.getSnapshot()).toMatchObject({ tone: false, string: 3 });
+    tuner.playReference();
+    tuner.close();
+    expect(tone.stops).toBe(2);
+    expect(tuner.getSnapshot()).toMatchObject({ tone: false, open: false });
+  });
+
+  it('pedirla mientras suena no la repite; que termine un tono viejo no corta el nuevo', () => {
+    const { tuner, tone } = withTone();
+    tuner.open();
+    tuner.playReference();
+    tuner.playReference();
+    expect(tone.played).toHaveLength(1);
+    tuner.stopReference();
+    tuner.playReference();
+    expect(tone.played).toHaveLength(2);
+    tone.finish();
+    expect(tuner.getSnapshot().tone).toBe(false);
   });
 });

@@ -85,7 +85,9 @@ function HintGlyph({ icon }: { readonly icon: HintIcon }) {
           ? 'M5 12l5 5 9-10'
           : icon === 'wait'
             ? 'M5 12h14'
-            : 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM6 11a6 6 0 0 0 12 0M12 17v4';
+            : icon === 'sound'
+              ? 'M4 9v6h4l5 4V5L8 9H4zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11'
+              : 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM6 11a6 6 0 0 0 12 0M12 17v4';
   return (
     <svg className="tuner__glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path d={path} />
@@ -124,7 +126,11 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
   const name = openStringName(snapshot.string, notation);
   const role = stringRole(snapshot.string);
   const statusText = tunerStatusText(snapshot);
-  const liveText = statusText ? `${statusText}, cuerda ${snapshot.string}` : '';
+  const liveText = snapshot.tone
+    ? `Suena la nota de referencia, cuerda ${snapshot.string}`
+    : statusText
+      ? `${statusText}, cuerda ${snapshot.string}`
+      : '';
   const tone = tunerTone(snapshot);
   const chip = tunerChipText(snapshot);
 
@@ -155,9 +161,20 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
   const target = stringFrequency(snapshot.string, { referenceHz: snapshot.referenceHz });
   const heard = snapshot.cents === null ? null : target * 2 ** (snapshot.cents / 1200);
 
+  const toggleReference = () => {
+    if (snapshot.tone) tuner.stopReference();
+    else tuner.playReference();
+  };
+
   // Atajos de una sola tecla: solo con el foco dentro del afinador (no en toda la página).
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
+    if (event.key === 'r' || event.key === 'R') {
+      if (!snapshot.canReference) return;
+      event.preventDefault();
+      toggleReference();
+      return;
+    }
     if (!/^[1-6]$/.test(event.key)) return;
     const string = Number(event.key) as GuitarString;
     tuner.selectString(string);
@@ -246,6 +263,20 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
               </p>
             </>
           )}
+          {snapshot.canReference ? (
+            <div className="tuner__acts">
+              <GameButton
+                onClick={toggleReference}
+                aria-keyshortcuts="r"
+                data-testid="tuner-reference"
+                data-playing={snapshot.tone}
+              >
+                <HintGlyph icon="sound" />
+                {snapshot.tone ? 'Detener la nota' : 'Escuchar la nota'}
+              </GameButton>
+              <span className="tuner__muted">Úsala como guía: no sustituye al medidor.</span>
+            </div>
+          ) : null}
           <p className="tuner__muted">
             Afina siempre subiendo: si te pasas, afloja bien y vuelve a subir. Toca solo esa cuerda
             y silencia las demás.

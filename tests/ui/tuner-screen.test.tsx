@@ -16,13 +16,18 @@ import {
 import { FakeClock } from '../fakes/fake-clock';
 import { FakeMicInput } from '../fakes/fake-mic-input';
 import { FakePitch } from '../fakes/fake-pitch';
+import { FakeTone } from '../fakes/fake-tone';
 
 afterEach(cleanup);
 
-function setup() {
+function setup(options: { tone?: FakeTone } = {}) {
   const pitch = new FakePitch();
   const clock = new FakeClock(0);
-  const tuner = new TunerService({ pitch, clock });
+  const tuner = new TunerService({
+    pitch,
+    clock,
+    ...(options.tone ? { tone: options.tone } : {}),
+  });
   const mic = new FakeMicInput();
   render(<TunerScreen tuner={tuner} microphone={mic} notation="latina" />);
   act(() => mic.makeReady());
@@ -228,7 +233,7 @@ describe('textos del afinador', () => {
 
   it('las instrucciones: apretar si está grave, aflojar si está aguda', () => {
     const context = { name: 'Mi', listening: true, weakHint: null };
-    const at = { string: 6 as const, ...base };
+    const at = { string: 6 as const, tone: false, ...base };
     expect(tunerHint({ ...at, status: 'baja' }, context)).toEqual({
       text: 'Aprieta un poco la clavija.',
       icon: 'up',
@@ -271,5 +276,75 @@ describe('textos del afinador', () => {
     expect(formatCents(3)).toBe('+3');
     expect(formatCents(0)).toBe('0');
     expect(formatHz(82.407)).toBe('82,4');
+  });
+});
+
+describe('la nota de referencia', () => {
+  const reference = () => screen.queryByTestId('tuner-reference');
+
+  it('sin salida de tono no hay botón', () => {
+    setup();
+    expect(reference()).toBeNull();
+  });
+
+  it('«Escuchar la nota» hace sonar la cuerda elegida y pasa a «Detener la nota»', () => {
+    const tone = new FakeTone();
+    setup({ tone });
+    fireEvent.click(radio(6));
+    expect(reference()?.textContent).toBe('Escuchar la nota');
+    fireEvent.click(reference() as HTMLElement);
+    expect(tone.played).toHaveLength(1);
+    expect(tone.played[0]?.frequency).toBeCloseTo(stringFrequency(6), 6);
+    expect(reference()?.textContent).toBe('Detener la nota');
+    expect(reference()?.getAttribute('data-playing')).toBe('true');
+    expect(screen.getByTestId('tuner-hint').textContent).toContain('Suena la nota de referencia');
+    fireEvent.click(reference() as HTMLElement);
+    expect(tone.stops).toBe(1);
+    expect(reference()?.textContent).toBe('Escuchar la nota');
+  });
+
+  it('al terminar el tono el botón vuelve solo', () => {
+    const tone = new FakeTone();
+    setup({ tone });
+    fireEvent.click(reference() as HTMLElement);
+    act(() => tone.finish());
+    expect(reference()?.textContent).toBe('Escuchar la nota');
+  });
+
+  it('la tecla R dentro del afinador la enciende y la apaga; con Ctrl no', () => {
+    const tone = new FakeTone();
+    setup({ tone });
+    fireEvent.keyDown(radio(1), { key: 'r' });
+    expect(tone.played).toHaveLength(1);
+    fireEvent.keyDown(radio(1), { key: 'R' });
+    expect(tone.stops).toBe(1);
+    fireEvent.keyDown(radio(1), { key: 'r', ctrlKey: true });
+    expect(tone.played).toHaveLength(1);
+    expect(reference()?.getAttribute('aria-keyshortcuts')).toBe('r');
+  });
+
+  it('elegir una clavija no suena (solo suena el botón)', () => {
+    const tone = new FakeTone();
+    setup({ tone });
+    fireEvent.click(radio(4));
+    fireEvent.keyDown(radio(4), { key: '2' });
+    expect(tone.played).toHaveLength(0);
+  });
+
+  it('mientras suena, el lector de pantalla oye que suena la referencia', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const tone = new FakeTone();
+      setup({ tone });
+      fireEvent.click(reference() as HTMLElement);
+      act(() => {
+        vi.advanceTimersByTime(800);
+      });
+      expect(screen.getByTestId('tuner-live').textContent).toBe(
+        'Suena la nota de referencia, cuerda 1',
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

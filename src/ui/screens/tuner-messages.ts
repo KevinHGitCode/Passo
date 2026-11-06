@@ -47,7 +47,7 @@ export function tunerTone(snapshot: Pick<TunerSnapshot, 'status' | 'near'>): Tun
   }
 }
 
-export type HintIcon = 'up' | 'down' | 'wait' | 'check' | 'listen';
+export type HintIcon = 'up' | 'down' | 'wait' | 'check' | 'listen' | 'sound';
 
 export interface TunerHint {
   readonly text: string;
@@ -56,9 +56,15 @@ export interface TunerHint {
 
 /** La instrucción de debajo del medidor. */
 export function tunerHint(
-  snapshot: Pick<TunerSnapshot, 'status' | 'far' | 'near' | 'string'>,
+  snapshot: Pick<TunerSnapshot, 'status' | 'far' | 'near' | 'string' | 'tone'>,
   context: { readonly name: string; readonly listening: boolean; readonly weakHint: string | null },
 ): TunerHint {
+  if (snapshot.tone) {
+    return {
+      text: 'Suena la nota de referencia. Escúchala y compárala con tu cuerda.',
+      icon: 'sound',
+    };
+  }
   switch (snapshot.status) {
     case 'baja':
       if (snapshot.far) return { text: 'Aprieta la clavija: está muy grave.', icon: 'up' };

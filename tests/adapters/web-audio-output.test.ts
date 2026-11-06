@@ -79,3 +79,103 @@ describe('WebAudioOutput', () => {
     expect(output.getStatus()).toBe('sin-soporte');
   });
 });
+
+describe('WebAudioOutput · la nota de referencia', () => {
+  const tone = {
+    frequency: 110,
+    durationMs: 2500,
+    attackMs: 7,
+    releaseMs: 150,
+    harmonics: [0.6, 1, 0.8, 0.5, 0.35, 0.25],
+  } as const;
+
+  it('crea un oscilador por armónico, a múltiplos exactos de la fundamental, y los arranca', () => {
+    const { context, output } = setup();
+    output.playTone(tone, () => undefined);
+    expect(context.oscillators.map((o) => o.frequency.value)).toEqual([
+      110, 220, 330, 440, 550, 660,
+    ]);
+    expect(context.oscillators.every((o) => o.type === 'sine' && o.started !== null)).toBe(true);
+    // Cada uno se detiene un poco después del final previsto.
+    expect(context.oscillators.every((o) => (o.stopped ?? 0) > 2.5)).toBe(true);
+  });
+
+  it('el reparto de amplitudes suma 1 (el volumen no depende de cuántos armónicos lleve)', () => {
+    const { context, output } = setup();
+    output.playTone(tone, () => undefined);
+    const parts = context.gains.slice(-6).map((g) => g.gain.value);
+    expect(parts.reduce((sum, value) => sum + value, 0)).toBeCloseTo(1, 6);
+    expect(parts[1]).toBeGreaterThan(parts[0] ?? 1);
+  });
+
+  it('avisa una sola vez al terminar, por mucho que terminen varios osciladores', () => {
+    vi.useFakeTimers();
+    try {
+      const { context, output } = setup();
+      const onEnd = vi.fn();
+      output.playTone(tone, onEnd);
+      const last = context.oscillators[context.oscillators.length - 1];
+      last?.onended?.();
+      last?.onended?.();
+      expect(onEnd).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(5000);
+      expect(onEnd).toHaveBeenCalledTimes(1);
+      expect(context.oscillators.every((o) => !o.connected)).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('si el audio está bloqueado y nunca avanza, igualmente da el tono por terminado', () => {
+    vi.useFakeTimers();
+    try {
+      const { output } = setup();
+      const onEnd = vi.fn();
+      output.playTone(tone, onEnd);
+      vi.advanceTimersByTime(2500);
+      expect(onEnd).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(400);
+      expect(onEnd).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stopTone lo corta con un final breve y avisa al momento', () => {
+    const { context, output } = setup();
+    const onEnd = vi.fn();
+    output.playTone(tone, onEnd);
+    output.stopTone();
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(context.oscillators.every((o) => (o.stopped ?? 99) < 0.2)).toBe(true);
+    output.stopTone();
+    expect(onEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('un tono nuevo corta el anterior', () => {
+    const { context, output } = setup();
+    const first = vi.fn();
+    const second = vi.fn();
+    output.playTone(tone, first);
+    output.playTone({ ...tone, frequency: 82.41 }, second);
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).not.toHaveBeenCalled();
+    expect(context.oscillators).toHaveLength(12);
+  });
+
+  it('desde un gesto desbloquea el audio si seguía bloqueado', async () => {
+    const { context, output } = setup();
+    output.playTone(tone, () => undefined);
+    await Promise.resolve();
+    expect(context.resumeCalls).toBe(1);
+    expect(output.getStatus()).toBe('listo');
+  });
+
+  it('sin Web Audio avisa al momento y no falla', () => {
+    const output = new WebAudioOutput(() => undefined);
+    const onEnd = vi.fn();
+    expect(() => output.playTone(tone, onEnd)).not.toThrow();
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(() => output.stopTone()).not.toThrow();
+  });
+});

@@ -24,7 +24,7 @@ export function tunerStatusText(snapshot: TunerSnapshot): string {
       return snapshot.far ? 'Muy grave' : 'Grave';
     case 'alta':
       return snapshot.far ? 'Muy aguda' : 'Aguda';
-    case 'casi':
+    case 'afinando':
       return 'Casi afinada';
     case 'afinada':
       return 'Afinada';
@@ -109,7 +109,7 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
       ? 'Aprieta un poco la clavija.'
       : snapshot.status === 'alta'
         ? 'Afloja un poco la clavija.'
-        : snapshot.status === 'casi'
+        : snapshot.status === 'afinando'
           ? 'Casi: mantén la cuerda sonando.'
           : snapshot.status === 'afinada'
             ? 'Lista. Puedes pasar a la siguiente cuerda.'
@@ -176,7 +176,7 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
               {statusText || '—'}
               {snapshot.cents !== null &&
               snapshot.status !== 'afinada' &&
-              snapshot.status !== 'casi'
+              snapshot.status !== 'afinando'
                 ? ` · ${Math.abs(snapshot.cents)} cents`
                 : ''}
             </p>

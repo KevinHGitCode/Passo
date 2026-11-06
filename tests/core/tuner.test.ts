@@ -12,6 +12,7 @@ import {
   searchRange,
   stringFrequency,
 } from '@/core/domain/tuner';
+import { STANDARD_TUNING } from '@/core/domain/tuning';
 
 /** Una lectura cada 20 ms durante `ms`, con la desviación que da `cents(t)`. */
 function feed(
@@ -54,7 +55,12 @@ describe('frecuencias de las cuerdas', () => {
 describe('TunerTracker', () => {
   it('sin lecturas no opina', () => {
     const tracker = new TunerTracker();
-    expect(tracker.getState()).toEqual({ status: 'sin-sonido', cents: null, far: false });
+    expect(tracker.getState()).toEqual({
+      status: 'sin-sonido',
+      cents: null,
+      far: false,
+      near: false,
+    });
     tracker.push(null, 0);
     expect(tracker.getState().status).toBe('sin-sonido');
   });
@@ -89,23 +95,23 @@ describe('TunerTracker', () => {
   it('floja, tirante y muy floja', () => {
     const low = new TunerTracker();
     feed(low, 0, 400, -20);
-    expect(low.getState()).toEqual({ status: 'baja', cents: -20, far: false });
+    expect(low.getState()).toEqual({ status: 'baja', cents: -20, far: false, near: false });
 
     const high = new TunerTracker();
     feed(high, 0, 400, 35);
-    expect(high.getState()).toEqual({ status: 'alta', cents: 35, far: false });
+    expect(high.getState()).toEqual({ status: 'alta', cents: 35, far: false, near: false });
 
     const far = new TunerTracker();
     feed(far, 0, 400, -(FAR_CENTS + 40));
     expect(far.getState()).toMatchObject({ status: 'baja', far: true });
   });
 
-  it('dentro de ±5 cents pasa por «casi» y solo tras 600 ms queda «afinada»', () => {
+  it('dentro de ±5 cents pasa por «afinando» y solo tras 600 ms queda «afinada»', () => {
     const tracker = new TunerTracker();
     const end = feed(tracker, 0, 450, 2);
-    expect(tracker.getState().status).toBe('casi');
+    expect(tracker.getState().status).toBe('afinando');
     feed(tracker, end, IN_TUNE_HOLD_MS, 2);
-    expect(tracker.getState()).toEqual({ status: 'afinada', cents: 2, far: false });
+    expect(tracker.getState()).toEqual({ status: 'afinada', cents: 2, far: false, near: false });
   });
 
   it('un tirón breve no cuenta: hay que sostenerlo', () => {
@@ -141,7 +147,7 @@ describe('TunerTracker', () => {
         at += 20;
       }
     }
-    expect(['casi', 'afinada']).toContain(tracker.getState().status);
+    expect(['afinando', 'afinada']).toContain(tracker.getState().status);
   });
 
   it('el vibrato de ±20 cents a 5,5 Hz promedia cerca de la nota', () => {
@@ -163,7 +169,7 @@ describe('TunerTracker', () => {
     tracker.push(null, lastReading + TUNED_SILENCE_MS - 1);
     expect(tracker.getState().status).toBe('afinada');
     tracker.push(null, lastReading + TUNED_SILENCE_MS + 1);
-    expect(tracker.getState()).toEqual({ status: 'sin-sonido', cents: null, far: false });
+    expect(tracker.getState()).toMatchObject({ status: 'sin-sonido', cents: null, far: false });
     // Con pocas lecturas nuevas todavía no opina (lo anterior se olvidó).
     feed(tracker, end + 3000, 60, 0);
     expect(tracker.getState().status).toBe('sin-sonido');
@@ -173,5 +179,56 @@ describe('TunerTracker', () => {
     const tracker = new TunerTracker();
     feed(tracker, 0, 1000, 0);
     expect(tracker.reset().status).toBe('sin-sonido');
+  });
+});
+
+describe('la zona «casi» (de ±5 a ±15 cents)', () => {
+  it('grave o aguda pero cerca se marca como «near»; más allá, no', () => {
+    const near = new TunerTracker();
+    feed(near, 0, 800, -12);
+    expect(near.getState()).toMatchObject({ status: 'baja', cents: -12, near: true, far: false });
+    const edge = new TunerTracker();
+    feed(edge, 0, 800, 15);
+    expect(edge.getState()).toMatchObject({ status: 'alta', near: true });
+    const away = new TunerTracker();
+    feed(away, 0, 800, 18);
+    expect(away.getState()).toMatchObject({ status: 'alta', near: false });
+  });
+
+  it('afinada o afinando nunca son «near» (esa es otra zona)', () => {
+    const tracker = new TunerTracker();
+    feed(tracker, 0, 1200, 2);
+    expect(tracker.getState()).toMatchObject({ status: 'afinada', near: false });
+  });
+});
+
+describe('La4 y afinaciones', () => {
+  it('con La4 = 442 todas las cuerdas suben lo mismo (≈ 7,85 cents)', () => {
+    const standard = stringFrequency(5);
+    const raised = stringFrequency(5, { referenceHz: 442 });
+    expect(centsFrom(standard, raised)).toBeCloseTo(1200 * Math.log2(442 / 440), 6);
+    expect(raised).toBeCloseTo(110 * (442 / 440), 6);
+  });
+
+  it('con La4 = 432 la cuerda 5 (La) da 108 Hz', () => {
+    expect(stringFrequency(5, { referenceHz: 432 })).toBeCloseTo(108, 6);
+  });
+
+  it('el intervalo de búsqueda sigue a La4', () => {
+    const { minHz, maxHz } = searchRange(6, { referenceHz: 432 });
+    expect(centsFrom(stringFrequency(6, { referenceHz: 432 }), minHz)).toBeCloseTo(
+      -SEARCH_CENTS,
+      6,
+    );
+    expect(maxHz).toBeLessThan(searchRange(6).maxHz);
+  });
+
+  it('una afinación propia desplaza las cuerdas que cambian (Re bajo: la 6 baja un tono)', () => {
+    const dropD = { ...STANDARD_TUNING, open: [64, 59, 55, 50, 45, 38] };
+    expect(centsFrom(stringFrequency(6), stringFrequency(6, { tuning: dropD }))).toBeCloseTo(
+      -200,
+      6,
+    );
+    expect(stringFrequency(5, { tuning: dropD })).toBeCloseTo(stringFrequency(5), 6);
   });
 });

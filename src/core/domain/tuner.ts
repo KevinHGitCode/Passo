@@ -1,6 +1,7 @@
-import { GUITAR_OPEN } from './instrument';
 import type { GuitarString } from './instrument';
-import { midiToFrequency } from './pitch';
+import { REFERENCE_A4_HZ, midiToFrequency } from './pitch';
+import { STANDARD_TUNING, tuningNote } from './tuning';
+import type { Tuning } from './tuning';
 
 /**
  * El afinador de guitarra. La persona elige la cuerda y se mide contra **esa** cuerda (no contra el
@@ -22,12 +23,23 @@ export const SETTLE_MS = 250;
 /** Sin lecturas durante este tiempo, vuelve a «sin sonido»; «Afinada» se deja ver más tiempo. */
 export const SILENCE_MS = 500;
 export const TUNED_SILENCE_MS = 2000;
-/** A partir de aquí la cuerda está «muy» floja o tirante (se dice distinto). */
+/** Entre ±5 y ±15 cents la cuerda está «casi» (zona ámbar); más allá, claramente grave o aguda. */
+export const NEAR_CENTS = 15;
+/** A partir de aquí la cuerda está «muy» grave o aguda (se dice distinto). */
 export const FAR_CENTS = 50;
 
-/** Frecuencia de la cuerda al aire en afinación estándar (La4 = 440 Hz). */
-export function stringFrequency(string: GuitarString): number {
-  return midiToFrequency(GUITAR_OPEN[string - 1] as number);
+/** Con qué afinación y qué La4 se mide (por omisión, la estándar con La4 = 440 Hz). */
+export interface TuneOptions {
+  readonly tuning?: Tuning;
+  readonly referenceHz?: number;
+}
+
+/** Frecuencia de la cuerda al aire (por omisión, en afinación estándar con La4 = 440 Hz). */
+export function stringFrequency(string: GuitarString, options: TuneOptions = {}): number {
+  return midiToFrequency(
+    tuningNote(options.tuning ?? STANDARD_TUNING, string),
+    options.referenceHz ?? REFERENCE_A4_HZ,
+  );
 }
 
 /** Cents que `frequency` se desvía de `target` (positivo = más aguda). */
@@ -36,25 +48,31 @@ export function centsFrom(target: number, frequency: number): number {
 }
 
 /** El intervalo de frecuencias donde se busca el tono de la cuerda elegida. */
-export function searchRange(string: GuitarString): { minHz: number; maxHz: number } {
-  const target = stringFrequency(string);
+export function searchRange(
+  string: GuitarString,
+  options: TuneOptions = {},
+): { minHz: number; maxHz: number } {
+  const target = stringFrequency(string, options);
   return {
     minHz: target * 2 ** (-SEARCH_CENTS / 1200),
     maxHz: target * 2 ** (SEARCH_CENTS / 1200),
   };
 }
 
-export type TunerStatus = 'sin-sonido' | 'baja' | 'alta' | 'casi' | 'afinada';
+/** `afinando`: dentro de ±5 cents pero todavía sin sostenerlo el tiempo necesario. */
+export type TunerStatus = 'sin-sonido' | 'baja' | 'alta' | 'afinando' | 'afinada';
 
 export interface TunerState {
   readonly status: TunerStatus;
   /** Desviación (mediana de las lecturas recientes), redondeada; `null` sin sonido. */
   readonly cents: number | null;
-  /** La desviación pasa de `FAR_CENTS`: «muy floja» / «muy tirante». */
+  /** La desviación pasa de `FAR_CENTS`: «muy grave» / «muy aguda». */
   readonly far: boolean;
+  /** Grave o aguda, pero a no más de `NEAR_CENTS` (la zona «casi»). */
+  readonly near: boolean;
 }
 
-export const NO_SOUND: TunerState = { status: 'sin-sonido', cents: null, far: false };
+export const NO_SOUND: TunerState = { status: 'sin-sonido', cents: null, far: false, near: false };
 
 function median(values: readonly number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
@@ -115,13 +133,19 @@ export class TunerTracker {
     if (Math.abs(middle) <= limit) {
       this.inTuneSince ??= at;
       const held = wasTuned || at - this.inTuneSince >= IN_TUNE_HOLD_MS;
-      this.state = { status: held ? 'afinada' : 'casi', cents: rounded, far: false };
+      this.state = {
+        status: held ? 'afinada' : 'afinando',
+        cents: rounded,
+        far: false,
+        near: false,
+      };
     } else {
       this.inTuneSince = null;
       this.state = {
         status: middle < 0 ? 'baja' : 'alta',
         cents: rounded,
         far: Math.abs(middle) > FAR_CENTS,
+        near: Math.abs(middle) <= NEAR_CENTS,
       };
     }
     return this.state;

@@ -28,13 +28,16 @@ function setup() {
 describe('TunerService', () => {
   it('empieza cerrado, en la cuerda 1 y sin sonido', () => {
     const { tuner, pitch } = setup();
-    expect(tuner.getSnapshot()).toEqual({
+    expect(tuner.getSnapshot()).toMatchObject({
       string: 1,
       open: false,
       status: 'sin-sonido',
       cents: null,
       far: false,
+      near: false,
+      referenceHz: 440,
     });
+    expect(Object.values(tuner.getSnapshot().strings)).toEqual(Array(6).fill('sin-afinar'));
     expect(pitch.searches).toEqual([]);
   });
 
@@ -58,7 +61,7 @@ describe('TunerService', () => {
     play(5, -25, 500);
     expect(tuner.getSnapshot()).toMatchObject({ string: 5, status: 'baja', cents: -25 });
     play(5, 1, 400);
-    expect(tuner.getSnapshot().status).toBe('casi');
+    expect(tuner.getSnapshot().status).toBe('afinando');
     play(5, 1, 700);
     expect(tuner.getSnapshot()).toMatchObject({ status: 'afinada', cents: 1 });
   });
@@ -127,5 +130,63 @@ describe('TunerService', () => {
     expect(snapshots.length).toBe(count);
     tuner.selectString(1);
     expect(snapshots.length).toBe(count);
+  });
+});
+
+describe('TunerService · lo que recuerda de cada cuerda', () => {
+  it('una cuerda que queda afinada se recuerda aunque se pase a otra', () => {
+    const { tuner, play } = setup();
+    tuner.open();
+    tuner.selectString(6);
+    play(6, 1, 1500);
+    expect(tuner.getSnapshot().status).toBe('afinada');
+    expect(tuner.getSnapshot().strings[6]).toBe('afinada');
+    tuner.selectString(5);
+    expect(tuner.getSnapshot().strings[6]).toBe('afinada');
+    expect(tuner.getSnapshot().strings[5]).toBe('sin-afinar');
+    expect(tuner.getSnapshot().status).toBe('sin-sonido');
+  });
+
+  it('oír desafinarse una cuerda afinada la pasa a «revisar»', () => {
+    const { tuner, play } = setup();
+    tuner.open();
+    tuner.selectString(4);
+    play(4, 0, 1500);
+    expect(tuner.getSnapshot().strings[4]).toBe('afinada');
+    play(4, 30, 600);
+    expect(tuner.getSnapshot()).toMatchObject({ status: 'alta' });
+    expect(tuner.getSnapshot().strings[4]).toBe('revisar');
+  });
+
+  it('con la cuerda en la zona «casi» marca near y no la da por afinada', () => {
+    const { tuner, play } = setup();
+    tuner.open();
+    play(1, -10, 600);
+    expect(tuner.getSnapshot()).toMatchObject({ status: 'baja', near: true });
+    expect(tuner.getSnapshot().strings[1]).toBe('sin-afinar');
+  });
+
+  it('a los 5 minutos refresh() la pasa a «revisar» y la identidad de las marcas solo cambia si algo cambió', () => {
+    const { tuner, clock, play } = setup();
+    tuner.open();
+    tuner.selectString(3);
+    play(3, 0, 1500);
+    const before = tuner.getSnapshot().strings;
+    tuner.refresh();
+    expect(tuner.getSnapshot().strings).toBe(before);
+    clock.advance(5 * 60_000);
+    tuner.refresh();
+    expect(tuner.getSnapshot().strings).not.toBe(before);
+    expect(tuner.getSnapshot().strings[3]).toBe('revisar');
+  });
+
+  it('al abrir otra vez empieza con el tablero vacío', () => {
+    const { tuner, play } = setup();
+    tuner.open();
+    play(1, 0, 1500);
+    expect(tuner.getSnapshot().strings[1]).toBe('afinada');
+    tuner.close();
+    tuner.open();
+    expect(tuner.getSnapshot().strings[1]).toBe('sin-afinar');
   });
 });

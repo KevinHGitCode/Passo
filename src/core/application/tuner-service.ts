@@ -18,7 +18,14 @@ import { REFERENCE_A4_HZ } from '../domain/pitch';
 import { REFERENCE_GUARD_MS, referenceTone } from '../domain/reference-tone';
 import { StringBoard, sameMarks } from '../domain/string-board';
 import type { StringMarks } from '../domain/string-board';
-import { NO_SOUND, TunerTracker, centsFrom, searchRange, stringFrequency } from '../domain/tuner';
+import {
+  NO_SOUND,
+  TunerTracker,
+  centsFrom,
+  isValidReference,
+  searchRange,
+  stringFrequency,
+} from '../domain/tuner';
 import type { TuneOptions, TunerState } from '../domain/tuner';
 import type { Clock } from '../ports/clock';
 import type { Unsubscribe } from '../ports/note-input';
@@ -182,6 +189,28 @@ export class TunerService {
     const id = this.toneId;
     this.deps.tone?.stopTone();
     this.toneEnded(id);
+  }
+
+  /**
+   * Cambia el La4 con el que se mide (de 430 a 450 Hz). Todas las cuentas cambian, así que lo medido y lo
+   * recordado se olvidan, y la guía y la referencia se paran.
+   */
+  setReferenceHz(hz: number): void {
+    if (!isValidReference(hz) || hz === this.referenceHz) return;
+    this.stopReference();
+    this.referenceHz = hz;
+    this.run = null;
+    this.heldSince = null;
+    this.board = StringBoard.empty();
+    this.tracker.reset();
+    if (this.snapshot.open) {
+      this.deps.pitch.setPitchSearch(searchRange(this.snapshot.string, this.options()));
+    }
+    this.update({
+      ...NO_SOUND,
+      referenceHz: hz,
+      strings: this.marks(this.deps.clock.now()),
+    });
   }
 
   /** «Afinar las 6»: empieza por la cuerda 6 y sigue hasta la 1. */

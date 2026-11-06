@@ -4,7 +4,15 @@ import type { GuidedView, TunerService, TunerSnapshot } from '@/core/application
 import { openStringName } from '@/core/domain/instrument';
 import type { GuitarString } from '@/core/domain/instrument';
 import type { NotationMode } from '@/core/domain/note';
-import { FAR_CENTS, IN_TUNE_CENTS, NEAR_CENTS, stringFrequency } from '@/core/domain/tuner';
+import { REFERENCE_A4_HZ } from '@/core/domain/pitch';
+import {
+  FAR_CENTS,
+  IN_TUNE_CENTS,
+  MAX_REFERENCE_HZ,
+  MIN_REFERENCE_HZ,
+  NEAR_CENTS,
+  stringFrequency,
+} from '@/core/domain/tuner';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { InputStatus, NoteInput } from '@/core/ports/note-input';
 import { GameButton } from '../game/GameButton';
@@ -135,6 +143,8 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
   const tone = tunerTone(snapshot);
   const chip = tunerChipText(snapshot);
   const guided = snapshot.guided;
+  // Cambiar el La₄ mueve todas las cuentas: no mientras la guía o la nota de referencia están en marcha.
+  const refLocked = guided !== null || snapshot.tone;
 
   // La guía avisa una sola vez por paso: «Re afinada. Sigue la cuerda 3 (Sol)». No mueve el foco.
   const [guideNote, setGuideNote] = useState('');
@@ -206,6 +216,47 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
       <p className="tuner__lead">
         Afinación estándar: Mi · La · Re · Sol · Si · Mi. Elige una cuerda y tócala al aire.
       </p>
+
+      <div className="tuner__ref" role="group" aria-label="La₄ de referencia">
+        <span className="tuner__ref-label">La₄ =</span>
+        <button
+          type="button"
+          className="tuner__ref-btn"
+          aria-label="Bajar el La₄ un hercio"
+          disabled={refLocked || snapshot.referenceHz <= MIN_REFERENCE_HZ}
+          onClick={() => tuner.setReferenceHz(snapshot.referenceHz - 1)}
+          data-testid="tuner-ref-down"
+        >
+          −
+        </button>
+        <output className="tuner__ref-value" aria-live="polite" data-testid="tuner-ref-value">
+          {snapshot.referenceHz} Hz
+        </output>
+        <button
+          type="button"
+          className="tuner__ref-btn"
+          aria-label="Subir el La₄ un hercio"
+          disabled={refLocked || snapshot.referenceHz >= MAX_REFERENCE_HZ}
+          onClick={() => tuner.setReferenceHz(snapshot.referenceHz + 1)}
+          data-testid="tuner-ref-up"
+        >
+          +
+        </button>
+        {snapshot.referenceHz !== REFERENCE_A4_HZ ? (
+          <button
+            type="button"
+            className="link-button"
+            disabled={refLocked}
+            onClick={() => tuner.setReferenceHz(REFERENCE_A4_HZ)}
+            data-testid="tuner-ref-reset"
+          >
+            Volver a {REFERENCE_A4_HZ}
+          </button>
+        ) : null}
+        {refLocked ? (
+          <span className="tuner__muted">Se cambia con la guía y la nota paradas.</span>
+        ) : null}
+      </div>
 
       <div className="tuner__cols">
         <section className="tuner__card stage-dark" aria-labelledby="tuner-clavijero">

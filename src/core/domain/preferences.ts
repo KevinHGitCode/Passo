@@ -4,6 +4,8 @@ import { DEFAULT_INSTRUMENT, INSTRUMENTS } from './instrument';
 import type { Instrument } from './instrument';
 import type { NotationMode } from './note';
 import type { InputSource } from './note-event';
+import { REFERENCE_A4_HZ } from './pitch';
+import { isValidReference } from './tuner';
 
 export type ThemeChoice = 'auto' | 'claro' | 'oscuro';
 export const THEME_CHOICES: readonly ThemeChoice[] = ['auto', 'claro', 'oscuro'];
@@ -30,6 +32,8 @@ export interface Preferences {
   readonly levels: Readonly<Record<ExerciseMode, number>>;
   /** Varias notas por micrófono (BETA): apagado por defecto. */
   readonly polyphonicMic: boolean;
+  /** El La4 con el que mide el afinador de guitarra (440 Hz por omisión). */
+  readonly tunerReferenceHz: number;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -42,6 +46,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   mode: 'notas',
   levels: { notas: 1, terceras: 1, acordes: 1 },
   polyphonicMic: false,
+  tunerReferenceHz: REFERENCE_A4_HZ,
 };
 
 /** Cambios parciales: los niveles se mezclan por modo. */
@@ -107,6 +112,9 @@ function parseFields(raw: unknown, fallback: Preferences): Preferences {
     levels: parseLevels(raw['levels'], fallback.levels),
     polyphonicMic:
       typeof raw['polyphonicMic'] === 'boolean' ? raw['polyphonicMic'] : fallback.polyphonicMic,
+    tunerReferenceHz: isValidReference(raw['tunerReferenceHz'])
+      ? raw['tunerReferenceHz']
+      : fallback.tunerReferenceHz,
   };
 }
 
@@ -127,6 +135,7 @@ export function samePreferences(a: Preferences, b: Preferences): boolean {
     a.theme === b.theme &&
     a.mode === b.mode &&
     a.polyphonicMic === b.polyphonicMic &&
+    a.tunerReferenceHz === b.tunerReferenceHz &&
     EXERCISE_MODES.every((mode) => a.levels[mode] === b.levels[mode])
   );
 }

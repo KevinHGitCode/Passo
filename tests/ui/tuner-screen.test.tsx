@@ -569,3 +569,57 @@ describe('avisos de la guía', () => {
     expect(guidedAnnouncement(view(1), view(1), marks, 'latina')).toBe('');
   });
 });
+
+describe('el La₄ de referencia', () => {
+  const value = () => screen.getByTestId('tuner-ref-value').textContent;
+
+  it('se ve «440 Hz» y los dos botones de uno en uno', () => {
+    setup();
+    expect(value()).toBe('440 Hz');
+    expect(screen.getByRole('group', { name: 'La₄ de referencia' })).toBeTruthy();
+    expect(screen.queryByTestId('tuner-ref-reset')).toBeNull();
+    fireEvent.click(screen.getByTestId('tuner-ref-up'));
+    fireEvent.click(screen.getByTestId('tuner-ref-up'));
+    expect(value()).toBe('442 Hz');
+    fireEvent.click(screen.getByTestId('tuner-ref-down'));
+    expect(value()).toBe('441 Hz');
+  });
+
+  it('cambiarlo mueve la meta en Hz del medidor', () => {
+    setup();
+    act(() => undefined);
+    fireEvent.click(screen.getByTestId('tuner-ref-up'));
+    expect(document.body.textContent).toMatch(/Meta 330,4 Hz/);
+  });
+
+  it('«Volver a 440» aparece solo si es otro y lo devuelve', () => {
+    setup();
+    fireEvent.click(screen.getByTestId('tuner-ref-down'));
+    expect(screen.getByTestId('tuner-ref-reset').textContent).toBe('Volver a 440');
+    fireEvent.click(screen.getByTestId('tuner-ref-reset'));
+    expect(value()).toBe('440 Hz');
+    expect(screen.queryByTestId('tuner-ref-reset')).toBeNull();
+  });
+
+  it('en los extremos (430 y 450) el botón correspondiente se apaga', () => {
+    const { tuner } = setup();
+    act(() => tuner.setReferenceHz(430));
+    expect((screen.getByTestId('tuner-ref-down') as HTMLButtonElement).disabled).toBe(true);
+    act(() => tuner.setReferenceHz(450));
+    expect((screen.getByTestId('tuner-ref-up') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('con la guía o la nota en marcha no se cambia y se explica', () => {
+    const tone = new FakeTone();
+    setup({ tone });
+    fireEvent.click(screen.getByTestId('tuner-guided-start'));
+    expect((screen.getByTestId('tuner-ref-up') as HTMLButtonElement).disabled).toBe(true);
+    expect(document.querySelector('.tuner__ref')?.textContent).toContain(
+      'Se cambia con la guía y la nota paradas.',
+    );
+    fireEvent.click(screen.getByTestId('guided-exit'));
+    expect((screen.getByTestId('tuner-ref-up') as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(screen.getByTestId('tuner-reference'));
+    expect((screen.getByTestId('tuner-ref-up') as HTMLButtonElement).disabled).toBe(true);
+  });
+});

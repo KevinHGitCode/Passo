@@ -548,3 +548,104 @@ describe('TunerService · el modo guiado «Afinar las 6»', () => {
     expect(tuner.getSnapshot().guided).toBe(before);
   });
 });
+
+describe('TunerService · el La₄ de referencia', () => {
+  function withTone() {
+    const pitch = new FakePitch();
+    const clock = new FakeClock(0);
+    const tone = new FakeTone();
+    const tuner = new TunerService({ pitch, clock, tone });
+    return { pitch, clock, tone, tuner };
+  }
+
+  it('por omisión es 440 Hz', () => {
+    const { tuner } = setup();
+    expect(tuner.getSnapshot().referenceHz).toBe(440);
+  });
+
+  it('cambiarlo mueve la meta de cada cuerda y el intervalo de búsqueda', () => {
+    const { tuner, pitch } = setup();
+    tuner.open();
+    tuner.selectString(5);
+    tuner.setReferenceHz(432);
+    expect(tuner.getSnapshot().referenceHz).toBe(432);
+    const range = pitch.searches[pitch.searches.length - 1];
+    const target = stringFrequency(5, { referenceHz: 432 });
+    expect(range?.minHz).toBeLessThan(target);
+    expect(range?.maxHz).toBeGreaterThan(target);
+    expect(range?.maxHz).toBeLessThan(searchRangeMax440());
+  });
+
+  it('mide contra el La₄ elegido: una cuerda a 440 suena grave si el La₄ es 442', () => {
+    const { tuner, pitch, clock } = setup();
+    tuner.open();
+    tuner.selectString(5);
+    tuner.setReferenceHz(442);
+    for (let n = 0; n < 40; n++) {
+      clock.advance(20);
+      pitch.emit({ frequency: stringFrequency(5), clarity: 0.95, at: clock.now() });
+    }
+    // 7,85 cents por debajo de la meta de 442: «casi», no «afinada».
+    expect(tuner.getSnapshot()).toMatchObject({ status: 'baja', cents: -8, near: true });
+  });
+
+  it('una cuerda afinada a 442 queda «afinada» con ese La₄', () => {
+    const { tuner, pitch, clock } = setup();
+    tuner.open();
+    tuner.selectString(5);
+    tuner.setReferenceHz(442);
+    for (let n = 0; n < 80; n++) {
+      clock.advance(20);
+      pitch.emit({
+        frequency: stringFrequency(5, { referenceHz: 442 }),
+        clarity: 0.95,
+        at: clock.now(),
+      });
+    }
+    expect(tuner.getSnapshot().status).toBe('afinada');
+  });
+
+  it('olvida lo medido y lo recordado, y para la guía y la nota', () => {
+    const { tuner, tone } = withTone();
+    tuner.open();
+    tuner.startGuided();
+    tuner.exitGuided();
+    tuner.playReference();
+    tuner.setReferenceHz(438);
+    expect(tone.stops).toBe(1);
+    expect(tuner.getSnapshot()).toMatchObject({
+      tone: false,
+      guided: null,
+      status: 'sin-sonido',
+      cents: null,
+    });
+    expect(Object.values(tuner.getSnapshot().strings)).toEqual(Array(6).fill('sin-afinar'));
+  });
+
+  it('un valor fuera de 430–450 o no entero se ignora, y el mismo no repinta', () => {
+    const { tuner } = setup();
+    const snapshots: number[] = [];
+    tuner.subscribe(() => snapshots.push(tuner.getSnapshot().referenceHz));
+    tuner.setReferenceHz(429);
+    tuner.setReferenceHz(451);
+    tuner.setReferenceHz(440.5);
+    tuner.setReferenceHz(440);
+    expect(snapshots).toEqual([]);
+    tuner.setReferenceHz(441);
+    expect(snapshots).toEqual([441]);
+  });
+
+  it('la nota de referencia suena con la frecuencia del La₄ elegido', () => {
+    const { tuner, tone } = withTone();
+    tuner.open();
+    tuner.selectString(5);
+    tuner.setReferenceHz(432);
+    tuner.playReference();
+    expect(tone.played[0]?.frequency).toBeCloseTo(108, 6);
+  });
+});
+
+/** El extremo agudo del intervalo de búsqueda de la cuerda 5 con La₄ = 440 (para comparar). */
+function searchRangeMax440(): number {
+  return stringFrequency(5) * 2 ** (300 / 1200);
+}

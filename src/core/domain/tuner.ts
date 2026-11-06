@@ -28,6 +28,19 @@ export const NEAR_CENTS = 15;
 /** A partir de aquí la cuerda está «muy» grave o aguda (se dice distinto). */
 export const FAR_CENTS = 50;
 
+/** El La4 de referencia que admite el afinador (de 430 a 450 Hz, en pasos de 1 Hz). */
+export const MIN_REFERENCE_HZ = 430;
+export const MAX_REFERENCE_HZ = 450;
+
+export function isValidReference(hz: unknown): hz is number {
+  return (
+    typeof hz === 'number' &&
+    Number.isInteger(hz) &&
+    hz >= MIN_REFERENCE_HZ &&
+    hz <= MAX_REFERENCE_HZ
+  );
+}
+
 /** Con qué afinación y qué La4 se mide (por omisión, la estándar con La4 = 440 Hz). */
 export interface TuneOptions {
   readonly tuning?: Tuning;

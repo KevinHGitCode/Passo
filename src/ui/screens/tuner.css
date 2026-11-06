@@ -28,6 +28,41 @@
     grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
   }
 }
+.tuner__ref {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  color: var(--text-muted);
+  font-weight: 800;
+}
+.tuner__ref-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.4rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+.tuner__ref-btn:disabled,
+.tuner__ref .link-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.tuner__ref-value {
+  min-width: 4.2em;
+  color: var(--text);
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
 .tuner__card {
   display: flex;
   flex-direction: column;

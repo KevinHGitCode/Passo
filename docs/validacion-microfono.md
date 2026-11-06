@@ -132,8 +132,8 @@ tuya. Con el micrófono elegido (Ajustes → Cómo toco) y el chip del camino en
 
 | # | Qué hacer | Qué debe pasar |
 |---|---|---|
-| 37 | Abre **Afinador** (menú lateral o barra inferior), activa el micrófono, elige la cuerda 6 y toca el Mi grave al aire | Sale «Grave», «Aguda» o «Afinada» con los cents; compara con una app de afinar o un afinador de pinza |
-| 38 | Afina las seis cuerdas (de una en una, eligiendo la cuerda en pantalla) | Cada una llega a «Afinada» tras sostenerla un momento; anota cuáles cuestan (la 5 y la 6 son las difíciles por ser graves) |
+| 37 | Abre **Afinador** (menú lateral o barra inferior), activa el micrófono, toca la clavija 6 del clavijero y toca el Mi grave al aire | Sale «Grave», «Aguda» o «Afinada» con los cents y los Hz; compara con una app de afinar o un afinador de pinza |
+| 38 | Afina las seis cuerdas (de una en una, tocando su clavija en pantalla) | Cada una llega a «Afinada» tras sostenerla un momento y queda con su ✓ en el clavijero; anota cuáles cuestan (la 5 y la 6 son las difíciles por ser graves) |
 | 39 | Deja la cuerda 3 unos 60 cents floja a propósito y luego 120 | Dice «Grave» (no la confunde con otra nota) y, a partir de 50 cents, «Muy grave» |
 | 40 | Abre la lección «Mi · Si · Sol» (unidad 1), activa el micrófono, «Empezar» y toca cada cuerda al aire | Cada pulsación cuenta **una sola vez** (sin «ataques fantasma» que salgan como error); avanza la barra |
 | 41 | Haz «Re · La · Mi» (cuerdas 4, 5 y 6) | Anota qué cuerdas graves no oye o lee en otra nota. **Una nota oída en otra octava debe contar** (se juzga el nombre) |
@@ -148,6 +148,31 @@ tuya. Con el micrófono elegido (Ajustes → Cómo toco) y el chip del camino en
 
 Reporta además: **qué lecciones se atascaron** (cuerdas 5 y 6 sobre todo), cuántos «No te oí bien» seguidos hubo y la cifra
 «Oigo:» de la tira de escucha en las cuerdas graves.
+
+## Afinador pro (guitarra real)
+
+El clavijero, la nota de referencia, el modo guiado y el La₄ se probaron con la guitarra **sintética** y el micrófono simulado. Antes de
+empezar anota **qué clavijas tiene tu guitarra** (3 + 3 o las seis en un lado) y **hacia dónde giran** para subir la nota en cada una
+(el consejo del sentido de giro no se escribió porque hay que verificarlo con tu guitarra).
+
+| # | Qué hacer | Qué debe pasar |
+|---|---|---|
+| 50 | Compara el clavijero de la pantalla con el de tu guitarra | El esquema (4·5·6 a la izquierda y 3·2·1 a la derecha, la 6 y la 1 junto a la cejuela) es o no es el tuyo; si no, dilo: se añade otra variante |
+| 51 | Con las seis cuerdas al aire, mira las cifras y compáralas con un afinador de referencia | Cada cuerda dice Grave, Aguda o Afinada dentro de ±5 cents de la referencia; anota las diferencias (la 5 y la 6 pueden marcar +3 a +9 por inarmonicidad) |
+| 52 | Cuerda 6 y cuerda 5 al aire con el portátil a 20–30 cm | Debe leer la nota (no quedarse en «Toca la cuerda…»); si dice «sin sonido» con la cuerda sonando, anota la guitarra y la distancia |
+| 53 | Pulsa **Escuchar la nota** en cada cuerda (sin tocar nada) | Se oye la nota por el altavoz del portátil (anota si las graves casi no se oyen); mientras suena el medidor no marca nada y, ~0,5 s después de acabar, tampoco da un «Afinada» falso |
+| 54 | Afina de oído una cuerda con la nota de referencia y mira el medidor | Debe decir «Afinada» o «Casi» (±15 cents); anota la diferencia |
+| 55 | Desafina las seis y pulsa **Afinar las 6**; afínalas una a una | La guía va de la 6 a la 1, pasa sola 1,5 s después de quedar afinada, no se confunde con la cuerda anterior que sigue sonando y termina con «Las 6 cuerdas, afinadas» |
+| 56 | En la guía, salta con una clavija a una cuerda lejana (6 → 1, 6 → 2, 5 → 1) y toca esa cuerda | Debe medir esa cuerda; anota si da una lectura falsa de la cuerda anterior (el Mi4 es el 4.º armónico del Mi2 y el Si3 el 3.º) |
+| 57 | Toca **Repasar las 6** al terminar y pasa por las seis | Las seis pasan a «revisar» ↻ y la vuelta 2 termina con «Todo en su sitio» |
+| 58 | Cambia el La₄ a 442 Hz y recarga la página | Se queda en 442; la cuerda 5 afinada a 440 marca unos −8 cents («Casi») y vuelve a 440 con «Volver a 440» |
+| 59 | Mira el afinador en el móvil o la tableta (si lo usas así) | Cabe sin desplazarse de lado; las seis clavijas se pulsan con el dedo sin equivocarse |
+| 60 | Toca la cuerda 6 al aire con fuerza y deja que suene 8 s | Lee Grave, Aguda o Afinada de forma estable (sin saltar a otra nota ni quedarse en «sin sonido»); anota si marca la octava o el 2.º armónico |
+| 61 | Toca una cuerda a más de un tono (200 cents) de la meta | Dice «sin sonido»: es el límite conocido (±300 cents); anota qué ves y si esperabas una pista |
+| 62 | Afina la cuerda 5 con la nota de referencia puesta (sin esperar a que acabe) | La nota no la da por afinada sola; al acabar, ~0,5 s después, el medidor vuelve a oírte |
+
+Reporta además: **qué cuerdas no leyó** (con la distancia), si la nota de referencia se oyó en las graves y **cuánto tardó la guía** en
+pasar de una cuerda a otra.
 
 ## Qué reportar
 

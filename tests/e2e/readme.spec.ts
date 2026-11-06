@@ -238,6 +238,24 @@ test.describe('escritorio', () => {
     await page.waitForTimeout(300);
     await shot(page, 'afinador');
   });
+
+  test('guitarra: el afinador en modo guiado', async ({ page }) => {
+    await page.addInitScript(FAKE_MIC_SCRIPT);
+    await chooseGuitar(page);
+    await page.goto('/?seed=7#/afinador');
+    await page.getByTestId('tuner-activate').click();
+    await expect(page.getByTestId('tuner-mic')).toHaveCount(0, { timeout: 8000 });
+    await page.getByTestId('tuner-guided-start').click();
+    await micNote(page, 40, { ms: 3600 });
+    await expect(page.getByTestId('tuner-guide-step')).toHaveText('Paso 2 de 6 · vuelta 1', {
+      timeout: 9000,
+    });
+    await page.waitForTimeout(1500);
+    await micNote(page, 45, { ms: 2200, cents: -14 });
+    await expect(page.getByTestId('tuner-reading')).toHaveText('Casi', { timeout: 8000 });
+    await page.waitForTimeout(300);
+    await shot(page, 'afinador-guia');
+  });
 });
 
 test.describe('móvil', () => {
@@ -276,5 +294,18 @@ test.describe('móvil', () => {
     await expect(page.getByTestId('node-g1-4')).toHaveAttribute('data-state', 'actual');
     await page.waitForTimeout(600);
     await shot(page, 'movil-guitarra');
+  });
+
+  test('el afinador en el móvil', async ({ page }) => {
+    await page.addInitScript(FAKE_MIC_SCRIPT);
+    await chooseGuitar(page);
+    await page.goto('/?seed=7#/afinador');
+    await page.getByTestId('tuner-activate').click();
+    await expect(page.getByTestId('tuner-mic')).toHaveCount(0, { timeout: 8000 });
+    await page.getByTestId('tuner-string-4').click();
+    await micNote(page, 50, { ms: 2200, cents: -22 });
+    await expect(page.getByTestId('tuner-reading')).toContainText('Grave', { timeout: 8000 });
+    await page.waitForTimeout(300);
+    await shot(page, 'movil-afinador');
   });
 });

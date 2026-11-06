@@ -121,8 +121,8 @@ PC funcionan siempre.
 ### Guitarra
 
 El chip **«Estás aprendiendo»** abre la lista **Mis instrumentos** (pensada para que quepan más). La
-guitarra tiene su propio camino, un **mástil** que dice cuerda, traste y dedo, y un **afinador**. El
-acento de color pasa a violeta para que siempre sepas en qué instrumento estás.
+guitarra tiene su propio camino, un **mástil** que dice cuerda, traste y dedo, y un **afinador** completo.
+El acento de color pasa a violeta para que siempre sepas en qué instrumento estás.
 
 <table>
   <tr>
@@ -131,7 +131,25 @@ acento de color pasa a violeta para que siempre sepas en qué instrumento estás
   </tr>
   <tr>
     <td width="50%"><img src="docs/img/guitarra-leccion.png" alt="Una lección de guitarra: el mástil con la nota de ahora (cuerda 1, traste 3, dedo 3) y la siguiente" /></td>
-    <td width="50%"><img src="docs/img/afinador.png" alt="El afinador: cuerda 6 elegida, «Grave · 22 cents» y la indicación «Aprieta un poco la clavija»" /></td>
+    <td width="50%"><img src="docs/img/afinador.png" alt="El afinador: el clavijero con la cuerda 6 grave y el medidor con la nota Mi, −17 cents y la indicación «Aprieta un poco la clavija»" /></td>
+  </tr>
+</table>
+
+#### El afinador
+
+Pensado como el de las apps profesionales: un **clavijero** (el esquema de la cabeza de la guitarra con sus
+seis clavijas) que **recuerda cuáles ya están afinadas**, un **medidor** con zona verde (±5 cents) y zona
+«casi» (±15), la **nota de referencia** para oír lo que buscas, el modo guiado **«Afinar las 6»** (de la 6 a la
+1, pasa sola de una cuerda a la siguiente) y el **La₄** ajustable (430 a 450 Hz).
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/img/afinador-guia.png" alt="El modo guiado: paso 2 de 6 con la cuerda La en la zona «casi» (−11 cents), la 6 ya con su ✓ y la 4 marcada como la siguiente" /></td>
+    <td width="50%" align="center"><img src="docs/img/movil-afinador.png" alt="El afinador en el móvil: clavijero compacto y el medidor de la cuerda 4" width="250" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Modo guiado: avanza solo cuando la cuerda queda afinada.</sub></td>
+    <td align="center"><sub>En el móvil, el medidor se ve sin bajar mucho.</sub></td>
   </tr>
 </table>
 
@@ -162,7 +180,7 @@ de instrumento y la ventana de la lección como hoja que sube desde abajo.
 | **Repaso de puntos débiles** | «Practicar 3 min» arma una lección al momento con las notas que más te cuestan |
 | **Juego** | Experiencia, niveles, racha de días (con un día de descanso por semana) y meta diaria de 5 minutos |
 | **Progreso** | Mapa de calor del teclado, curva de precisión, notas que más cuestan por instrumento |
-| **Afinador de guitarra** | Eliges la cuerda; dice «Grave», «Aguda» o «Afinada» con los cents, y avisa si casi no oye |
+| **Afinador de guitarra** | Clavijero con el estado de las seis cuerdas, medidor (Grave / Aguda / Casi / Afinada, cents y Hz), nota de referencia, modo guiado «Afinar las 6» y La₄ ajustable |
 | **Práctica libre** | La pantalla de siempre: notas, terceras o acordes, a tu nivel y con la ayuda que elijas |
 | **Ajustes** | Entrada (micrófono, MIDI o teclado del PC), ejercicio y nivel, notación Do Re Mi o C D E, ayuda y tema. Se recuerdan |
 | **Accesibilidad** | Contraste AA comprobado por pruebas, nada depende solo del color, navegación con teclado, anuncios para lector de pantalla y respeto de «reducir movimiento» |
@@ -211,7 +229,9 @@ oyó. Una nota dudosa nunca cuenta como error. Los detalles y lo medido están e
   suena y el micrófono suele leer mal las cuerdas graves; así que el Mi de la cuerda 6 y el de la 1 cuentan
   igual. El mástil te dice dónde tocarlo (cuerda, traste y dedo).
 - **Afina primero.** Con una cuerda floja todas las notas saldrían como error; el camino te lo recuerda y
-  el afinador está a un toque. Sostiene ±5 cents durante 600 ms para dar «Afinada».
+  el afinador está a un toque. Eliges la cuerda en el clavijero (o dejas que la guía vaya de la 6 a la 1) y da
+  «Afinada» con ±5 cents sostenidos 600 ms. Todavía no detecta solo qué cuerda tocas (modo Auto): es lo más
+  arriesgado con un micrófono de portátil y queda para cuando se valide con una guitarra real.
 - **Solo con micrófono**, en afinación estándar y notas naturales hasta el traste 3.
 - **Pronto:** arpegios y acordes, tablatura y la canción «Mi corazón encantado» compás a compás (ver la
   [hoja de ruta](#estado-y-hoja-de-ruta)).
@@ -305,7 +325,7 @@ evidencias/    videos y capturas de cada fase cerrada, con su informe
 | `E2E_VIDEO=off npm run e2e` | Lo mismo sin grabar video |
 | `npm run build` · `npm run preview` | Compilación de producción y vista previa |
 
-`npm run check` pasa con **1375 pruebas** en 77 archivos y la suite e2e tiene **58 pruebas en Edge**.
+`npm run check` pasa con **1558 pruebas** en 83 archivos y la suite e2e tiene **63 pruebas en Edge**.
 Cada fase cerrada deja su informe, su video y sus capturas en [`evidencias/`](evidencias/).
 
 Para volver a generar las capturas de este README (usan un micrófono simulado y no corren con
@@ -333,6 +353,7 @@ es **solo local**.
 | 2 | Ajustes, terceras y acordes, manos y dedos, notas que caen | Hecha |
 | 3 | **Passo como juego:** camino, estrellas, experiencia, racha y progreso guardado | Hecha (falta validar con el piano real) |
 | G1 | **Guitarra, etapa 1:** instrumento, mástil, afinador y tres unidades de notas | Hecha (falta validar con la guitarra real) |
+| A | **Afinador pro** de guitarra: clavijero, medidor, nota de referencia, modo guiado y La₄ (Auto queda aparte) | Hecha (falta validar con la guitarra real) |
 | G2 | Guitarra: arpegios y acordes abiertos | En diseño (plan en [docs/fases/guitarra-2.md](docs/fases/guitarra-2.md)) |
 | G3 · G4 | Guitarra: tablatura · canciones compás a compás («Mi corazón encantado») | Pendiente |
 | 4 | Modos espera y estricto, niveles con negras | Pendiente |

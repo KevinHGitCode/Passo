@@ -1,6 +1,6 @@
 # Guitarra · el afinador, a nivel de las apps profesionales
 
-> Estado: **propuesta de diseño para aprobar** (Kevin). Revisada por los 3 expertos (música y acústica, interfaz, arquitectura e infraestructura). **No se construye nada hasta que Kevin la apruebe.**
+> Estado: **implementada** (aprobada por Kevin). Diseño revisado por los 3 expertos (música y acústica, interfaz, arquitectura e infraestructura) y, ya construida, por los mismos tres. **Falta validarla con una guitarra real** (pasos 50–62 de `docs/validacion-microfono.md`): todo el audio de las pruebas es sintético. **Auto no se construyó.** Al final, «Lo que se construyó» y «Límites y deuda».
 > Maqueta (privada): https://claude.ai/artifact/2Zt8CqyUNnFNFR6cDKbVbL · 6 tableros: escritorio (cuerda grave, modo guiado, las 6 afinadas), móvil (dos estados) y estilos del medidor con los estados.
 
 ## Para qué
@@ -32,7 +32,7 @@ Fuentes: [Yousician: cambiar afinaciones y opciones del afinador](https://suppor
 
 ### Modo guiado «Afinar las 6»
 
-Empieza en la cuerda 6 y sigue hasta la 1 (de grave a aguda), con «Cuerda 3 de 6 · vuelta 1» y seis segmentos de avance. Al quedar afinada, la cuerda se queda **1,5 s** en verde y la guía pasa a la siguiente **sin mover el foco** (un solo anuncio: «Re afinada. Sigue la 3, Sol»). Al avanzar, **la regla espera un ataque nuevo**: la cuerda anterior sigue sonando 3–6 s y su segundo armónico caería en el rango de la siguiente. Controles: «Siguiente cuerda», «Pausar», «Salir de la guía» y `Esc`. Tocar una clavija salta a esa cuerda sin perder lo hecho. Durante la guía el conmutador Auto/Manual queda desactivado («la guía marca la cuerda»).
+Empieza en la cuerda 6 y sigue hasta la 1 (de grave a aguda), con «Paso 3 de 6 · vuelta 1» y seis segmentos de avance. Al quedar afinada, la cuerda se queda **1,5 s** en verde y la guía pasa a la siguiente **sin mover el foco** (un solo anuncio: «Re afinada. Sigue la 3, Sol»). Al avanzar, **la regla espera un ataque nuevo**: la cuerda anterior sigue sonando 3–6 s y su segundo armónico caería en el rango de la siguiente. Controles: «Siguiente cuerda», «Pausar», «Salir de la guía» y `Esc`. Tocar una clavija salta a esa cuerda sin perder lo hecho. Durante la guía el conmutador Auto/Manual queda desactivado («la guía marca la cuerda»).
 
 **Pantalla final:** «Las 6 cuerdas, afinadas» · «Al tensar unas, otras se mueven. Repasa las 6 una vez más.» · botones «Repasar las 6» (primario), «Ir a las lecciones» y «Seguir afinando»; tras la segunda vuelta: «Todo en su sitio» y «Ir a las lecciones» pasa a primario. La «segunda vuelta» no es una fase nueva: es un mensaje con botón. Comprobación por oído: pisar el traste 5 de la cuerda 6 y compararla con la 5 al aire.
 
@@ -106,3 +106,45 @@ Manual y guiado salen sin Auto. Se corta de esta entrega: Auto, el tono de «afi
 - La referencia sale por los altavoces del portátil: poco grave. Se compensa con armónicos y se dice «úsala como guía, no como medida».
 - Todo se prueba con guitarra **sintética**; los umbrales hay que confirmarlos con la guitarra real (pasos 37–49 de `docs/validacion-microfono.md`, aún pendientes).
 - El coste por fotograma del rango amplio de Auto es una estimación sin medir: medir con `performance.now()` en `?debug` en un móvil medio antes de optimizar.
+
+---
+
+## Lo que se construyó
+
+Seis pasos, un commit cada uno (`npm run check` en verde en todos) y una revisión final de los tres expertos:
+
+1. **Dominio y servicio:** `tuning.ts`, `StringBoard`, `TunerTracker` con `afinando`/`near`/`far`, La₄ en `stringFrequency` y `searchRange`.
+2. **Clavijero 3 + 3 y medidor nuevo:** seis botones de opción reales (orden 6→1), regla con zona verde y «casi», cents grandes con signo, Hz «Meta / oigo», instrucción por estado.
+3. **Nota de referencia:** puerto `ToneOutput` + `WebAudioOutput`; la medición se pausa mientras suena y 500 ms después.
+4. **Modo guiado «Afinar las 6»:** `GuidedRun` puro; avanza solo tras 1,5 s afinada; pausar, saltar, tocar una clavija, `Esc`, pantalla final.
+5. **La₄ ajustable** de 430 a 450 Hz con − y +, guardado en las preferencias sin subir `PREFERENCES_VERSION`.
+6. **Revisión final** (corregida en este cierre): el fundido de `stopTone` ahora se oye (los nodos se sueltan después), la guía recuerda cómo terminó la cuerda anterior (`last`), un fallo del audio no deja el afinador esperando, terminar la guía corta la nota, el clavijero y la pantalla no se redibujan con cada lectura del micrófono, un solo aviso por paso para el lector de pantalla y compactación en el móvil.
+
+**Verificación:** `npm run check` (1558 pruebas en 83 archivos, lint, dependencias y build); e2e en Edge con el micrófono simulado (`tests/e2e/afinador.spec.ts`: clavijero con teclado, nota de referencia con R, guía hasta la pantalla final, La₄ que se recuerda al recargar y móvil de 375 px) con video y 11 capturas en `evidencias/afinador/`. Contrastes comprobados en `tokens-contrast` (también el número y la nota de cada clavija).
+
+## Decisiones al construir (donde se afinó lo propuesto)
+
+- **Sin el conmutador Manual | Auto** en esta entrega (Auto queda fuera): el afinador es siempre manual y la guía marca la cuerda.
+- **Sin sonido de «afinada»**: solo lo visual y, para el lector de pantalla, el aviso de la guía.
+- **«Paso 2 de 6 · vuelta 1»** (no «Cuerda 2 de 6»): «cuerda» ya nombra la cuerda que se afina.
+- **La₄** (`La₄ 440 Hz`): el prefijo «La₄ » solo lo lee el lector de pantalla; en la línea «Meta» aparece «· La₄ N» si no es 440.
+- **`R` mantenida no alterna** la nota (se ignora `event.repeat`).
+- **«Casi» se dice «Ahí está: mantén la cuerda sonando»** (más claro que «Casi: …» junto a la zona ámbar).
+- **Móvil (≤ 480 px):** se ocultan la leyenda y la nota de la guía para que la nota grande y el medidor se vean sin bajar mucho.
+
+## Límites y deuda (explícitos)
+
+- **Auto** (detectar qué cuerda suena) no está. Es lo más arriesgado con un micrófono de portátil: queda para tras validar con la guitarra real (sección «Auto»).
+- **Todo el audio de las pruebas es sintético.** Nadie ha afinado aún una guitarra real con esto (pasos 37–62 de `docs/validacion-microfono.md`).
+- **«Esperar un ataque nuevo»** al avanzar es solo `tracker.reset()`: seguro en el orden 6→1, pero en saltos con clavija (6→1, 6→2, 5→1, 4→2, 5→3) la cuerda anterior que aún suena podría leerse (el Mi4 es el 4.º armónico del Mi2). Hay un paso de validación (56).
+- Una cuerda a más de 300 cents de la meta da «sin sonido» sin pista.
+- El ✓ puede quedarse con ±6–8 cents (histéresis de salida a ±8).
+- Nivel y perfil de armónicos de la nota de referencia de la cuerda 4 sin oír en altavoces reales; `canReference` no mira `sin-soporte`.
+- **Sentido de giro de la clavija** (consejo) sin escribir: hay que verlo con la guitarra de Kevin.
+- Pequeñas limpiezas pendientes: `guideKey` en lugar del `eslint-disable` del aviso de la guía; `canRepeat`; mover `frequencyFromCents` e `isValidReference` al dominio de tono; flechas del teclado frente a la disposición 3 + 3; La₄ y notación americana en Ajustes; `waitForTimeout` en el e2e.
+
+## Preguntas abiertas para Kevin
+
+1. ¿Qué clavijas tiene tu guitarra (3 + 3 o las seis en un lado)? Si no es 3 + 3, se añade otra variante del clavijero.
+2. ¿Quieres **Auto** ahora o después de validar con la guitarra real?
+3. ¿Un sonido de «afinada»? (Hoy no hay.)

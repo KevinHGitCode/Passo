@@ -26,7 +26,7 @@ const LINES: Readonly<Record<GuitarString, { from: readonly [number, number]; to
 const ORDER: readonly GuitarString[] = [...GUITAR_STRINGS].reverse();
 
 export interface HeadstockProps {
-  readonly snapshot: Pick<TunerSnapshot, 'status' | 'string' | 'strings'>;
+  readonly snapshot: Pick<TunerSnapshot, 'status' | 'string' | 'strings' | 'guided'>;
   readonly notation: NotationMode;
   readonly onSelect: (string: GuitarString) => void;
   readonly groupRef?: RefObject<HTMLDivElement | null>;

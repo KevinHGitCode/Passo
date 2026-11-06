@@ -324,3 +324,227 @@ describe('TunerService · la nota de referencia', () => {
     expect(tuner.getSnapshot().tone).toBe(false);
   });
 });
+
+describe('TunerService · el modo guiado «Afinar las 6»', () => {
+  type StringNumber = 1 | 2 | 3 | 4 | 5 | 6;
+
+  /** Una afinador abierto con una guía que sigue lo que toca la prueba. */
+  function guided() {
+    const { pitch, clock, tuner } = setup();
+    const play = (string: StringNumber, cents: number, ms: number) => {
+      const end = clock.now() + ms;
+      while (clock.now() < end) {
+        clock.advance(20);
+        pitch.emit({
+          frequency: stringFrequency(string) * 2 ** (cents / 1200),
+          clarity: 0.95,
+          at: clock.now(),
+        });
+      }
+    };
+    /** Afina una cuerda: la sostiene bien afinada el tiempo de sobra para que la guía avance. */
+    const tune = (string: StringNumber, cents = 0) => play(string, cents, 2800);
+    tuner.open();
+    return { pitch, clock, tuner, play, tune };
+  }
+
+  it('empieza en la cuerda 6, busca su tono y marca la pasada', () => {
+    const { tuner, pitch } = guided();
+    tuner.startGuided();
+    const snapshot = tuner.getSnapshot();
+    expect(snapshot.string).toBe(6);
+    expect(snapshot.guided).toMatchObject({
+      queue: [6, 5, 4, 3, 2, 1],
+      index: 0,
+      lap: 1,
+      paused: false,
+      finished: false,
+      complete: false,
+      next: 5,
+    });
+    const range = pitch.searches[pitch.searches.length - 1];
+    expect(range?.minHz).toBeLessThan(stringFrequency(6));
+    expect(range?.maxHz).toBeGreaterThan(stringFrequency(6));
+  });
+
+  it('con el afinador cerrado no empieza', () => {
+    const { tuner } = setup();
+    tuner.startGuided();
+    expect(tuner.getSnapshot().guided).toBeNull();
+  });
+
+  it('al quedar afinada y sostenerla 1,5 s, pasa a la siguiente con la regla en reposo', () => {
+    const { tuner, tune } = guided();
+    tuner.startGuided();
+    tune(6, 1);
+    const snapshot = tuner.getSnapshot();
+    expect(snapshot.string).toBe(5);
+    expect(snapshot.status).toBe('sin-sonido');
+    expect(snapshot.cents).toBeNull();
+    expect(snapshot.guided?.index).toBe(1);
+    expect(snapshot.guided?.finals[6]).toBe(1);
+    expect(snapshot.strings[6]).toBe('afinada');
+  });
+
+  it('no avanza mientras la cuerda siga desafinada ni antes de sostenerla', () => {
+    const { tuner, play } = guided();
+    tuner.startGuided();
+    play(6, -25, 3000);
+    expect(tuner.getSnapshot().string).toBe(6);
+    expect(tuner.getSnapshot().guided?.index).toBe(0);
+    play(6, 0, 900);
+    expect(tuner.getSnapshot().string).toBe(6);
+  });
+
+  it('cambia el intervalo de búsqueda a la cuerda nueva al avanzar', () => {
+    const { tuner, pitch, tune } = guided();
+    tuner.startGuided();
+    tune(6);
+    const range = pitch.searches[pitch.searches.length - 1];
+    expect(range?.minHz).toBeLessThan(stringFrequency(5));
+    expect(range?.maxHz).toBeGreaterThan(stringFrequency(5));
+  });
+
+  it('recorre las seis y termina completa, con los cents de cada una', () => {
+    const { tuner, tune } = guided();
+    tuner.startGuided();
+    for (const string of [6, 5, 4, 3, 2, 1] as const) tune(string, string === 3 ? 2 : 0);
+    const guide = tuner.getSnapshot().guided;
+    expect(guide).toMatchObject({ finished: true, complete: true, missing: [], next: null });
+    expect(guide?.finals).toMatchObject({ 6: 0, 3: 2, 1: 0 });
+    expect(Object.values(tuner.getSnapshot().strings)).toEqual(Array(6).fill('afinada'));
+  });
+
+  it('«Repasar las 6» marca todas «revisar» y empieza la vuelta 2 por la 6', () => {
+    const { tuner, tune } = guided();
+    tuner.startGuided();
+    for (const string of [6, 5, 4, 3, 2, 1] as const) tune(string);
+    tuner.repeatGuided();
+    const snapshot = tuner.getSnapshot();
+    expect(snapshot.guided).toMatchObject({ lap: 2, index: 0, finished: false });
+    expect(snapshot.string).toBe(6);
+    expect(Object.values(snapshot.strings)).toEqual(Array(6).fill('revisar'));
+    for (const string of [6, 5, 4, 3, 2, 1] as const) tune(string);
+    expect(tuner.getSnapshot().guided).toMatchObject({ lap: 2, finished: true, complete: true });
+  });
+
+  it('«Siguiente cuerda» salta sin afinar y la pasada incompleta dice cuáles faltan', () => {
+    const { tuner, tune } = guided();
+    tuner.startGuided();
+    tune(6);
+    tuner.skipGuided();
+    expect(tuner.getSnapshot().string).toBe(4);
+    for (const string of [4, 3, 2, 1] as const) tune(string);
+    const guide = tuner.getSnapshot().guided;
+    expect(guide).toMatchObject({ finished: true, complete: false, missing: [5] });
+  });
+
+  it('«Seguir con las que faltan» arma una pasada solo con ellas', () => {
+    const { tuner, tune } = guided();
+    tuner.startGuided();
+    tune(6);
+    tuner.skipGuided();
+    tuner.skipGuided();
+    tuner.skipGuided();
+    tuner.skipGuided();
+    tuner.skipGuided();
+    expect(tuner.getSnapshot().guided).toMatchObject({ finished: true, missing: [5, 4, 3, 2, 1] });
+    tuner.continueGuided();
+    expect(tuner.getSnapshot().guided).toMatchObject({
+      queue: [5, 4, 3, 2, 1],
+      index: 0,
+      finished: false,
+    });
+    expect(tuner.getSnapshot().string).toBe(5);
+  });
+
+  it('con todo afinado «seguir con las que faltan» no hace nada', () => {
+    const { tuner, tune } = guided();
+    tuner.startGuided();
+    for (const string of [6, 5, 4, 3, 2, 1] as const) tune(string);
+    const before = tuner.getSnapshot().guided;
+    tuner.continueGuided();
+    expect(tuner.getSnapshot().guided).toBe(before);
+  });
+
+  it('en pausa no mide ni avanza, y al seguir empieza de cero', () => {
+    const { tuner, play } = guided();
+    tuner.startGuided();
+    tuner.pauseGuided();
+    expect(tuner.getSnapshot().guided?.paused).toBe(true);
+    play(6, 0, 4000);
+    expect(tuner.getSnapshot()).toMatchObject({ string: 6, status: 'sin-sonido' });
+    expect(tuner.getSnapshot().guided?.index).toBe(0);
+    tuner.resumeGuided();
+    expect(tuner.getSnapshot().guided?.paused).toBe(false);
+    play(6, -20, 500);
+    expect(tuner.getSnapshot().status).toBe('baja');
+  });
+
+  it('tocar una clavija salta a esa cuerda sin perder lo hecho', () => {
+    const { tuner, tune } = guided();
+    tuner.startGuided();
+    tune(6);
+    tuner.selectString(2);
+    const snapshot = tuner.getSnapshot();
+    expect(snapshot.string).toBe(2);
+    expect(snapshot.guided).toMatchObject({ index: 4, next: 1 });
+    expect(snapshot.guided?.finals[6]).toBe(0);
+    expect(snapshot.strings[6]).toBe('afinada');
+  });
+
+  it('tocar la clavija de una cuerda que no está en la pasada sale de la guía', () => {
+    const { tuner, tune } = guided();
+    tuner.startGuided();
+    tune(6);
+    tuner.skipGuided();
+    tuner.skipGuided();
+    tuner.skipGuided();
+    tuner.skipGuided();
+    tuner.skipGuided();
+    tuner.continueGuided();
+    expect(tuner.getSnapshot().guided?.queue).toEqual([5, 4, 3, 2, 1]);
+    tuner.selectString(6);
+    expect(tuner.getSnapshot()).toMatchObject({ string: 6, guided: null });
+  });
+
+  it('tocar una clavija con la pasada terminada sale de la guía y sigue a mano', () => {
+    const { tuner, tune } = guided();
+    tuner.startGuided();
+    for (const string of [6, 5, 4, 3, 2, 1] as const) tune(string);
+    tuner.selectString(1);
+    expect(tuner.getSnapshot().guided).toBeNull();
+    expect(tuner.getSnapshot().string).toBe(1);
+  });
+
+  it('salir de la guía deja la cuerda en la que estaba, lo recordado y la medición a mano', () => {
+    const { tuner, tune, play } = guided();
+    tuner.startGuided();
+    tune(6);
+    tuner.exitGuided();
+    const snapshot = tuner.getSnapshot();
+    expect(snapshot.guided).toBeNull();
+    expect(snapshot.string).toBe(5);
+    expect(snapshot.strings[6]).toBe('afinada');
+    play(5, 0, 4000);
+    expect(tuner.getSnapshot().string).toBe(5);
+    expect(tuner.getSnapshot().status).toBe('afinada');
+  });
+
+  it('cerrar el afinador termina la guía y al abrir otra vez empieza a mano', () => {
+    const { tuner } = guided();
+    tuner.startGuided();
+    tuner.close();
+    expect(tuner.getSnapshot().guided).toBeNull();
+    tuner.open();
+    expect(tuner.getSnapshot().guided).toBeNull();
+  });
+
+  it('la vista de la guía conserva su identidad mientras nada cambie', () => {
+    const { tuner, play } = guided();
+    tuner.startGuided();
+    const before = tuner.getSnapshot().guided;
+    play(6, -20, 400);
+    expect(tuner.getSnapshot().guided).toBe(before);
+  });
+});

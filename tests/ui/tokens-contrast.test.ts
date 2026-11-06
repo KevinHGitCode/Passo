@@ -138,6 +138,11 @@ const TUNER_PAIRS: readonly [string, string, number, string][] = [
   ['fret-string', 'fret-wood', GRAPHIC, 'las cuerdas de la cabeza'],
   ['fret-string-wound', 'fret-wood', GRAPHIC, 'las cuerdas entorchadas de la cabeza'],
   ['fret-wire', 'surface', GRAPHIC, 'el borde de la cabeza'],
+  ['accent', 'surface-2', GRAPHIC, 'el aro de la clavija siguiente'],
+  ['ok-strong', 'surface', TEXT, 'el título de la pantalla final'],
+  ['warn-strong', 'surface', TEXT, 'el título cuando faltan cuerdas'],
+  ['ok', 'surface', TEXT, 'la marca «afinada» de la lista final'],
+  ['warn', 'surface', TEXT, 'la marca «falta» de la lista final'],
 ];
 
 describe('contraste de los tokens del juego', () => {

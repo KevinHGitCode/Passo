@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { KeyboardEvent } from 'react';
-import type { TunerService, TunerSnapshot } from '@/core/application/tuner-service';
+import type { GuidedView, TunerService, TunerSnapshot } from '@/core/application/tuner-service';
 import { openStringName } from '@/core/domain/instrument';
 import type { GuitarString } from '@/core/domain/instrument';
 import type { NotationMode } from '@/core/domain/note';
@@ -10,6 +10,7 @@ import type { InputStatus, NoteInput } from '@/core/ports/note-input';
 import { GameButton } from '../game/GameButton';
 import { hintText } from '../listen/listen-messages';
 import { useInputStatus, useMonitor } from '../practice/hooks';
+import { GuidedSteps, GuidedSummary, guidedAnnouncement } from './GuidedTuner';
 import { Headstock } from './Headstock';
 import {
   TUNING_TIPS,
@@ -133,6 +134,17 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
       : '';
   const tone = tunerTone(snapshot);
   const chip = tunerChipText(snapshot);
+  const guided = snapshot.guided;
+
+  // La guía avisa una sola vez por paso: «Re afinada. Sigue la cuerda 3 (Sol)». No mueve el foco.
+  const [guideNote, setGuideNote] = useState('');
+  const previousGuide = useRef<GuidedView | null>(null);
+  useEffect(() => {
+    setGuideNote(guidedAnnouncement(guided, previousGuide.current, snapshot.strings, notation));
+    previousGuide.current = guided;
+    // Solo al empezar, avanzar o terminar la guía (no con cada cambio de marcas).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guided?.index, guided?.finished, guided?.lap, guided === null]);
 
   // Solo se anuncia un estado que se mantiene un momento: así no se repite al oscilar cerca de un límite.
   useEffect(() => {
@@ -169,6 +181,11 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
   // Atajos de una sola tecla: solo con el foco dentro del afinador (no en toda la página).
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
+    if (event.key === 'Escape' && snapshot.guided !== null) {
+      event.preventDefault();
+      tuner.exitGuided();
+      return;
+    }
     if (event.key === 'r' || event.key === 'R') {
       if (!snapshot.canReference) return;
       event.preventDefault();
@@ -211,6 +228,7 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
             <span>↓ bájala</span>
             <span>✓ afinada</span>
             <span>↻ revisar</span>
+            {guided && !guided.finished ? <span>→ siguiente</span> : null}
           </p>
         </section>
 
@@ -220,63 +238,100 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
           data-tone={tone}
           data-status={snapshot.status}
         >
-          <p className="tuner__target" data-testid="tuner-target">
-            <span className="tuner__kicker">
-              Cuerda {snapshot.string}
-              {role ? ` · ${role}` : ''}
-            </span>
-            <span className="tuner__name">{name}</span>
-          </p>
-          {message !== null ? (
-            <div className="tuner__mic" role="status" data-testid="tuner-mic">
-              <p>{message}</p>
-              {status === null || status.kind !== 'conectado' ? (
-                <GameButton onClick={() => void microphone?.start()} data-testid="tuner-activate">
-                  Activar micrófono
-                </GameButton>
-              ) : null}
-            </div>
+          {guided && !guided.finished ? (
+            <GuidedSteps
+              view={guided}
+              onSkip={() => tuner.skipGuided()}
+              onPause={() => tuner.pauseGuided()}
+              onResume={() => tuner.resumeGuided()}
+              onExit={() => tuner.exitGuided()}
+            />
+          ) : null}
+          {guided?.finished ? (
+            <GuidedSummary
+              view={guided}
+              marks={snapshot.strings}
+              notation={notation}
+              onRepeat={() => tuner.repeatGuided()}
+              onContinue={() => tuner.continueGuided()}
+              onExit={() => tuner.exitGuided()}
+            />
           ) : (
             <>
-              <p className="tuner__hz" aria-hidden="true">
-                Meta {formatHz(target)} Hz{heard === null ? '' : ` · oigo ${formatHz(heard)} Hz`}
+              <p className="tuner__target" data-testid="tuner-target">
+                <span className="tuner__kicker">
+                  Cuerda {snapshot.string}
+                  {role ? ` · ${role}` : ''}
+                </span>
+                <span className="tuner__name">{name}</span>
               </p>
-              <Ruler cents={snapshot.cents} />
-              <p className="tuner__ends" aria-hidden="true">
-                <span>♭ Grave</span>
-                <span>Aguda ♯</span>
-              </p>
-              <p className="tuner__read" aria-hidden="true">
-                <b data-testid="tuner-cents" data-idle={snapshot.cents === null}>
-                  {snapshot.cents === null ? '–' : formatCents(snapshot.cents)}
-                </b>
-                <span>cents</span>
-                {chip ? (
-                  <em data-testid="tuner-reading" data-status={snapshot.status}>
-                    {chip}
-                  </em>
+              {message !== null ? (
+                <div className="tuner__mic" role="status" data-testid="tuner-mic">
+                  <p>{message}</p>
+                  {status === null || status.kind !== 'conectado' ? (
+                    <GameButton
+                      onClick={() => void microphone?.start()}
+                      data-testid="tuner-activate"
+                    >
+                      Activar micrófono
+                    </GameButton>
+                  ) : null}
+                </div>
+              ) : (
+                <>
+                  <p className="tuner__hz" aria-hidden="true">
+                    Meta {formatHz(target)} Hz
+                    {heard === null ? '' : ` · oigo ${formatHz(heard)} Hz`}
+                  </p>
+                  <Ruler cents={snapshot.cents} />
+                  <p className="tuner__ends" aria-hidden="true">
+                    <span>♭ Grave</span>
+                    <span>Aguda ♯</span>
+                  </p>
+                  <p className="tuner__read" aria-hidden="true">
+                    <b data-testid="tuner-cents" data-idle={snapshot.cents === null}>
+                      {snapshot.cents === null ? '–' : formatCents(snapshot.cents)}
+                    </b>
+                    <span>cents</span>
+                    {chip ? (
+                      <em data-testid="tuner-reading" data-status={snapshot.status}>
+                        {chip}
+                      </em>
+                    ) : null}
+                  </p>
+                  <p className="tuner__hint" data-tone={tone} data-testid="tuner-hint">
+                    {hint.icon ? <HintGlyph icon={hint.icon} /> : null}
+                    <span>{hint.text}</span>
+                  </p>
+                </>
+              )}
+              <div className="tuner__acts">
+                {snapshot.canReference ? (
+                  <GameButton
+                    onClick={toggleReference}
+                    aria-keyshortcuts="r"
+                    data-testid="tuner-reference"
+                    data-playing={snapshot.tone}
+                  >
+                    <HintGlyph icon="sound" />
+                    {snapshot.tone ? 'Detener la nota' : 'Escuchar la nota'}
+                  </GameButton>
                 ) : null}
-              </p>
-              <p className="tuner__hint" data-tone={tone} data-testid="tuner-hint">
-                {hint.icon ? <HintGlyph icon={hint.icon} /> : null}
-                <span>{hint.text}</span>
-              </p>
+                {guided === null ? (
+                  <GameButton
+                    variant="secondary"
+                    onClick={() => tuner.startGuided()}
+                    data-testid="tuner-guided-start"
+                  >
+                    Afinar las 6
+                  </GameButton>
+                ) : null}
+                {snapshot.canReference ? (
+                  <span className="tuner__muted">Úsala como guía: no sustituye al medidor.</span>
+                ) : null}
+              </div>
             </>
           )}
-          {snapshot.canReference ? (
-            <div className="tuner__acts">
-              <GameButton
-                onClick={toggleReference}
-                aria-keyshortcuts="r"
-                data-testid="tuner-reference"
-                data-playing={snapshot.tone}
-              >
-                <HintGlyph icon="sound" />
-                {snapshot.tone ? 'Detener la nota' : 'Escuchar la nota'}
-              </GameButton>
-              <span className="tuner__muted">Úsala como guía: no sustituye al medidor.</span>
-            </div>
-          ) : null}
           <p className="tuner__muted">
             Afina siempre subiendo: si te pasas, afloja bien y vuelve a subir. Toca solo esa cuerda
             y silencia las demás.
@@ -292,6 +347,9 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
         </section>
       </div>
 
+      <div className="sr-only" role="status" aria-live="polite" data-testid="tuner-guide-live">
+        {guideNote}
+      </div>
       {/* Solo cambios de estado: nunca los cents (el monitor emite ~15 veces por segundo). */}
       <div className="sr-only" role="status" aria-live="polite" data-testid="tuner-live">
         {announced}

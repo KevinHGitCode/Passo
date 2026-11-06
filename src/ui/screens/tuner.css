@@ -455,6 +455,119 @@
   margin-right: 8px;
   vertical-align: -5px;
 }
+/* ---------- El modo guiado ---------- */
+.peg--sig {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+.peg--sig .peg__badge {
+  color: var(--accent);
+}
+.tuner__guide {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tuner__steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+.tuner__steps-title {
+  margin: 0;
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tuner__steps-bar {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 140px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tuner__steps-bar li {
+  flex: 1;
+  height: 10px;
+  border-radius: 6px;
+  background: var(--border);
+}
+.tuner__steps-bar li[data-state='hecha'] {
+  background: var(--ok);
+}
+.tuner__steps-bar li[data-state='actual'] {
+  background: var(--accent);
+}
+.tuner__guide-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.tuner__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tuner__summary-title {
+  margin: 0;
+  color: var(--ok-strong);
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+.tuner__summary[data-complete='false'] .tuner__summary-title {
+  color: var(--warn-strong);
+}
+.tuner__summary-text {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.tuner__summary-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  list-style: none;
+  overflow: hidden;
+}
+.tuner__summary-list li {
+  display: grid;
+  grid-template-columns: 5.5em 3em minmax(0, 1fr) 6.5em;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.tuner__summary-list li + li {
+  border-top: 2px solid var(--border);
+}
+.tuner__summary-list li span:nth-child(3) {
+  color: var(--text-muted);
+  text-align: right;
+}
+.tuner__summary-mark {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  text-align: right;
+}
+.tuner__summary-list li[data-tuned='true'] .tuner__summary-mark {
+  color: var(--ok);
+}
+.tuner__summary-list li[data-tuned='false'] .tuner__summary-mark {
+  color: var(--warn);
+}
 .tuner__tips summary {
   min-height: 44px;
   padding: 10px 0;

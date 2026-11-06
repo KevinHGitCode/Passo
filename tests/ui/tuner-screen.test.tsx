@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach } from 'vitest';
 import { TunerService } from '@/core/application/tuner-service';
 import { stringFrequency } from '@/core/domain/tuner';
+import { guidedAnnouncement } from '@/ui/screens/GuidedTuner';
 import { TunerScreen } from '@/ui/screens/TunerScreen';
 import {
   formatCents,
@@ -346,5 +347,225 @@ describe('la nota de referencia', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('el modo guiado «Afinar las 6»', () => {
+  type StringNumber = 1 | 2 | 3 | 4 | 5 | 6;
+  const step = () => screen.queryByTestId('tuner-guide-step')?.textContent;
+  const start = () => fireEvent.click(screen.getByTestId('tuner-guided-start'));
+
+  /** Afina una cuerda: la sostiene bien afinada el tiempo de sobra para que la guía avance. */
+  function tuneAll(
+    play: (s: StringNumber, c: number, ms: number) => void,
+    strings: StringNumber[],
+  ) {
+    for (const string of strings) play(string, 0, 2800);
+  }
+
+  it('«Afinar las 6» empieza por la cuerda 6 y muestra el paso, los seis segmentos y los controles', () => {
+    setup();
+    expect(screen.queryByTestId('tuner-guide')).toBeNull();
+    start();
+    expect(step()).toBe('Cuerda 1 de 6 · vuelta 1');
+    expect(screen.getByTestId('tuner-target').textContent).toContain('Cuerda 6');
+    expect(document.querySelectorAll('.tuner__steps-bar li')).toHaveLength(6);
+    expect(screen.getByTestId('guided-skip').textContent).toBe('Siguiente cuerda');
+    expect(screen.getByTestId('guided-pause').textContent).toBe('Pausar');
+    expect(screen.getByTestId('guided-exit').textContent).toBe('Salir de la guía');
+    expect(screen.queryByTestId('tuner-guided-start')).toBeNull();
+    expect(radio(6).checked).toBe(true);
+  });
+
+  it('la clavija de la cuerda que viene después se marca con una flecha y con texto', () => {
+    setup();
+    start();
+    expect(peg(5).getAttribute('data-mark')).toBe('sig');
+    expect(peg(5).textContent).toContain('la siguiente');
+    expect(peg(5).textContent).toContain('→');
+    expect(document.querySelector('.tuner__legend')?.textContent).toContain('→ siguiente');
+  });
+
+  it('al afinar una cuerda pasa sola a la siguiente: su ✓ queda y el paso avanza', () => {
+    const { play } = setup();
+    start();
+    play(6, 0, 2800);
+    expect(step()).toBe('Cuerda 2 de 6 · vuelta 1');
+    expect(screen.getByTestId('tuner-target').textContent).toContain('Cuerda 5');
+    expect(peg(6).getAttribute('data-mark')).toBe('listo');
+    expect(peg(4).getAttribute('data-mark')).toBe('sig');
+    expect(document.querySelectorAll('.tuner__steps-bar li[data-state="hecha"]')).toHaveLength(1);
+  });
+
+  it('un solo aviso al lector de pantalla por paso y el foco no se mueve', () => {
+    const { play } = setup();
+    start();
+    const guideLive = screen.getByTestId('tuner-guide-live');
+    expect(guideLive.textContent).toBe('Modo guiado. Sigue la cuerda 6 (Mi)');
+    radio(6).focus();
+    play(6, 0, 2800);
+    expect(guideLive.textContent).toBe('Mi afinada. Sigue la cuerda 5 (La)');
+    expect(document.activeElement).toBe(radio(6));
+  });
+
+  it('«Siguiente cuerda» pasa sin afinar y lo dice distinto', () => {
+    setup();
+    start();
+    fireEvent.click(screen.getByTestId('guided-skip'));
+    expect(step()).toBe('Cuerda 2 de 6 · vuelta 1');
+    expect(peg(6).getAttribute('data-mark')).toBe('pend');
+    expect(screen.getByTestId('tuner-guide-live').textContent).toBe(
+      'Pasas a la cuerda 5. Sigue la cuerda 5 (La)',
+    );
+  });
+
+  it('«Pausar» detiene la guía y pide «Seguir»; en pausa no se mide', () => {
+    const { play } = setup();
+    start();
+    fireEvent.click(screen.getByTestId('guided-pause'));
+    expect(screen.getByTestId('guided-pause').textContent).toBe('Seguir');
+    expect(screen.getByTestId('tuner-hint').textContent).toContain('Guía en pausa');
+    play(6, 0, 4000);
+    expect(step()).toBe('Cuerda 1 de 6 · vuelta 1');
+    fireEvent.click(screen.getByTestId('guided-pause'));
+    expect(screen.getByTestId('guided-pause').textContent).toBe('Pausar');
+  });
+
+  it('tocar una clavija salta a esa cuerda sin perder lo hecho', () => {
+    const { play } = setup();
+    start();
+    play(6, 0, 2800);
+    fireEvent.click(radio(2));
+    expect(step()).toBe('Cuerda 5 de 6 · vuelta 1');
+    expect(peg(6).getAttribute('data-mark')).toBe('listo');
+  });
+
+  it('«Salir de la guía» y la tecla Esc vuelven a afinar a mano', () => {
+    setup();
+    start();
+    fireEvent.click(screen.getByTestId('guided-exit'));
+    expect(screen.queryByTestId('tuner-guide')).toBeNull();
+    expect(screen.getByTestId('tuner-guided-start')).toBeTruthy();
+    start();
+    fireEvent.keyDown(radio(6), { key: 'Escape' });
+    expect(screen.queryByTestId('tuner-guide')).toBeNull();
+    expect(screen.getByTestId('tuner-guide-live').textContent).toBe('');
+  });
+
+  it('Esc fuera de la guía no hace nada', () => {
+    const { tuner } = setup();
+    fireEvent.keyDown(radio(1), { key: 'Escape' });
+    expect(tuner.getSnapshot().guided).toBeNull();
+  });
+
+  it('al afinar las seis sale la pantalla final con cómo quedó cada una y qué hacer', () => {
+    const { play } = setup();
+    start();
+    tuneAll(play, [6, 5, 4, 3, 2, 1]);
+    expect(screen.queryByTestId('tuner-guide')).toBeNull();
+    expect(screen.getByTestId('tuner-summary-title').textContent).toBe('Las 6 cuerdas, afinadas');
+    expect(screen.getByTestId('tuner-summary').textContent).toContain(
+      'Al tensar unas, otras se mueven. Repasa las 6 una vez más.',
+    );
+    const rows = document.querySelectorAll('.tuner__summary-list li');
+    expect(rows).toHaveLength(6);
+    expect(rows[0]?.textContent).toContain('Cuerda 6');
+    expect(rows[0]?.textContent).toContain('✓ afinada');
+    expect(screen.getByTestId('guided-repeat').textContent).toBe('Repasar las 6');
+    expect(screen.getByTestId('guided-lessons').getAttribute('href')).toBe('#/guitarra');
+    expect(screen.getByTestId('guided-exit').textContent).toBe('Seguir afinando');
+    expect(screen.getByTestId('tuner-guide-live').textContent).toBe('Las 6 cuerdas, afinadas');
+  });
+
+  it('«Repasar las 6» empieza la vuelta 2 y al terminarla dice «Todo en su sitio»', () => {
+    const { play } = setup();
+    start();
+    tuneAll(play, [6, 5, 4, 3, 2, 1]);
+    fireEvent.click(screen.getByTestId('guided-repeat'));
+    expect(step()).toBe('Cuerda 1 de 6 · vuelta 2');
+    expect(peg(5).getAttribute('data-mark')).toBe('sig');
+    tuneAll(play, [6, 5, 4, 3, 2, 1]);
+    expect(screen.getByTestId('tuner-summary-title').textContent).toBe('Todo en su sitio');
+    expect(screen.queryByTestId('guided-repeat')).toBeNull();
+    expect(screen.getByTestId('guided-lessons')).toBeTruthy();
+  });
+
+  it('si se saltó alguna, la pantalla final dice cuáles faltan y ofrece seguir con ellas', () => {
+    setup();
+    start();
+    for (let n = 0; n < 6; n++) fireEvent.click(screen.getByTestId('guided-skip'));
+    expect(screen.getByTestId('tuner-summary-title').textContent).toBe('Faltan cuerdas por afinar');
+    expect(screen.getByTestId('tuner-summary').textContent).toContain('Faltan: cuerda 6 (Mi)');
+    expect(screen.getByTestId('tuner-summary').getAttribute('data-complete')).toBe('false');
+    fireEvent.click(screen.getByTestId('guided-continue'));
+    expect(step()).toBe('Cuerda 1 de 6 · vuelta 1');
+  });
+
+  it('«Seguir afinando» deja la cuerda elegida y las ✓ para seguir a mano', () => {
+    const { play } = setup();
+    start();
+    tuneAll(play, [6, 5, 4, 3, 2, 1]);
+    fireEvent.click(screen.getByTestId('guided-exit'));
+    expect(screen.queryByTestId('tuner-summary')).toBeNull();
+    expect(screen.getByTestId('tuner-target')).toBeTruthy();
+    expect(peg(6).getAttribute('data-mark')).toBe('listo');
+  });
+});
+
+describe('avisos de la guía', () => {
+  const marks = {
+    1: 'sin-afinar',
+    2: 'sin-afinar',
+    3: 'sin-afinar',
+    4: 'sin-afinar',
+    5: 'sin-afinar',
+    6: 'afinada',
+  } as const;
+  const view = (index: number, lap: 1 | 2 = 1, extra = {}) => ({
+    queue: [6, 5, 4, 3, 2, 1] as const,
+    index,
+    lap,
+    paused: false,
+    finished: false,
+    complete: false,
+    missing: [5, 4, 3, 2, 1] as const,
+    next: null,
+    finals: {},
+    ...extra,
+  });
+
+  it('sin guía no dice nada', () => {
+    expect(guidedAnnouncement(null, view(0), marks, 'latina')).toBe('');
+  });
+
+  it('al empezar dice por dónde empieza', () => {
+    expect(guidedAnnouncement(view(0), null, marks, 'latina')).toBe(
+      'Modo guiado. Sigue la cuerda 6 (Mi)',
+    );
+  });
+
+  it('al empezar el repaso también', () => {
+    expect(guidedAnnouncement(view(0, 2), view(6, 1, { finished: true }), marks, 'latina')).toBe(
+      'Modo guiado. Sigue la cuerda 6 (Mi)',
+    );
+  });
+
+  it('con la cuerda anterior afinada dice «afinada», si no, que pasas', () => {
+    expect(guidedAnnouncement(view(1), view(0), marks, 'latina')).toBe(
+      'Mi afinada. Sigue la cuerda 5 (La)',
+    );
+    expect(guidedAnnouncement(view(2), view(1), marks, 'latina')).toBe(
+      'Pasas a la cuerda 4. Sigue la cuerda 4 (Re)',
+    );
+  });
+
+  it('al terminar anuncia el resultado y, si no cambió el paso, nada', () => {
+    expect(
+      guidedAnnouncement(view(6, 1, { finished: true, complete: true }), view(5), marks, 'latina'),
+    ).toBe('Las 6 cuerdas, afinadas');
+    expect(guidedAnnouncement(view(6, 1, { finished: true }), view(5), marks, 'latina')).toBe(
+      'Faltan cuerdas por afinar',
+    );
+    expect(guidedAnnouncement(view(1), view(1), marks, 'latina')).toBe('');
   });
 });

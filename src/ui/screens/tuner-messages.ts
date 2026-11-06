@@ -1,4 +1,4 @@
-import type { TunerSnapshot } from '@/core/application/tuner-service';
+import type { GuidedView, TunerSnapshot } from '@/core/application/tuner-service';
 import type { GuitarString } from '@/core/domain/instrument';
 import type { StringMark } from '@/core/domain/string-board';
 
@@ -56,9 +56,14 @@ export interface TunerHint {
 
 /** La instrucción de debajo del medidor. */
 export function tunerHint(
-  snapshot: Pick<TunerSnapshot, 'status' | 'far' | 'near' | 'string' | 'tone'>,
+  snapshot: Pick<TunerSnapshot, 'status' | 'far' | 'near' | 'string' | 'tone'> & {
+    readonly guided?: Pick<GuidedView, 'paused'> | null;
+  },
   context: { readonly name: string; readonly listening: boolean; readonly weakHint: string | null },
 ): TunerHint {
+  if (snapshot.guided?.paused === true) {
+    return { text: 'Guía en pausa. Pulsa «Seguir» cuando quieras.', icon: 'wait' };
+  }
   if (snapshot.tone) {
     return {
       text: 'Suena la nota de referencia. Escúchala y compárala con tu cuerda.',
@@ -94,7 +99,7 @@ export function tunerHint(
 }
 
 /** Cómo se ve cada clavija: lo que se oye ahora (si es la elegida) o lo que se recuerda de ella. */
-export type PegKey = 'pend' | 'sube' | 'baja' | 'listo' | 'revisar';
+export type PegKey = 'pend' | 'sube' | 'baja' | 'listo' | 'revisar' | 'sig';
 
 export interface PegVisual {
   readonly key: PegKey;
@@ -110,6 +115,7 @@ const PEGS: Readonly<Record<PegKey, PegVisual>> = {
   baja: { key: 'baja', badge: '↓', word: 'aguda: bájala' },
   listo: { key: 'listo', badge: '✓', word: 'afinada' },
   revisar: { key: 'revisar', badge: '↻', word: 'revisar' },
+  sig: { key: 'sig', badge: '→', word: 'la siguiente' },
 };
 
 const FROM_MARK: Readonly<Record<StringMark, PegKey>> = {
@@ -119,13 +125,20 @@ const FROM_MARK: Readonly<Record<StringMark, PegKey>> = {
 };
 
 export function pegVisual(
-  snapshot: Pick<TunerSnapshot, 'status' | 'string' | 'strings'>,
+  snapshot: Pick<TunerSnapshot, 'status' | 'string' | 'strings'> & {
+    readonly guided?: Pick<GuidedView, 'next' | 'finished'> | null;
+  },
   string: GuitarString,
 ): PegVisual {
   if (string === snapshot.string) {
     if (snapshot.status === 'baja') return PEGS.sube;
     if (snapshot.status === 'alta') return PEGS.baja;
     if (snapshot.status === 'afinada') return PEGS.listo;
+  }
+  // En la guía, la cuerda que viene después se marca con una flecha (si aún no está afinada).
+  const guide = snapshot.guided;
+  if (guide && !guide.finished && guide.next === string && snapshot.strings[string] !== 'afinada') {
+    return PEGS.sig;
   }
   return PEGS[FROM_MARK[snapshot.strings[string]]];
 }

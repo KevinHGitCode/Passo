@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Passo</title>
+  <defs>
+    <linearGradient id="fondo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fa4ff" />
+      <stop offset="1" stop-color="#3454d1" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14.08" fill="url(#fondo)" />
+  <rect x="10.24" y="15.36" width="43.52" height="34.56" rx="2.88" fill="#fafbff" />
+  <path d="M24.75 15.36V49.92M39.25 15.36V49.92" stroke="#b0bef0" stroke-width="1.02" />
+  <path
+    d="M21.07 15.36H28.43V32.64Q28.43 34.56 26.51 34.56H22.99Q21.07 34.56 21.07 32.64ZM35.57 15.36H42.93V32.64Q42.93 34.56 41.01 34.56H37.49Q35.57 34.56 35.57 32.64Z"
+    fill="#18225c"
+  />
+</svg>

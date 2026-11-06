@@ -183,6 +183,12 @@ Abre la dirección que muestre la terminal (normalmente <http://localhost:5173>)
 3. Con micrófono, pulsa **Activar micrófono**: el navegador pide permiso, Passo mide el ruido de la
    sala y, cuando dice que escucha, empiezas. El micrófono **nunca se enciende solo** y se apaga al salir.
 
+**Con un icono en el escritorio (Windows):** ejecuta una vez
+`powershell -ExecutionPolicy Bypass -File scripts\crear_icono_escritorio.ps1` y aparece **Passo**
+junto a tus otros accesos. Un clic arranca el servidor si hace falta (queda en una ventana minimizada:
+cerrarla lo detiene) y abre la aplicación en <http://localhost:5173>. El icono sale de
+`scripts/generar_icono.py`.
+
 Sin piano a mano, prueba con el teclado del PC: abre <http://localhost:5173/?pc#/practica> y toca con
 las teclas `A S D F G H J K L ;` (mano derecha, de Do4 a Mi5) o `Z X C V B N M` (mano izquierda, de Do3 a Si3).
 

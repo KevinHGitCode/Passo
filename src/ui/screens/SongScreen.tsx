@@ -1,6 +1,7 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { SongService, SongSnapshot } from '@/core/application/song-service';
 import { noteLabel } from '@/core/domain/instrument';
+import { noteValueOf, noteValueText } from '@/core/domain/score';
 import type { NotationMode } from '@/core/domain/note';
 import { PACE_MARK, SPEEDS, findSong, formatSeconds, stepMs, summarize } from '@/core/domain/songs';
 import type { Song, SongStep } from '@/core/domain/songs';
@@ -9,7 +10,10 @@ import type { NoteInput } from '@/core/ports/note-input';
 import { GameButton, GameLink } from '../game/GameButton';
 import { useInputStatus, useMonitor } from '../practice/hooks';
 import { hrefOf, CANCIONES } from '../router/routes';
+import { Score } from './Score';
 import './songs.css';
+
+type View = 'sencilla' | 'partitura';
 
 /** Una tablatura mínima: las seis cuerdas (la 1 arriba) con el traste en la cuerda que toca. */
 function Tab({ string, fret }: { readonly string: number; readonly fret: number }) {
@@ -35,10 +39,17 @@ function Tab({ string, fret }: { readonly string: number; readonly fret: number 
 function StepCard({
   step,
   notation,
+  showValue,
 }: {
   readonly step: SongStep;
   readonly notation: NotationMode;
+  readonly showValue: boolean;
 }) {
+  const value = showValue ? (
+    <p className="song__value" data-testid="song-value">
+      {noteValueText(noteValueOf(step.beats))}
+    </p>
+  ) : null;
   if (step.kind === 'nota') {
     return (
       <div className="song__now" data-kind="nota" data-testid="song-now">
@@ -47,7 +58,8 @@ function StepCard({
         <p className="song__how">
           Cuerda {step.string} · {step.fret === 0 ? 'al aire' : `traste ${step.fret}`}
         </p>
-        <Tab string={step.string} fret={step.fret} />
+        {value}
+        {showValue ? null : <Tab string={step.string} fret={step.fret} />}
       </div>
     );
   }
@@ -58,6 +70,7 @@ function StepCard({
       <p className="song__strum">
         Rasguea: <b>{step.strum}</b>
       </p>
+      {value}
       <p className="song__how">{step.shape}</p>
     </div>
   );
@@ -188,6 +201,7 @@ export function SongScreen({
   const song = findSong(songId);
   const snapshot = useSyncExternalStore(songs.subscribe, songs.getSnapshot);
   const status = useInputStatus(microphone);
+  const [view, setView] = useState<View>('sencilla');
   const monitor = useMonitor(microphone);
 
   useEffect(() => {
@@ -269,6 +283,27 @@ export function SongScreen({
               : `Paso ${snapshot.index + 1} de ${total}`}
       </p>
 
+      <div className="song__speed" role="radiogroup" aria-label="Vista">
+        {(
+          [
+            ['sencilla', 'Vista sencilla'],
+            ['partitura', 'Partitura y tablatura'],
+          ] as const
+        ).map(([id, label]) => (
+          <label key={id} className="song__speed-option">
+            <input
+              type="radio"
+              name="vista"
+              value={id}
+              checked={view === id}
+              onChange={() => setView(id)}
+              data-testid={`song-view-${id}`}
+            />
+            <span>{label}</span>
+          </label>
+        ))}
+      </div>
+
       {snapshot.phase === 'listo' ? (
         <div className="song__speed" role="radiogroup" aria-label="Velocidad">
           {SPEEDS.map((speed) => (
@@ -293,7 +328,27 @@ export function SongScreen({
         <Summary song={song} snapshot={snapshot} songs={songs} />
       ) : step ? (
         <>
-          <StepCard step={step} notation={notation} />
+          <StepCard step={step} notation={notation} showValue={view === 'partitura'} />
+          {view === 'partitura' ? (
+            <>
+              <Score song={song} current={snapshot.previewIndex ?? snapshot.index} />
+              <details className="song__howto">
+                <summary>Cómo leer la partitura</summary>
+                <p>
+                  Arriba va el <b>pentagrama</b> (cinco líneas) con la clave de Sol y los{' '}
+                  <b>compases</b> separados por rayas. La nota más abajo suena más grave. Cuanto más
+                  corta la figura, más «adornos»: la <b>redonda</b> es hueca y sin palito (4
+                  pulsos), la <b>blanca</b> hueca con palito (2), la <b>negra</b> llena (1), la{' '}
+                  <b>corchea</b> lleva un corchete (½) y la <b>semicorchea</b> dos (¼). Un punto a
+                  su lado suma la mitad.
+                </p>
+                <p>
+                  Abajo va la <b>tablatura</b>: cada línea es una cuerda (la de arriba, la 1) y el
+                  número es el traste. La guitarra se escribe una octava más aguda de como suena.
+                </p>
+              </details>
+            </>
+          ) : null}
           {snapshot.idealMs !== null && previous && !snapshot.previewing ? (
             <div className="song__ideal" data-testid="song-ideal">
               <span className="song__ideal-label">

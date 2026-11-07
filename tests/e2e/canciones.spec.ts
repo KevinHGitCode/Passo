@@ -84,6 +84,36 @@ test('Canciones · se puede escuchar la canción antes de tocarla y detenerla', 
   await expect(page.locator('.song__chip[data-playing="true"]')).toHaveCount(0);
 });
 
+test('Canciones · la vista de partitura muestra el pentagrama, las figuras y la tablatura', async ({
+  page,
+}) => {
+  await openSong(page, 'cumpleanos-feliz');
+  await page.getByTestId('song-view-partitura').check();
+  await expect(page.getByTestId('score')).toBeVisible();
+  await expect(page.getByTestId('song-value')).toContainText('Corchea con puntillo');
+  await expect(page.getByTestId('score-event-0')).toHaveAttribute('data-state', 'actual');
+  await capture(page, '08-partitura');
+  // Al tocar avanza la marca y el valor de la figura.
+  await micNote(page, 55, { ms: 500 });
+  await expect(page.getByTestId('score-event-1')).toHaveAttribute('data-state', 'actual');
+  await expect(page.getByTestId('score-event-0')).toHaveAttribute('data-state', 'hecho');
+  await expect(page.getByTestId('song-value')).toContainText('Semicorchea');
+});
+
+test('Canciones · la partitura del rasgueo lleva acordes apilados, su tablatura y el rasgueo', async ({
+  page,
+}) => {
+  await openSong(page, 'de-colores');
+  await page.getByTestId('song-view-partitura').check();
+  await expect(page.getByTestId('score')).toContainText('G');
+  await expect(page.getByTestId('score')).toContainText('↓ ↓↑ ↑↓↑');
+  await expect(page.getByTestId('song-value')).toContainText('Redonda');
+  await capture(page, '09-partitura-rasgueo');
+  await page.setViewportSize({ width: 375, height: 812 });
+  expect(await noHorizontalScroll(page)).toBe(true);
+  await capture(page, '10-partitura-movil');
+});
+
 test('Canciones · el rasgueo marca el cambio de acorde', async ({ page }) => {
   await openSong(page, 'de-colores');
   await expect(page.getByTestId('song-now')).toContainText('G');

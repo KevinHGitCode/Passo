@@ -35,6 +35,8 @@ export interface ChordStep {
   readonly strum: string;
   /** Las notas que suenan (MIDI sonoro, de la cuerda grave a la aguda): para escuchar la canción. */
   readonly notes: readonly Midi[];
+  /** El traste de cada cuerda, de la 1 a la 6 (`null` = no se toca): la tablatura del acorde. */
+  readonly tab: readonly (number | null)[];
   readonly beats: number;
   readonly lyric: string;
 }
@@ -47,6 +49,8 @@ export interface Song {
   readonly style: SongStyle;
   /** Pulsos por minuto a velocidad normal. */
   readonly bpm: number;
+  /** Pulsos por compás (3 en un vals, 4 en lo habitual). */
+  readonly beatsPerBar: number;
   readonly summary: string;
   readonly steps: readonly SongStep[];
 }
@@ -64,10 +68,20 @@ const chord = (
   name: string,
   shape: string,
   notes: readonly Midi[],
+  tab: readonly (number | null)[],
   strum: string,
   beats: number,
   lyric: string,
-): ChordStep => ({ kind: 'acorde', chord: name, shape, strum, notes, beats, lyric });
+): ChordStep => ({
+  kind: 'acorde',
+  chord: name,
+  shape,
+  strum,
+  notes,
+  tab,
+  beats,
+  lyric,
+});
 
 /**
  * Una melodía escrita como tablatura (seis líneas, de la cuerda 1 a la 6, sin las letras de las cuerdas).
@@ -120,7 +134,7 @@ const HAPPY_BIRTHDAY: readonly SongStep[] = [
   note(1, 0, 1, 'ños'),
   note(2, 1, 1, 'que'),
   note(2, 0, 1, 'ri'),
-  note(3, 2, 2, 'do'),
+  note(3, 2, 1, 'do'),
   note(1, 1, 0.75, 'Cum'),
   note(1, 1, 0.25, 'ple'),
   note(1, 0, 1, 'a'),
@@ -227,17 +241,21 @@ const STRUM = '↓ ↓↑ ↑↓↑';
 const G_NOTES: readonly Midi[] = [43, 47, 50, 55, 59, 67];
 const C_NOTES: readonly Midi[] = [48, 52, 55, 60, 64];
 const D7_NOTES: readonly Midi[] = [50, 57, 60, 66];
+/** El traste de cada cuerda (de la 1 a la 6). */
+const G_TAB = [3, 0, 0, 0, 2, 3] as const;
+const C_TAB = [0, 1, 0, 2, 3, null] as const;
+const D7_TAB = [2, 1, 2, 0, null, null] as const;
 
 const DE_COLORES: readonly SongStep[] = [
-  chord('G', G_SHAPE, G_NOTES, STRUM, 4, 'De colores, de colores'),
-  chord('C', C_SHAPE, C_NOTES, STRUM, 4, 'se visten los campos'),
-  chord('G', G_SHAPE, G_NOTES, STRUM, 4, 'en la primavera'),
-  chord('D7', D7_SHAPE, D7_NOTES, STRUM, 4, 'De colores, de colores'),
-  chord('G', G_SHAPE, G_NOTES, STRUM, 4, 'son los pajaritos'),
-  chord('C', C_SHAPE, C_NOTES, STRUM, 4, 'que vienen de afuera'),
-  chord('G', G_SHAPE, G_NOTES, STRUM, 4, 'De colores, de colores'),
-  chord('D7', D7_SHAPE, D7_NOTES, STRUM, 4, 'es el arco iris'),
-  chord('G', G_SHAPE, G_NOTES, STRUM, 4, 'que vemos lucir'),
+  chord('G', G_SHAPE, G_NOTES, G_TAB, STRUM, 4, 'De colores, de colores'),
+  chord('C', C_SHAPE, C_NOTES, C_TAB, STRUM, 4, 'se visten los campos'),
+  chord('G', G_SHAPE, G_NOTES, G_TAB, STRUM, 4, 'en la primavera'),
+  chord('D7', D7_SHAPE, D7_NOTES, D7_TAB, STRUM, 4, 'De colores, de colores'),
+  chord('G', G_SHAPE, G_NOTES, G_TAB, STRUM, 4, 'son los pajaritos'),
+  chord('C', C_SHAPE, C_NOTES, C_TAB, STRUM, 4, 'que vienen de afuera'),
+  chord('G', G_SHAPE, G_NOTES, G_TAB, STRUM, 4, 'De colores, de colores'),
+  chord('D7', D7_SHAPE, D7_NOTES, D7_TAB, STRUM, 4, 'es el arco iris'),
+  chord('G', G_SHAPE, G_NOTES, G_TAB, STRUM, 4, 'que vemos lucir'),
 ];
 
 export const SONGS: readonly Song[] = [
@@ -246,6 +264,7 @@ export const SONGS: readonly Song[] = [
     title: 'Cumpleaños feliz',
     style: 'melodia',
     bpm: 90,
+    beatsPerBar: 3,
     summary: 'La melodía de siempre, en primera posición (cuerdas 1 a 3).',
     steps: HAPPY_BIRTHDAY,
   },
@@ -254,6 +273,7 @@ export const SONGS: readonly Song[] = [
     title: 'Mi corazón encantado',
     style: 'melodia',
     bpm: 80,
+    beatsPerBar: 4,
     summary:
       'El opening de Dragon Ball GT: la introducción y la primera frase. Tablatura de la comunidad (LaCuerda); si algo no suena como la canción, fíate de tu oído.',
     steps: MI_CORAZON,
@@ -263,6 +283,7 @@ export const SONGS: readonly Song[] = [
     title: 'Estrellita, ¿dónde estás?',
     style: 'melodia',
     bpm: 80,
+    beatsPerBar: 4,
     summary: 'Melodía de la canción popular; pasa por el traste 5 de la cuerda 1.',
     steps: TWINKLE,
   },
@@ -271,6 +292,7 @@ export const SONGS: readonly Song[] = [
     title: 'De colores (acordes sencillos)',
     style: 'rasgueo',
     bpm: 70,
+    beatsPerBar: 4,
     summary: 'G, C y D7 con rasgueo: practica el cambio de acorde.',
     steps: DE_COLORES,
   },

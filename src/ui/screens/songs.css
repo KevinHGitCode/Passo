@@ -243,6 +243,127 @@
   background: var(--accent-soft);
   transform: translateY(-3px);
 }
+.song__value {
+  margin: 0;
+  color: var(--accent-strong);
+  font-weight: 900;
+}
+.song__howto {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.song__howto summary {
+  min-height: 44px;
+  color: var(--accent-strong);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* La partitura: clave de Sol, compases, figuras y tablatura. */
+.score {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--text);
+}
+.score__row {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.score__line {
+  stroke: var(--text-muted);
+  stroke-width: 1.2;
+}
+.score__line--tab {
+  stroke-width: 1;
+  opacity: 0.8;
+}
+.score__bar-line,
+.score__ledger,
+.score__stem {
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+.score__flag {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+.score__head {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.score__head[data-open='true'] {
+  fill: var(--surface);
+}
+.score__dot {
+  fill: currentColor;
+}
+.score__accidental {
+  fill: currentColor;
+  font-size: 20px;
+  font-weight: 800;
+}
+.score__clef {
+  fill: var(--text);
+  font-family: 'Segoe UI Symbol', 'Noto Music', 'Noto Sans Symbols 2', 'Apple Symbols', serif;
+  font-size: 62px;
+}
+.score__meter {
+  fill: var(--text);
+  font-size: 22px;
+  font-weight: 900;
+}
+.score__tab-label {
+  fill: var(--text-muted);
+  font-size: 14px;
+  font-weight: 900;
+}
+.score__bar-number {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+.score__chord {
+  fill: currentColor;
+  font-size: 20px;
+  font-weight: 900;
+}
+.score__strum {
+  fill: currentColor;
+  font-family: 'Segoe UI Symbol', 'Nunito Variable', sans-serif;
+  font-size: 15px;
+  font-variant-emoji: text;
+  font-weight: 800;
+}
+.score__tab-bg {
+  fill: var(--surface);
+}
+.score__fret {
+  fill: currentColor;
+  font-size: 12px;
+  font-weight: 900;
+}
+.score__halo {
+  fill: var(--accent-soft);
+}
+.score__event {
+  color: var(--text);
+}
+.score__event[data-state='hecho'] {
+  color: var(--text-muted);
+}
+.score__event[data-state='actual'] {
+  color: var(--accent-strong);
+}
 .song__speed {
   display: flex;
   flex-wrap: wrap;

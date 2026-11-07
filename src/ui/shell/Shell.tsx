@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { LessonFlow } from '@/core/application/lesson-flow';
 import type { ProgressService } from '@/core/application/progress-service';
 import type { ChordsService } from '@/core/application/chords-service';
+import type { PianoSetupService } from '@/core/application/piano-setup-service';
 import type { PianoSongService } from '@/core/application/piano-song-service';
 import type { SongService } from '@/core/application/song-service';
 import type { TunerService } from '@/core/application/tuner-service';
@@ -17,6 +18,7 @@ import { LessonScreen } from '../screens/LessonScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { findPianoSong } from '@/core/domain/piano-songs';
 import { ChordsScreen } from '../screens/ChordsScreen';
+import { MiPianoScreen } from '../screens/MiPianoScreen';
 import { PianoSongScreen } from '../screens/PianoSongScreen';
 import { SongScreen } from '../screens/SongScreen';
 import { SongsScreen } from '../screens/SongsScreen';
@@ -40,6 +42,7 @@ export interface ShellProps extends AppProps {
   readonly songs: SongService;
   readonly chords: ChordsService;
   readonly piano: PianoSongService;
+  readonly pianoSetup: PianoSetupService;
 }
 
 /** Debajo de este ancho la navegación pasa a una barra inferior y los ajustes a la cabecera. */
@@ -106,6 +109,16 @@ function Screen({
       return <TunerScreen tuner={shell.tuner} microphone={shell.microphone} notation={notation} />;
     case 'canciones':
       return <SongsScreen instrument={instrument} />;
+    case 'mipiano':
+      return (
+        <MiPianoScreen
+          setup={shell.pianoSetup}
+          preferences={shell.preferences}
+          microphone={shell.microphone}
+          micIsInput={play.sources.includes('microfono')}
+          notation={notation}
+        />
+      );
     case 'acordes':
       return <ChordsScreen chords={shell.chords} microphone={shell.microphone} />;
     case 'cancion':
@@ -175,6 +188,7 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
           route.name === 'afinador' ||
           route.name === 'canciones' ||
           route.name === 'acordes' ||
+          route.name === 'mipiano' ||
           route.name === 'cancion'
         )
           navigate(caminoOf(next));

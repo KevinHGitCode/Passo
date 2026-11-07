@@ -1,0 +1,109 @@
+/* Los parámetros del piano: teclas, nombre del Do central y la prueba del micrófono. */
+.mipiano {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.mipiano__lead,
+.mipiano__muted {
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.mipiano__card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.mipiano__title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+.mipiano__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mipiano__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 6px 14px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2, var(--surface));
+  font-weight: 800;
+  cursor: pointer;
+}
+.mipiano__option small {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.mipiano__option:has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.mipiano__option:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.mipiano__mic,
+.mipiano__probe {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.mipiano__ask {
+  margin: 0;
+  font-size: clamp(28px, 6vw, 44px);
+  font-weight: 900;
+}
+.mipiano__ask b {
+  color: var(--accent);
+}
+.mipiano__headline {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+.mipiano__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.mipiano__table {
+  width: 100%;
+  margin-bottom: 10px;
+  border-collapse: collapse;
+  font-weight: 800;
+}
+.mipiano__table th,
+.mipiano__table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.mipiano__table tr[data-kind='bien'] td:last-child {
+  color: var(--ok);
+}
+.mipiano__table tr[data-kind='octava-arriba'] td:last-child,
+.mipiano__table tr[data-kind='octava-abajo'] td:last-child {
+  color: var(--warn);
+}
+.mipiano__table tr[data-kind='otra'] td:last-child {
+  color: var(--err);
+}
+.mipiano__saved {
+  margin: 0;
+  color: var(--ok);
+  font-weight: 800;
+}

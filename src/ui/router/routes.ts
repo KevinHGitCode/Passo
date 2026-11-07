@@ -13,6 +13,7 @@ import type { Instrument } from '@/core/domain/instrument';
  * - `#/afinador`: el afinador de guitarra.
  * - `#/canciones`, `#/cancion/<id>`: las canciones de guitarra (la lista y una canción).
  * - `#/acordes`: reconocer el acorde que se toca (guitarra).
+ * - `#/mi-piano`: los parámetros del piano (teclas, nombre del Do central, prueba del micrófono).
  */
 export type Route =
   | { readonly name: 'camino'; readonly instrument?: Instrument }
@@ -22,6 +23,7 @@ export type Route =
   | { readonly name: 'afinador' }
   | { readonly name: 'canciones' }
   | { readonly name: 'acordes' }
+  | { readonly name: 'mipiano' }
   | { readonly name: 'cancion'; readonly songId: string };
 
 export type RouteName = Route['name'];
@@ -32,6 +34,7 @@ export const PRACTICA: Route = { name: 'practica' };
 export const AFINADOR: Route = { name: 'afinador' };
 export const CANCIONES: Route = { name: 'canciones' };
 export const ACORDES: Route = { name: 'acordes' };
+export const MI_PIANO: Route = { name: 'mipiano' };
 
 export const songRoute = (songId: string): Route => ({ name: 'cancion', songId });
 
@@ -61,6 +64,7 @@ export function parseRoute(hash: string): Route {
   if (first === 'afinador') return AFINADOR;
   if (first === 'canciones') return CANCIONES;
   if (first === 'acordes') return ACORDES;
+  if (first === 'mi-piano') return MI_PIANO;
   if (first === 'cancion' && second) return songRoute(second);
   return CAMINO;
 }
@@ -86,6 +90,8 @@ export function hrefOf(route: Route): string {
       return '#/canciones';
     case 'acordes':
       return '#/acordes';
+    case 'mipiano':
+      return '#/mi-piano';
     case 'cancion':
       return `#/cancion/${encodeURIComponent(route.songId)}`;
   }
@@ -106,6 +112,7 @@ const TITLES: Readonly<Record<RouteName, string>> = {
   afinador: 'Afinador',
   canciones: 'Canciones',
   acordes: 'Acordes',
+  mipiano: 'Mi piano',
   cancion: 'Canción',
 };
 

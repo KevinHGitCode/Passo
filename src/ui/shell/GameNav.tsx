@@ -5,6 +5,7 @@ import {
   ACORDES,
   AFINADOR,
   CANCIONES,
+  MI_PIANO,
   PRACTICA,
   caminoOf,
   hrefOf,
@@ -30,6 +31,16 @@ const common = (instrument: Instrument): readonly Item[] => [
     icon: 'music',
     active: ['canciones', 'cancion'],
   },
+  ...(instrument === 'piano'
+    ? [
+        {
+          route: MI_PIANO,
+          label: 'Mi piano',
+          icon: 'piano' as const,
+          active: ['mipiano'] as const,
+        },
+      ]
+    : []),
   ...(instrument === 'guitarra'
     ? [
         {

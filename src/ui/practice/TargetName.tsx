@@ -1,5 +1,5 @@
 import type { Instrument } from '@/core/domain/instrument';
-import { octaveOf, pitchName } from '@/core/domain/note';
+import { octaveLabel, pitchName } from '@/core/domain/note';
 import type { Midi, NotationMode } from '@/core/domain/note';
 import type { Target } from '@/core/domain/target';
 
@@ -29,7 +29,7 @@ export function TargetName({
       >
         {pitchName(notes[0], notation)}
         {instrument === 'piano' ? (
-          <span className="target__octave">{octaveOf(notes[0])}</span>
+          <span className="target__octave">{octaveLabel(notes[0])}</span>
         ) : null}
       </span>
     );
@@ -44,7 +44,7 @@ export function TargetName({
       {notes.map((note) => (
         <span key={note} className="target__chip" data-held={held.includes(note)}>
           {pitchName(note, notation)}
-          <span className="target__octave">{octaveOf(note)}</span>
+          <span className="target__octave">{octaveLabel(note)}</span>
           {held.includes(note) && <span className="sr-only"> (tocada)</span>}
         </span>
       ))}

@@ -181,3 +181,12 @@ pasar de una cuerda a otra.
 - Las cifras alta/media/dudosa/eco del panel `?debug` tras una ronda.
 - Si el micrófono dice «Windows aplica filtros» (aviso de «Mejoras de audio»).
 - Para el Mi y los acordes: el resultado de `copy(JSON.stringify(window.__passoChords))` y lo que mostró «Oigo:».
+
+## Mi piano (Yamaha real)
+
+| # | Qué hacer | Qué debe pasar |
+|---|---|---|
+| 63 | Abre **Mi piano**, elige 61 teclas y el nombre «Do3 (Yamaha, Casio…)» | El ejemplo dice «tu Do central se verá como Do3»; el rango sale de Do1 a Do6 |
+| 64 | Con el micrófono activo, pulsa **Empezar la prueba** y toca cada tecla que pide, una a una | Cada una se pasa sola al oírla; anota las que salen con una octava de más o de menos y el «Lo último que oí» |
+| 65 | Al terminar, si hay octavas de más o de menos, pulsa **Corregir esas notas** | Aparece «Corrección guardada»; en una lección, tocar esas teclas ya no marca la octava equivocada |
+| 66 | Recarga la página | El nombre del Do central, las teclas y la corrección se conservan |

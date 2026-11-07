@@ -25,6 +25,9 @@ import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
 import { ProgressService } from '@/core/application/progress-service';
 import { ChordsService } from '@/core/application/chords-service';
+import { CorrectedNoteInput } from '@/core/application/corrected-note-input';
+import { bindNoteLabelsToPreferences } from '@/core/application/note-labels-sync';
+import { PianoSetupService } from '@/core/application/piano-setup-service';
 import { PianoSongService } from '@/core/application/piano-song-service';
 import { SongService } from '@/core/application/song-service';
 import { StrumListener } from '@/core/application/strum-listener';
@@ -101,10 +104,19 @@ export function composeApp(search: string = window.location.search) {
       : undefined,
   );
 
+  // Si al probar el piano se vio que el micrófono lee alguna nota una octava lejos, las notas sueltas se corrigen.
+  const pianoMic = new CorrectedNoteInput({
+    input: microphone,
+    fixes: () => preferences.getSnapshot().micFixes,
+    enabled: () => preferences.getSnapshot().instrument === 'piano',
+  });
+  // El Do central se llama Do4 o Do3 según el teclado.
+  bindNoteLabelsToPreferences(preferences);
+
   const devMode = usePc || useMidi || !useMic;
   const inputs: NoteInput[] = devMode
-    ? [...(useMic ? [microphone] : []), ...(usePc ? [keyboard] : []), ...(useMidi ? [midi] : [])]
-    : [microphone, midi, keyboard];
+    ? [...(useMic ? [pianoMic] : []), ...(usePc ? [keyboard] : []), ...(useMidi ? [midi] : [])]
+    : [pianoMic, midi, keyboard];
   if (devMode) {
     if (usePc) void keyboard.start();
     if (useMidi) void midi.start();
@@ -142,7 +154,7 @@ export function composeApp(search: string = window.location.search) {
     audio,
     clock,
     rng,
-    expectationSinks: [microphone],
+    expectationSinks: [pianoMic],
     ...(config ? { config } : {}),
     ...(devMode && useMic ? { primarySource: 'microfono' as const } : {}),
   });
@@ -227,7 +239,7 @@ export function composeApp(search: string = window.location.search) {
   const piano = new PianoSongService({
     inputs: inputs as readonly NoteInput[],
     clock,
-    expectation: microphone,
+    expectation: pianoMic,
     listening: {
       enter: () => microphone.setProfile('piano'),
       leave: () => microphone.setProfile(session.getSnapshot().instrument),
@@ -241,6 +253,14 @@ export function composeApp(search: string = window.location.search) {
     songs,
     chords,
     piano,
+    // La prueba del piano escucha el micrófono sin corregir.
+    pianoSetup: new PianoSetupService({
+      input: microphone,
+      listening: {
+        enter: () => microphone.setProfile('piano'),
+        leave: () => microphone.setProfile(session.getSnapshot().instrument),
+      },
+    }),
     /** Progreso guardado y flujo de las lecciones (las usa el marco del camino). */
     progress,
     lessonFlow,

@@ -19,6 +19,7 @@ const {
   songs,
   chords,
   piano,
+  pianoSetup,
   inputs,
   inputManager,
   audio,
@@ -39,6 +40,7 @@ createRoot(root).render(
       songs={songs}
       chords={chords}
       piano={piano}
+      pianoSetup={pianoSetup}
       inputs={inputs}
       inputManager={inputManager}
       audio={audio}

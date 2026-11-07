@@ -5,6 +5,15 @@ import type { Instrument } from './instrument';
 import type { NotationMode } from './note';
 import type { InputSource } from './note-event';
 import { REFERENCE_A4_HZ } from './pitch';
+import {
+  DEFAULT_KEYBOARD_SIZE,
+  DEFAULT_OCTAVE_NAMING,
+  OCTAVE_NAMINGS,
+  isKeyboardSize,
+  sameFixes,
+  sanitizeFixes,
+} from './piano-setup';
+import type { KeyboardSize, MicFix, OctaveNaming } from './piano-setup';
 import { isValidReference } from './tuner';
 
 export type ThemeChoice = 'auto' | 'claro' | 'oscuro';
@@ -34,6 +43,12 @@ export interface Preferences {
   readonly polyphonicMic: boolean;
   /** El La4 con el que mide el afinador de guitarra (440 Hz por omisión). */
   readonly tunerReferenceHz: number;
+  /** Cuántas teclas tiene el piano (61 = 5 octavas). */
+  readonly pianoKeys: KeyboardSize;
+  /** Cómo llama el teclado al Do central: Do4 (estándar) o Do3 (Yamaha y otros). */
+  readonly pianoNaming: OctaveNaming;
+  /** Notas que el micrófono lee una octava lejos de la tocada (se ven al probar el piano). */
+  readonly micFixes: readonly MicFix[];
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -47,6 +62,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
   levels: { notas: 1, terceras: 1, acordes: 1 },
   polyphonicMic: false,
   tunerReferenceHz: REFERENCE_A4_HZ,
+  pianoKeys: DEFAULT_KEYBOARD_SIZE,
+  pianoNaming: DEFAULT_OCTAVE_NAMING,
+  micFixes: [],
 };
 
 /** Cambios parciales: los niveles se mezclan por modo. */
@@ -115,6 +133,9 @@ function parseFields(raw: unknown, fallback: Preferences): Preferences {
     tunerReferenceHz: isValidReference(raw['tunerReferenceHz'])
       ? raw['tunerReferenceHz']
       : fallback.tunerReferenceHz,
+    pianoKeys: isKeyboardSize(raw['pianoKeys']) ? raw['pianoKeys'] : fallback.pianoKeys,
+    pianoNaming: oneOf(raw['pianoNaming'], OCTAVE_NAMINGS, fallback.pianoNaming),
+    micFixes: 'micFixes' in raw ? sanitizeFixes(raw['micFixes']) : fallback.micFixes,
   };
 }
 
@@ -136,6 +157,9 @@ export function samePreferences(a: Preferences, b: Preferences): boolean {
     a.mode === b.mode &&
     a.polyphonicMic === b.polyphonicMic &&
     a.tunerReferenceHz === b.tunerReferenceHz &&
+    a.pianoKeys === b.pianoKeys &&
+    a.pianoNaming === b.pianoNaming &&
+    sameFixes(a.micFixes, b.micFixes) &&
     EXERCISE_MODES.every((mode) => a.levels[mode] === b.levels[mode])
   );
 }

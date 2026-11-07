@@ -43,6 +43,20 @@ export function pitchClass(midi: Midi): number {
   return midi % 12;
 }
 
+/**
+ * Cuántas octavas se resta al número de octava que se **muestra** (Yamaha y otros llaman Do3 al Do central: −1). Solo
+ * cambia cómo se escribe el nombre, nunca el sonido ni el MIDI; lo fija `bindNoteLabelsToPreferences`.
+ */
+let octaveLabelShift = 0;
+export function setOctaveLabelShift(shift: number): void {
+  octaveLabelShift = Number.isInteger(shift) ? shift : 0;
+}
+
+/** El número de octava que se escribe junto al nombre (con el cambio de nombre del teclado, si lo hay). */
+export function octaveLabel(midi: Midi): number {
+  return octaveOf(midi) + octaveLabelShift;
+}
+
 /** Octava en notación científica (MIDI 60 → 4). */
 export function octaveOf(midi: Midi): number {
   assertMidi(midi);
@@ -61,7 +75,7 @@ export function pitchName(midi: Midi, notation: NotationMode): string {
 
 /** Nombre con octava: "Do4" / "C4". */
 export function noteName(midi: Midi, notation: NotationMode): string {
-  return `${pitchName(midi, notation)}${octaveOf(midi)}`;
+  return `${pitchName(midi, notation)}${octaveOf(midi) + octaveLabelShift}`;
 }
 
 /** Distancia en semitonos con signo (positiva si `played` está más arriba que `target`). */

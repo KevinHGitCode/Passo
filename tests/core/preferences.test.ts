@@ -17,6 +17,9 @@ const valid: Preferences = {
   levels: { notas: 1, terceras: 3, acordes: 4 },
   polyphonicMic: true,
   tunerReferenceHz: 442,
+  pianoKeys: 88,
+  pianoNaming: 'yamaha',
+  micFixes: [{ note: 52, shift: 12 }],
 };
 
 describe('parsePreferences', () => {
@@ -38,6 +41,9 @@ describe('parsePreferences', () => {
       levels: { notas: 1, terceras: 1, acordes: 1 },
       polyphonicMic: false,
       tunerReferenceHz: 440,
+      pianoKeys: 61,
+      pianoNaming: 'estandar',
+      micFixes: [],
     });
   });
 
@@ -57,6 +63,9 @@ describe('parsePreferences', () => {
       levels: { notas: 1, terceras: 99, acordes: 'x' },
       polyphonicMic: 1,
       tunerReferenceHz: 'afinado',
+      pianoKeys: 60,
+      pianoNaming: 'casio',
+      micFixes: [{ note: 52, shift: 5 }],
     });
     expect(parsed).toEqual(DEFAULT_PREFERENCES);
     expect(parsePreferences({ ...valid, input: 'telepatía' })).toEqual({

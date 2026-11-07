@@ -403,7 +403,9 @@ export class MicrophoneInput
     const range = this.pitchSearch;
     if (range === null) return;
     let reading: PitchReading | null = null;
-    if (state.phase === 'escuchando' && rms >= state.gate) {
+    // El umbral del afinador es más bajo que el de las notas: una cuerda pulsada se apaga y no debe perderse.
+    const tunerGate = Math.max(state.noiseFloor * 2, state.gate * 0.5);
+    if (state.phase === 'escuchando' && rms >= tunerGate) {
       const window = samples.subarray(Math.max(0, samples.length - FFT_SIZE));
       const estimate = detectPitch(window, sampleRate, range);
       if (

@@ -16,12 +16,15 @@ export const IN_TUNE_HOLD_MS = 600;
 /** …y deja de estarlo al salir de ±8 (así no parpadea alrededor del límite). */
 export const OUT_OF_TUNE_CENTS = 8;
 /** Lecturas mínimas para opinar, y cuánto tiempo hacia atrás cuentan. */
-export const MIN_READINGS = 5;
-export const READING_WINDOW_MS = 350;
+export const MIN_READINGS = 3;
+export const READING_WINDOW_MS = 600;
 /** Tras empezar a sonar, la cuerda «se asienta»: el ataque sube unos 10–30 cents un momento. */
-export const SETTLE_MS = 250;
-/** Sin lecturas durante este tiempo, vuelve a «sin sonido»; «Afinada» se deja ver más tiempo. */
-export const SILENCE_MS = 500;
+export const SETTLE_MS = 150;
+/**
+ * Sin lecturas durante este tiempo, vuelve a «sin sonido»; «Afinada» se deja ver más tiempo. Una cuerda
+ * pulsada se apaga sola y el detector la pierde a ratos: la última lectura se mantiene un momento.
+ */
+export const SILENCE_MS = 1500;
 export const TUNED_SILENCE_MS = 2000;
 /** Entre ±5 y ±15 cents la cuerda está «casi» (zona ámbar); más allá, claramente grave o aguda. */
 export const NEAR_CENTS = 15;

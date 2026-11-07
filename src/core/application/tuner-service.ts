@@ -20,6 +20,7 @@ import { StringBoard, sameMarks } from '../domain/string-board';
 import type { StringMarks } from '../domain/string-board';
 import {
   NO_SOUND,
+  SEARCH_CENTS,
   TunerTracker,
   centsFrom,
   isValidReference,
@@ -275,10 +276,10 @@ export class TunerService {
     if (this.playing || now < this.mutedUntil) return;
     if (this.run?.paused === true) return;
     const target = stringFrequency(this.snapshot.string, this.options());
-    const state =
-      reading === null
-        ? this.tracker.push(null, now)
-        : this.tracker.push(centsFrom(target, reading.frequency), reading.at);
+    // Un tono fuera del intervalo de la cuerda (p. ej. la anterior que aún suena) es como no oír nada.
+    const cents = reading === null ? null : centsFrom(target, reading.frequency);
+    const inRange = cents !== null && Math.abs(cents) <= SEARCH_CENTS;
+    const state = this.tracker.push(inRange ? cents : null, now);
     this.remember(state, now);
     if (this.run !== null && !isFinished(this.run)) {
       const progress = holdProgress(state.status, this.heldSince, now);

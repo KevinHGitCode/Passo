@@ -109,10 +109,10 @@ function HintGlyph({ icon }: { readonly icon: HintIcon }) {
  * Lo único que el afinador necesita del monitor del micrófono: la fase y el aviso. El monitor emite unas 15
  * veces por segundo (el nivel); así la pantalla no se redibuja con cada una.
  */
-function useMonitorSlice(
-  monitor: InputMonitor | undefined,
-): Pick<MonitorSnapshot, 'phase' | 'hint'> {
-  const cache = useRef<Pick<MonitorSnapshot, 'phase' | 'hint'>>({ phase: 'apagado', hint: null });
+type MonitorSlice = Pick<MonitorSnapshot, 'phase' | 'hint'> & { readonly loud: boolean };
+
+function useMonitorSlice(monitor: InputMonitor | undefined): MonitorSlice {
+  const cache = useRef<MonitorSlice>({ phase: 'apagado', hint: null, loud: false });
   const subscribe = useCallback(
     (onChange: () => void) => (monitor ? monitor.subscribeMonitor(onChange) : () => undefined),
     [monitor],
@@ -120,8 +120,11 @@ function useMonitorSlice(
   const getSnapshot = useCallback(() => {
     const current = monitor ? monitor.getMonitor() : SILENT_MONITOR;
     const last = cache.current;
-    if (last.phase === current.phase && last.hint === current.hint) return last;
-    cache.current = { phase: current.phase, hint: current.hint };
+    // «Alto»: el nivel pasa el umbral de sonido (se oye algo aunque no se distinga la nota).
+    const loud = current.level > 0 && current.level >= current.gateLevel;
+    if (last.phase === current.phase && last.hint === current.hint && last.loud === loud)
+      return last;
+    cache.current = { phase: current.phase, hint: current.hint, loud };
     return cache.current;
   }, [monitor]);
   return useSyncExternalStore(subscribe, getSnapshot);
@@ -215,6 +218,7 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
     name,
     listening,
     weakHint: monitor.hint === 'debil' ? hintText(monitor.hint) : null,
+    loud: monitor.loud,
   });
 
   const target = stringFrequency(snapshot.string, { referenceHz: snapshot.referenceHz });

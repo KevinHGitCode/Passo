@@ -59,7 +59,12 @@ export function tunerHint(
   snapshot: Pick<TunerSnapshot, 'status' | 'far' | 'near' | 'string' | 'tone'> & {
     readonly guided?: Pick<GuidedView, 'paused'> | null;
   },
-  context: { readonly name: string; readonly listening: boolean; readonly weakHint: string | null },
+  context: {
+    readonly name: string;
+    readonly listening: boolean;
+    readonly weakHint: string | null;
+    readonly loud?: boolean;
+  },
 ): TunerHint {
   if (snapshot.guided?.paused === true) {
     return { text: 'Guía en pausa. Pulsa «Seguir» cuando quieras.', icon: 'wait' };
@@ -94,6 +99,12 @@ export function tunerHint(
       return { text: 'Lista. Puedes pasar a la siguiente cuerda.', icon: 'check' };
     case 'sin-sonido':
       if (!context.listening) return { text: '', icon: null };
+      if (context.loud === true && context.weakHint === null) {
+        return {
+          text: `Oigo sonido, pero no distingo la cuerda ${snapshot.string}. Toca solo esa cuerda, firme, y acércate al micrófono.`,
+          icon: 'listen',
+        };
+      }
       return {
         text:
           context.weakHint ??

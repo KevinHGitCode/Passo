@@ -87,14 +87,41 @@ describe('TunerService', () => {
     expect(pitch.searches).toEqual([]);
   });
 
-  it('sin sonido durante medio segundo vuelve a «sin sonido»', () => {
+  it('sin sonido durante 1,5 s vuelve a «sin sonido» (antes mantiene la última lectura)', () => {
     const { tuner, pitch, clock, play } = setup();
     tuner.open();
     play(1, 15, 500);
     expect(tuner.getSnapshot().status).toBe('alta');
     clock.advance(600);
     pitch.emit(null);
+    expect(tuner.getSnapshot().status).toBe('alta');
+    clock.advance(1000);
+    pitch.emit(null);
     expect(tuner.getSnapshot().status).toBe('sin-sonido');
+  });
+
+  it('un tono a más de 300 cents de la cuerda (otra cuerda) no se mide', () => {
+    const { tuner, play } = setup();
+    tuner.open();
+    tuner.selectString(1);
+    play(6, 0, 800);
+    expect(tuner.getSnapshot()).toMatchObject({ status: 'sin-sonido', cents: null });
+  });
+
+  it('con pocas lecturas por segundo (una cuerda que se apaga) igual muestra los cents', () => {
+    const { tuner, pitch, clock } = setup();
+    tuner.open();
+    tuner.selectString(1);
+    // Una lectura cada 100 ms, como un detector que acierta a ratos con una cuerda real.
+    for (let n = 0; n < 12; n++) {
+      clock.advance(100);
+      pitch.emit({
+        frequency: stringFrequency(1) * 2 ** (-30 / 1200),
+        clarity: 0.8,
+        at: clock.now(),
+      });
+    }
+    expect(tuner.getSnapshot()).toMatchObject({ status: 'baja', cents: -30 });
   });
 
   it('si la cuerda se calla, los avisos de silencio seguidos devuelven a «sin sonido»', () => {
@@ -102,7 +129,7 @@ describe('TunerService', () => {
     tuner.open();
     play(1, -20, 500);
     expect(tuner.getSnapshot().status).toBe('baja');
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 80; i++) {
       clock.advance(20);
       pitch.emit(null);
     }

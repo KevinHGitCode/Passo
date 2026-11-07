@@ -247,6 +247,25 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
     groupRef.current?.querySelector<HTMLElement>(`input[value="${string}"]`)?.focus();
   };
 
+  // El micrófono nunca arranca solo: sin él no hay nada que afinar, así que lo único que se ofrece es activarlo.
+  if (microphone !== undefined && (status === null || status.kind !== 'conectado')) {
+    return (
+      <div className="tuner" data-testid="tuner">
+        <h1 id="afinador-titulo" tabIndex={-1} data-route-heading>
+          Afinador
+        </h1>
+        <section className="tuner__card tuner__start stage-dark" aria-label="Activar el micrófono">
+          <div className="tuner__mic" role="status" data-testid="tuner-mic">
+            <p>{message}</p>
+            <GameButton onClick={() => void microphone.start()} data-testid="tuner-activate">
+              Activar micrófono
+            </GameButton>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="tuner" data-testid="tuner" onKeyDown={onKeyDown}>
       <h1 id="afinador-titulo" tabIndex={-1} data-route-heading>

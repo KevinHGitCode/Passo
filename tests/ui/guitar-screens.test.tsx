@@ -350,10 +350,15 @@ describe('el afinador', () => {
   }
 
   it('al entrar abre el afinador, con la cuerda 1 (Mi) y las seis para elegir', () => {
-    const { pitch, tuner } = setup();
+    const { pitch, tuner, mic } = setup();
     expect(tuner.getSnapshot().open).toBe(true);
     expect(pitch.searches).toHaveLength(1);
     expect(screen.getByRole('heading', { level: 1, name: 'Afinador' })).toBeTruthy();
+    // Con el micrófono apagado solo se ofrece activarlo: ni clavijero ni medidor.
+    expect(screen.getByTestId('tuner-activate')).toBeTruthy();
+    expect(screen.queryByTestId('tuner-string-6')).toBeNull();
+    expect(screen.queryByTestId('tuner-guided-start')).toBeNull();
+    act(() => mic.makeReady());
     expect(screen.getByTestId('tuner-target').textContent).toContain('Mi');
     for (let n = 1; n <= 6; n++) expect(screen.getByTestId(`tuner-string-${n}`)).toBeTruthy();
     expect(radio(1).checked).toBe(true);

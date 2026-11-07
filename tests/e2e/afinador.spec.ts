@@ -28,6 +28,11 @@ async function openTuner(page: Page): Promise<void> {
   await page.addInitScript(FAKE_MIC_SCRIPT);
   await chooseGuitar(page);
   await page.goto('/?seed=7#/afinador');
+  await activate(page);
+}
+
+/** El micrófono nunca arranca solo: hay que pulsar «Activar micrófono». */
+async function activate(page: Page): Promise<void> {
   await page.getByTestId('tuner-activate').click();
   await expect(page.getByTestId('tuner-mic')).toHaveCount(0, { timeout: 8000 });
 }
@@ -38,6 +43,11 @@ test('Afinador · el clavijero recuerda cada cuerda y se maneja con el teclado (
   await page.addInitScript(FAKE_MIC_SCRIPT);
   await chooseGuitar(page);
   await page.goto('/?seed=7#/afinador');
+  // Al entrar solo se ofrece activar el micrófono: ni clavijero ni medidor.
+  await expect(page.getByTestId('tuner-activate')).toBeVisible();
+  await expect(page.getByTestId('tuner-string-6')).toHaveCount(0);
+  await capture(page, '01-activar');
+  await activate(page);
   const group = page.getByRole('radiogroup', { name: 'Cuerda que afinas' });
   await expect(group).toBeVisible();
   // El orden del teclado es de la 6 a la 1.
@@ -47,10 +57,6 @@ test('Afinador · el clavijero recuerda cada cuerda y se maneja con el teclado (
       .locator('input')
       .evaluateAll((all) => all.map((i) => (i as HTMLInputElement).value)),
   ).toEqual(['6', '5', '4', '3', '2', '1']);
-  await capture(page, '01-activar');
-
-  await page.getByTestId('tuner-activate').click();
-  await expect(page.getByTestId('tuner-mic')).toHaveCount(0, { timeout: 8000 });
   await peg(page, 6).click();
   await expect(page.getByTestId('tuner-target')).toContainText('Cuerda 6');
 
@@ -166,10 +172,12 @@ test('Afinador · el La₄ se cambia, se recuerda al recargar y mueve la meta', 
   await capture(page, '09-la4-442');
 
   await page.reload();
+  await activate(page);
   await expect(page.getByTestId('tuner-ref-value')).toHaveText('La₄ 442 Hz');
   await page.getByTestId('tuner-ref-reset').click();
   await expect(page.getByTestId('tuner-ref-value')).toHaveText('La₄ 440 Hz');
   await page.reload();
+  await activate(page);
   await expect(page.getByTestId('tuner-ref-value')).toHaveText('La₄ 440 Hz');
   await expect(page.getByTestId('tuner-ref-reset')).toHaveCount(0);
 });

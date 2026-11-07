@@ -18,6 +18,7 @@ export type IconName =
   | 'guitar'
   | 'piano'
   | 'tuner'
+  | 'music'
   | 'chevron';
 
 interface Shape {
@@ -95,6 +96,14 @@ const SHAPES: Readonly<Record<IconName, Shape>> = {
     strokeWidth: 2.2,
   },
   tuner: { paths: ['M4 17a8 8 0 0 1 16 0', 'M12 17l4-6', 'M4 21h16'], strokeWidth: 2.4 },
+  music: {
+    paths: [
+      'M9 18V6l10-2v12',
+      'M9 18a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z',
+      'M19 16a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z',
+    ],
+    strokeWidth: 2.4,
+  },
   chevron: { paths: ['M6 9l6 6 6-6'], strokeWidth: 3 },
 };
 

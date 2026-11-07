@@ -180,7 +180,8 @@ de instrumento y la ventana de la lección como hoja que sube desde abajo.
 | **Repaso de puntos débiles** | «Practicar 3 min» arma una lección al momento con las notas que más te cuestan |
 | **Juego** | Experiencia, niveles, racha de días (con un día de descanso por semana) y meta diaria de 5 minutos |
 | **Progreso** | Mapa de calor del teclado, curva de precisión, notas que más cuestan por instrumento |
-| **Afinador de guitarra** | Clavijero con el estado de las seis cuerdas, medidor (Grave / Aguda / Casi / Afinada, cents y Hz), nota de referencia, modo guiado «Afinar las 6» y La₄ ajustable |
+| **Afinador de guitarra** | Automático (detecta la cuerda que tocas y dice si apretar o aflojar; la aguja no desaparece al callarse), clavijero con el estado de las seis cuerdas, medidor (Grave / Aguda / Casi / Afinada, cents y Hz), nota de referencia, modo guiado «Afinar las 6» y La₄ ajustable |
+| **Canciones de guitarra** | Cumpleaños feliz, Estrellita y un rasgueo (De colores): te muestran la nota o el acorde de cada paso y dicen si vas a tiempo, lento o rápido, también en el cambio de acorde |
 | **Práctica libre** | La pantalla de siempre: notas, terceras o acordes, a tu nivel y con la ayuda que elijas |
 | **Ajustes** | Entrada (micrófono, MIDI o teclado del PC), ejercicio y nivel, notación Do Re Mi o C D E, ayuda y tema. Se recuerdan |
 | **Accesibilidad** | Contraste AA comprobado por pruebas, nada depende solo del color, navegación con teclado, anuncios para lector de pantalla y respeto de «reducir movimiento» |
@@ -252,6 +253,7 @@ La navegación va por el *hash* de la dirección, y **el instrumento forma parte
 | `#/leccion/<id>` | Una lección a pantalla completa (`u2-1` en piano, `g1-1` en guitarra, `repaso-debiles`) |
 | `#/practica` | Práctica libre (piano) |
 | `#/afinador` | El afinador (guitarra) |
+| `#/canciones`, `#/cancion/<id>` | Las canciones de guitarra: la lista y una canción |
 
 Parámetros de la dirección para desarrollo y pruebas (no se guardan):
 
@@ -325,7 +327,7 @@ evidencias/    videos y capturas de cada fase cerrada, con su informe
 | `E2E_VIDEO=off npm run e2e` | Lo mismo sin grabar video |
 | `npm run build` · `npm run preview` | Compilación de producción y vista previa |
 
-`npm run check` pasa con **1558 pruebas** en 83 archivos y la suite e2e tiene **63 pruebas en Edge**.
+`npm run check` pasa con **1588 pruebas** en 85 archivos y la suite e2e tiene **68 pruebas en Edge**.
 Cada fase cerrada deja su informe, su video y sus capturas en [`evidencias/`](evidencias/).
 
 Para volver a generar las capturas de este README (usan un micrófono simulado y no corren con
@@ -354,6 +356,7 @@ es **solo local**.
 | 3 | **Passo como juego:** camino, estrellas, experiencia, racha y progreso guardado | Hecha (falta validar con el piano real) |
 | G1 | **Guitarra, etapa 1:** instrumento, mástil, afinador y tres unidades de notas | Hecha (falta validar con la guitarra real) |
 | A | **Afinador pro** de guitarra: clavijero, medidor, nota de referencia, modo guiado y La₄ (Auto queda aparte) | Hecha (falta validar con la guitarra real) |
+| C | **Canciones de guitarra** con indicaciones de tiempo (melodías y un rasgueo) | Hecha (falta validar con la guitarra real; ver [docs/fases/canciones.md](docs/fases/canciones.md)) |
 | G2 | Guitarra: arpegios y acordes abiertos | En diseño (plan en [docs/fases/guitarra-2.md](docs/fases/guitarra-2.md)) |
 | G3 · G4 | Guitarra: tablatura · canciones compás a compás («Mi corazón encantado») | Pendiente |
 | 4 | Modos espera y estricto, niveles con negras | Pendiente |

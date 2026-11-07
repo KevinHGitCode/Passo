@@ -6,7 +6,7 @@ import type { TrackerConfig } from './note-tracker';
  * Do3–Do6 y heurísticas de octava y de rebote pensadas para sus cuerdas); la guitarra suena en otro rango
  * y sus cuerdas graves vibran mucho más tiempo, así que usa su propio perfil.
  */
-export type ListeningProfile = Instrument;
+export type ListeningProfile = Instrument | 'cancion';
 
 /** Piano: la configuración de siempre. */
 const PIANO_CONFIG: Partial<TrackerConfig> = {};
@@ -29,6 +29,14 @@ const GUITAR_CONFIG: Partial<TrackerConfig> = {
   learnTuning: false,
 };
 
+/**
+ * Canciones de guitarra: igual que la guitarra, pero una nota repetida (Sol Sol, en «Cumpleaños feliz») se
+ * vuelve a oír a los 350 ms en vez de a los 1,2 s: si no, no habría forma de tocarla a ritmo. A cambio puede
+ * contar de más una cuerda que aún suena; hay que confirmarlo con la guitarra real.
+ */
+const SONG_CONFIG: Partial<TrackerConfig> = { ...GUITAR_CONFIG, sameNoteRetriggerMs: 350 };
+
 export function trackerConfigFor(profile: ListeningProfile): Partial<TrackerConfig> {
+  if (profile === 'cancion') return SONG_CONFIG;
   return profile === 'guitarra' ? GUITAR_CONFIG : PIANO_CONFIG;
 }

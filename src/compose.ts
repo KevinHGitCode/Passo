@@ -24,6 +24,7 @@ import { bindProfileToSession } from '@/core/application/profile-sync';
 import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
 import { ProgressService } from '@/core/application/progress-service';
+import { SongService } from '@/core/application/song-service';
 import { TunerService } from '@/core/application/tuner-service';
 import { bindTunerToPreferences } from '@/core/application/tuner-sync';
 import { isExerciseMode } from '@/core/domain/curriculum';
@@ -196,10 +197,23 @@ export function composeApp(search: string = window.location.search) {
   // El La4 del afinador se recuerda entre visitas.
   bindTunerToPreferences(tuner, preferences);
 
+  // Las canciones de guitarra escuchan las notas del micrófono mientras su pantalla está abierta.
+  const songs = new SongService({
+    input: useMic ? microphone : undefined,
+    // Las notas repetidas de una canción piden otro ajuste de escucha; al salir vuelve el del instrumento.
+    listening: useMic
+      ? {
+          enter: () => microphone.setProfile('cancion'),
+          leave: () => microphone.setProfile(session.getSnapshot().instrument),
+        }
+      : undefined,
+  });
+
   return {
     session,
     preferences,
     tuner,
+    songs,
     /** Progreso guardado y flujo de las lecciones (las usa el marco del camino). */
     progress,
     lessonFlow,

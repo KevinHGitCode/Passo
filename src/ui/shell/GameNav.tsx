@@ -1,7 +1,7 @@
 import { Icon } from '../game/icons';
 import type { IconName } from '../game/icons';
 import type { Instrument } from '@/core/domain/instrument';
-import { AFINADOR, PRACTICA, caminoOf, hrefOf, progresoOf } from '../router/routes';
+import { AFINADOR, CANCIONES, PRACTICA, caminoOf, hrefOf, progresoOf } from '../router/routes';
 import type { Route, RouteName } from '../router/routes';
 
 interface Item {
@@ -16,6 +16,16 @@ interface Item {
 const common = (instrument: Instrument): readonly Item[] => [
   { route: caminoOf(instrument), label: 'Aprender', icon: 'home', active: ['camino', 'leccion'] },
   { route: progresoOf(instrument), label: 'Progreso', icon: 'chart', active: ['progreso'] },
+  ...(instrument === 'guitarra'
+    ? [
+        {
+          route: CANCIONES,
+          label: 'Canciones',
+          icon: 'music' as const,
+          active: ['canciones', 'cancion'] as const,
+        },
+      ]
+    : []),
 ];
 
 /** Lo último de la navegación depende del instrumento: piano tiene práctica libre, guitarra el afinador. */

@@ -1,0 +1,292 @@
+/* Canciones de guitarra: la lista y el reproductor paso a paso. */
+.songs {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.songs__lead,
+.songs__note,
+.songs__summary,
+.songs__meta {
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.songs__list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.songs__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 18px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.songs__style {
+  margin: 0;
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.songs__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+}
+.songs__play {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0 22px;
+  border-radius: var(--radius-btn, 14px);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.song__mic {
+  align-items: center;
+  text-align: center;
+}
+
+/* Lo que toca ahora. */
+.song__now {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 20px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  text-align: center;
+  animation: song-in 220ms ease-out both;
+}
+.song__lyric {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.song__big {
+  margin: 0;
+  color: var(--accent);
+  font-size: clamp(56px, 14vw, 96px);
+  font-weight: 900;
+  line-height: 1;
+}
+.song__how,
+.song__strum,
+.song__next {
+  margin: 0;
+  font-weight: 700;
+}
+.song__strum b {
+  font-size: 1.4rem;
+  letter-spacing: 0.1em;
+}
+.song__tab {
+  width: 150px;
+  max-width: 60%;
+}
+.song__tab-line {
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+}
+.song__tab-dot {
+  fill: var(--accent);
+}
+.song__tab-fret {
+  fill: var(--on-accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+/* El tiempo ideal: una barra que se llena en lo que debería tardar el paso. */
+.song__ideal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.song__ideal-label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+.song__ideal-bar {
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--ok);
+  transform-origin: left;
+  animation:
+    song-ideal var(--ideal, 1s) linear both,
+    song-late 600ms ease-out var(--ideal, 1s) both;
+}
+@keyframes song-ideal {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+/* Pasado el tiempo ideal la barra se pone ámbar: vas lento. */
+@keyframes song-late {
+  to {
+    background: var(--warn);
+  }
+}
+@keyframes song-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+.song__calibrating {
+  margin: 0;
+  padding: 10px 14px;
+  border: 2px dashed var(--warn);
+  border-radius: 12px;
+  color: var(--warn);
+  font-weight: 800;
+}
+.song__wrong {
+  margin: 0;
+  color: var(--err);
+  font-weight: 800;
+}
+.song__feedback {
+  min-height: 1.6em;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+.song__feedback[data-pace='a-tiempo'] {
+  color: var(--ok);
+}
+.song__feedback[data-pace='adelantado'] {
+  color: var(--accent-strong);
+}
+.song__feedback[data-pace='lento'] {
+  color: var(--warn);
+}
+.song__feedback[data-pace='muy-lento'] {
+  color: var(--err);
+}
+
+/* Los pasos de la canción, con cómo salió cada uno. */
+.song__strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.song__chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 48px;
+  padding: 6px 8px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-weight: 800;
+}
+.song__chip[data-state='actual'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.song__chip[data-state='pendiente'] {
+  color: var(--text-muted);
+}
+.song__chip-mark {
+  font-size: 11px;
+  font-weight: 900;
+}
+.song__chip[data-pace='a-tiempo'] .song__chip-mark {
+  color: var(--ok);
+}
+.song__chip[data-pace='lento'] .song__chip-mark {
+  color: var(--warn);
+}
+.song__chip[data-pace='muy-lento'] .song__chip-mark {
+  color: var(--err);
+}
+.song__chip[data-pace='adelantado'] .song__chip-mark {
+  color: var(--accent-strong);
+}
+
+.song__speed {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.song__speed-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-weight: 800;
+  cursor: pointer;
+}
+.song__speed-option:has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.song__speed-option:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.song__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px;
+  border: 2px solid var(--ok);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.song__summary p,
+.song__summary ul {
+  margin: 0;
+}
+.song__summary-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+}
+.song__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .song__now,
+  .song__ideal-bar {
+    animation: none;
+  }
+}

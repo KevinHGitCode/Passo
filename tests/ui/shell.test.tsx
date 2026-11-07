@@ -8,6 +8,7 @@ import { PracticeSession } from '@/core/application/practice-session';
 import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
 import { ProgressService } from '@/core/application/progress-service';
+import { SongService } from '@/core/application/song-service';
 import { TunerService } from '@/core/application/tuner-service';
 import { createSeededRng } from '@/core/domain/rng';
 import { Shell } from '@/ui/shell/Shell';
@@ -83,6 +84,7 @@ function setup(options: { hash?: string; narrow?: boolean; stored?: unknown } = 
       progress={progress}
       lessonFlow={lessonFlow}
       tuner={new TunerService({ pitch: new FakePitch(), clock: new FakeClock(0) })}
+      songs={new SongService({})}
     />,
   );
   const go = (hash: string) =>
@@ -440,7 +442,31 @@ describe('la dirección dice el instrumento', () => {
     const hrefs = [
       ...screen.getByRole('navigation', { name: 'Principal' }).querySelectorAll('a'),
     ].map((a) => a.getAttribute('href'));
-    expect(hrefs).toEqual(['#/guitarra', '#/guitarra/progreso', '#/afinador']);
+    expect(hrefs).toEqual(['#/guitarra', '#/guitarra/progreso', '#/canciones', '#/afinador']);
+  });
+
+  it('#/canciones lista las canciones de guitarra y cada una abre su pantalla', () => {
+    const { go } = setup({ stored: GUITAR });
+    go('#/canciones');
+    expect(screen.getByRole('heading', { level: 1, name: 'Canciones' })).toBeTruthy();
+    expect(screen.getByTestId('song-cumpleanos-feliz').getAttribute('href')).toBe(
+      '#/cancion/cumpleanos-feliz',
+    );
+    expect(document.documentElement.dataset['instrument']).toBe('guitarra');
+    go('#/cancion/cumpleanos-feliz');
+    expect(screen.getByRole('heading', { level: 1, name: 'Cumpleaños feliz' })).toBeTruthy();
+    // El micrófono nunca arranca solo: primero se pide activarlo.
+    expect(screen.getByTestId('song-activate')).toBeTruthy();
+    go('#/cancion/no-existe');
+    expect(screen.getByRole('heading', { level: 1, name: 'Canción no encontrada' })).toBeTruthy();
+  });
+
+  it('con piano no se ofrecen las canciones en la navegación', () => {
+    setup({ stored: PIANO });
+    const hrefs = [
+      ...screen.getByRole('navigation', { name: 'Principal' }).querySelectorAll('a'),
+    ].map((a) => a.getAttribute('href'));
+    expect(hrefs).not.toContain('#/canciones');
   });
 
   it('la marca «Passo» lleva al camino del instrumento', () => {

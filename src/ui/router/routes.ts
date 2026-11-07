@@ -11,13 +11,16 @@ import type { Instrument } from '@/core/domain/instrument';
  * - `#/piano/progreso`, `#/guitarra/progreso` (o `#/progreso`): lo que llevas.
  * - `#/practica`: la práctica libre (la pantalla de siempre).
  * - `#/afinador`: el afinador de guitarra.
+ * - `#/canciones`, `#/cancion/<id>`: las canciones de guitarra (la lista y una canción).
  */
 export type Route =
   | { readonly name: 'camino'; readonly instrument?: Instrument }
   | { readonly name: 'leccion'; readonly lessonId: string }
   | { readonly name: 'progreso'; readonly instrument?: Instrument }
   | { readonly name: 'practica' }
-  | { readonly name: 'afinador' };
+  | { readonly name: 'afinador' }
+  | { readonly name: 'canciones' }
+  | { readonly name: 'cancion'; readonly songId: string };
 
 export type RouteName = Route['name'];
 
@@ -25,6 +28,9 @@ export const CAMINO: Route = { name: 'camino' };
 export const PROGRESO: Route = { name: 'progreso' };
 export const PRACTICA: Route = { name: 'practica' };
 export const AFINADOR: Route = { name: 'afinador' };
+export const CANCIONES: Route = { name: 'canciones' };
+
+export const songRoute = (songId: string): Route => ({ name: 'cancion', songId });
 
 /** El camino de un instrumento (`#/guitarra`). */
 export const caminoOf = (instrument: Instrument): Route => ({ name: 'camino', instrument });
@@ -50,6 +56,8 @@ export function parseRoute(hash: string): Route {
   if (first === 'progreso') return PROGRESO;
   if (first === 'practica') return PRACTICA;
   if (first === 'afinador') return AFINADOR;
+  if (first === 'canciones') return CANCIONES;
+  if (first === 'cancion' && second) return songRoute(second);
   return CAMINO;
 }
 
@@ -70,12 +78,18 @@ export function hrefOf(route: Route): string {
       return '#/practica';
     case 'afinador':
       return '#/afinador';
+    case 'canciones':
+      return '#/canciones';
+    case 'cancion':
+      return `#/cancion/${encodeURIComponent(route.songId)}`;
   }
 }
 
 /** Identifica la pantalla (cambia al cambiar de lección aunque el nombre sea el mismo). */
 export function routeKey(route: Route): string {
-  return route.name === 'leccion' ? `leccion:${route.lessonId}` : route.name;
+  if (route.name === 'leccion') return `leccion:${route.lessonId}`;
+  if (route.name === 'cancion') return `cancion:${route.songId}`;
+  return route.name;
 }
 
 const TITLES: Readonly<Record<RouteName, string>> = {
@@ -84,6 +98,8 @@ const TITLES: Readonly<Record<RouteName, string>> = {
   progreso: 'Progreso',
   practica: 'Práctica libre',
   afinador: 'Afinador',
+  canciones: 'Canciones',
+  cancion: 'Canción',
 };
 
 export function routeTitle(route: Route): string {

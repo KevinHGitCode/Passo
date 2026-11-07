@@ -39,7 +39,10 @@ export function useRouteLifecycle(
     // El micrófono solo escucha donde hay una pantalla que lo usa: al salir de la lección o de la
     // práctica o del afinador se apaga (la luz del equipo no debe quedar encendida); hay que activarlo con un gesto.
     if (
-      (before === 'leccion' || before === 'practica' || before === 'afinador') &&
+      (before === 'leccion' ||
+        before === 'practica' ||
+        before === 'afinador' ||
+        before === 'cancion') &&
       name !== before
     ) {
       microphone?.stop();

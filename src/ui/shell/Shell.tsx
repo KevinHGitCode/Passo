@@ -2,6 +2,7 @@ import { useEffect, useRef, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 import type { LessonFlow } from '@/core/application/lesson-flow';
 import type { ProgressService } from '@/core/application/progress-service';
+import type { SongService } from '@/core/application/song-service';
 import type { TunerService } from '@/core/application/tuner-service';
 import type { PlayContext } from '@/core/domain/lessons';
 import { App } from '../App';
@@ -12,6 +13,8 @@ import { useIsNarrow } from '../practice/hooks';
 import { CaminoScreen } from '../screens/CaminoScreen';
 import { LessonScreen } from '../screens/LessonScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
+import { SongScreen } from '../screens/SongScreen';
+import { SongsScreen } from '../screens/SongsScreen';
 import { TunerScreen } from '../screens/TunerScreen';
 import { usePlayContext } from '../screens/use-play-context';
 import { SettingsButton, SettingsPanel } from '../settings/SettingsPanel';
@@ -29,6 +32,7 @@ export interface ShellProps extends AppProps {
   readonly progress: ProgressService;
   readonly lessonFlow: LessonFlow;
   readonly tuner: TunerService;
+  readonly songs: SongService;
 }
 
 /** Debajo de este ancho la navegación pasa a una barra inferior y los ajustes a la cabecera. */
@@ -93,6 +97,17 @@ function Screen({
       );
     case 'afinador':
       return <TunerScreen tuner={shell.tuner} microphone={shell.microphone} notation={notation} />;
+    case 'canciones':
+      return <SongsScreen />;
+    case 'cancion':
+      return (
+        <SongScreen
+          songId={route.songId}
+          songs={shell.songs}
+          microphone={shell.microphone}
+          notation={notation}
+        />
+      );
     case 'practica':
       return null;
   }
@@ -134,7 +149,13 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
       onChosen={(next) => {
         // La dirección sigue al instrumento; el afinador (de guitarra) vuelve al camino del elegido.
         if (route.name === 'progreso') navigate(progresoOf(next));
-        else if (route.name === 'camino' || route.name === 'afinador') navigate(caminoOf(next));
+        else if (
+          route.name === 'camino' ||
+          route.name === 'afinador' ||
+          route.name === 'canciones' ||
+          route.name === 'cancion'
+        )
+          navigate(caminoOf(next));
       }}
     />
   );

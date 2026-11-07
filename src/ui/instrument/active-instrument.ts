@@ -1,6 +1,7 @@
 import { useLayoutEffect } from 'react';
 import type { Instrument } from '@/core/domain/instrument';
 import { findLesson } from '@/core/domain/lessons';
+import { findPianoSong } from '@/core/domain/piano-songs';
 import { reviewInstrumentOf } from '@/core/domain/review';
 import type { Route } from '../router/routes';
 
@@ -21,10 +22,10 @@ export function activeInstrument(route: Route, preferred: Instrument): Instrumen
     case 'practica':
       return 'piano';
     case 'afinador':
-    case 'canciones':
     case 'acordes':
-    case 'cancion':
       return 'guitarra';
+    case 'cancion':
+      return findPianoSong(route.songId) ? 'piano' : 'guitarra';
     default:
       return preferred;
   }

@@ -9,6 +9,7 @@ import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
 import { ProgressService } from '@/core/application/progress-service';
 import { ChordsService } from '@/core/application/chords-service';
+import { PianoSongService } from '@/core/application/piano-song-service';
 import { SongService } from '@/core/application/song-service';
 import { StrumListener } from '@/core/application/strum-listener';
 import { TunerService } from '@/core/application/tuner-service';
@@ -89,6 +90,7 @@ function setup(options: { hash?: string; narrow?: boolean; stored?: unknown } = 
       tuner={new TunerService({ pitch: new FakePitch(), clock: new FakeClock(0) })}
       songs={new SongService({})}
       chords={new ChordsService({ listener: new StrumListener({ frames: new FakeFrameSource() }) })}
+      piano={new PianoSongService({ inputs, clock: new FakeClock(0) })}
     />,
   );
   const go = (hash: string) =>
@@ -105,7 +107,7 @@ describe('el marco del juego', () => {
     expect(screen.getByTestId('game-shell')).toBeTruthy();
     expect(screen.getByRole('heading', { level: 1, name: 'Aprender' })).toBeTruthy();
     const nav = screen.getByRole('navigation', { name: 'Principal' });
-    expect(nav.querySelectorAll('a')).toHaveLength(3);
+    expect(nav.querySelectorAll('a')).toHaveLength(4);
     expect(document.title).toBe('Aprender · Passo');
   });
 
@@ -127,7 +129,7 @@ describe('el marco del juego', () => {
     const hrefs = [
       ...screen.getByRole('navigation', { name: 'Principal' }).querySelectorAll('a'),
     ].map((a) => a.getAttribute('href'));
-    expect(hrefs).toEqual(['#/piano', '#/piano/progreso', '#/practica']);
+    expect(hrefs).toEqual(['#/piano', '#/piano/progreso', '#/canciones', '#/practica']);
   });
 
   it('en pantallas estrechas la navegación pasa abajo y los ajustes a la cabecera', () => {
@@ -471,12 +473,26 @@ describe('la dirección dice el instrumento', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Canción no encontrada' })).toBeTruthy();
   });
 
-  it('con piano no se ofrecen las canciones en la navegación', () => {
-    setup({ stored: PIANO });
+  it('con piano también hay canciones: Golden Brown, con las notas cayendo sobre el teclado', () => {
+    const { go, mic } = setup({ stored: PIANO });
     const hrefs = [
       ...screen.getByRole('navigation', { name: 'Principal' }).querySelectorAll('a'),
     ].map((a) => a.getAttribute('href'));
-    expect(hrefs).not.toContain('#/canciones');
+    expect(hrefs).toContain('#/canciones');
+    go('#/canciones');
+    expect(screen.getByTestId('song-golden-brown').getAttribute('href')).toBe(
+      '#/cancion/golden-brown',
+    );
+    // Sin guitarra: ni «Cumpleaños feliz» ni acordes.
+    expect(screen.queryByTestId('song-cumpleanos-feliz')).toBeNull();
+    expect(document.documentElement.dataset['instrument']).toBe('piano');
+    go('#/cancion/golden-brown');
+    expect(screen.getByRole('heading', { level: 1, name: 'Golden Brown' })).toBeTruthy();
+    // El micrófono es la única entrada: primero se pide activarlo.
+    expect(screen.getByTestId('song-activate')).toBeTruthy();
+    act(() => mic.makeReady());
+    expect(screen.getByTestId('piano')).toBeTruthy();
+    expect(screen.getByTestId('fall-0-45')).toBeTruthy();
   });
 
   it('la marca «Passo» lleva al camino del instrumento', () => {

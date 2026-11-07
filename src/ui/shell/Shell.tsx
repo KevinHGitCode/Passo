@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { LessonFlow } from '@/core/application/lesson-flow';
 import type { ProgressService } from '@/core/application/progress-service';
 import type { ChordsService } from '@/core/application/chords-service';
+import type { PianoSongService } from '@/core/application/piano-song-service';
 import type { SongService } from '@/core/application/song-service';
 import type { TunerService } from '@/core/application/tuner-service';
 import type { PlayContext } from '@/core/domain/lessons';
@@ -14,7 +15,9 @@ import { useIsNarrow } from '../practice/hooks';
 import { CaminoScreen } from '../screens/CaminoScreen';
 import { LessonScreen } from '../screens/LessonScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
+import { findPianoSong } from '@/core/domain/piano-songs';
 import { ChordsScreen } from '../screens/ChordsScreen';
+import { PianoSongScreen } from '../screens/PianoSongScreen';
 import { SongScreen } from '../screens/SongScreen';
 import { SongsScreen } from '../screens/SongsScreen';
 import { TunerScreen } from '../screens/TunerScreen';
@@ -36,6 +39,7 @@ export interface ShellProps extends AppProps {
   readonly tuner: TunerService;
   readonly songs: SongService;
   readonly chords: ChordsService;
+  readonly piano: PianoSongService;
 }
 
 /** Debajo de este ancho la navegación pasa a una barra inferior y los ajustes a la cabecera. */
@@ -101,10 +105,22 @@ function Screen({
     case 'afinador':
       return <TunerScreen tuner={shell.tuner} microphone={shell.microphone} notation={notation} />;
     case 'canciones':
-      return <SongsScreen />;
+      return <SongsScreen instrument={instrument} />;
     case 'acordes':
       return <ChordsScreen chords={shell.chords} microphone={shell.microphone} />;
     case 'cancion':
+      if (findPianoSong(route.songId)) {
+        return (
+          <PianoSongScreen
+            songId={route.songId}
+            piano={shell.piano}
+            microphone={shell.microphone}
+            // Con el micrófono como única entrada hay que activarlo antes de tocar.
+            needsMicrophone={play.sources.length === 1 && play.sources[0] === 'microfono'}
+            notation={notation}
+          />
+        );
+      }
       return (
         <SongScreen
           songId={route.songId}

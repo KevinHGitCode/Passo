@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { isBlackKey } from '@/core/domain/note';
 import type { Midi } from '@/core/domain/note';
 import type { HandShape } from '@/core/domain/hand-shape';
@@ -5,7 +6,7 @@ import { Cascade } from './cascade';
 import type { CascadeBlock } from './cascade';
 import { BLACK_HEIGHT, layoutKeys, viewBoxOf, WHITE_HEIGHT } from './geometry';
 import { Hand } from './hand';
-import type { KeyLayout } from './geometry';
+import type { KeyboardLayout, KeyLayout } from './geometry';
 import './piano-keyboard.css';
 
 /** Estado visual de una tecla. Es un mapa nota → estado para poder crecer (dedos, siguiente…). */
@@ -36,6 +37,12 @@ export interface PianoKeyboardProps {
   readonly cascade?: readonly CascadeBlock[] | undefined;
   /** Texto de cada nota en los bloques de la cascada (el nombre con su octava). */
   readonly blockLabel?: ((midi: Midi) => string) | undefined;
+  /**
+   * Notas que caen sobre el teclado: se reserva esta altura por encima de las teclas (la y = 0 son las
+   * teclas) y `render` dibuja en ese espacio con las mismas coordenadas que las teclas.
+   */
+  readonly fall?:
+    { readonly height: number; readonly render: (layout: KeyboardLayout) => ReactNode } | undefined;
   /** La mano bajo el teclado; con `null` se reserva su fila vacía. */
   readonly hand?: HandShape | null | undefined;
   readonly ariaLabel: string;
@@ -75,6 +82,7 @@ export function PianoKeyboard({
   viewWindow,
   cascade,
   blockLabel,
+  fall,
   hand,
   ariaLabel,
 }: PianoKeyboardProps) {
@@ -107,6 +115,7 @@ export function PianoKeyboard({
   const box = viewBoxOf(viewX, viewWidth, {
     cascade: cascade !== undefined,
     hand: hand !== undefined,
+    above: fall?.height,
   });
 
   return (
@@ -164,6 +173,7 @@ export function PianoKeyboard({
           </g>
         );
       })}
+      {fall?.render(layout)}
       {cascade && (
         <Cascade
           layout={layout}

@@ -24,14 +24,14 @@ interface Item {
 const common = (instrument: Instrument): readonly Item[] => [
   { route: caminoOf(instrument), label: 'Aprender', icon: 'home', active: ['camino', 'leccion'] },
   { route: progresoOf(instrument), label: 'Progreso', icon: 'chart', active: ['progreso'] },
+  {
+    route: CANCIONES,
+    label: 'Canciones',
+    icon: 'music',
+    active: ['canciones', 'cancion'],
+  },
   ...(instrument === 'guitarra'
     ? [
-        {
-          route: CANCIONES,
-          label: 'Canciones',
-          icon: 'music' as const,
-          active: ['canciones', 'cancion'] as const,
-        },
         {
           route: ACORDES,
           label: 'Acordes',

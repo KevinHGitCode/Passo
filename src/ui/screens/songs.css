@@ -407,6 +407,57 @@
   font-size: 11px;
   font-weight: 900;
 }
+/* Notas que caen sobre el teclado (canciones de piano). */
+.piano-song__board {
+  width: 100%;
+}
+/* Las notas que caen necesitan sitio: aquí el teclado no se encoge como en las lecciones. */
+.piano-song__board .piano {
+  max-height: min(78vh, 720px);
+}
+.fall__lane {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.fall__line {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.fall__bar rect {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 1;
+}
+.fall__bar[data-hand='izquierda'] rect {
+  fill: var(--ok);
+}
+.fall__bar[data-current='true'] rect {
+  stroke: var(--text);
+  stroke-width: 1.6;
+}
+.fall__bar[data-state='bien'] rect {
+  opacity: 0.35;
+}
+.fall__bar[data-state='fallo'] rect {
+  fill: var(--err);
+  opacity: 0.55;
+}
+.fall__mark {
+  font-size: 14px;
+  font-weight: 900;
+}
+.fall__mark--ok {
+  fill: var(--ok);
+}
+.fall__mark--miss {
+  fill: var(--err);
+}
+.fall__label {
+  fill: var(--on-accent);
+  font-size: 7px;
+  font-weight: 900;
+}
 .song__speed {
   display: flex;
   flex-wrap: wrap;

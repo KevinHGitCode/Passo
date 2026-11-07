@@ -25,6 +25,7 @@ import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
 import { ProgressService } from '@/core/application/progress-service';
 import { ChordsService } from '@/core/application/chords-service';
+import { PianoSongService } from '@/core/application/piano-song-service';
 import { SongService } from '@/core/application/song-service';
 import { StrumListener } from '@/core/application/strum-listener';
 import { TunerService } from '@/core/application/tuner-service';
@@ -222,6 +223,16 @@ export function composeApp(search: string = window.location.search) {
   });
 
   const chords = new ChordsService({ listener: strumListener });
+  // Las canciones de piano: las notas caen sobre el teclado y se tocan con la entrada elegida.
+  const piano = new PianoSongService({
+    inputs: inputs as readonly NoteInput[],
+    clock,
+    expectation: microphone,
+    listening: {
+      enter: () => microphone.setProfile('piano'),
+      leave: () => microphone.setProfile(session.getSnapshot().instrument),
+    },
+  });
 
   return {
     session,
@@ -229,6 +240,7 @@ export function composeApp(search: string = window.location.search) {
     tuner,
     songs,
     chords,
+    piano,
     /** Progreso guardado y flujo de las lecciones (las usa el marco del camino). */
     progress,
     lessonFlow,

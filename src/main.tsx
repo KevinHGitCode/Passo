@@ -18,6 +18,7 @@ const {
   tuner,
   songs,
   chords,
+  piano,
   inputs,
   inputManager,
   audio,
@@ -37,6 +38,7 @@ createRoot(root).render(
       tuner={tuner}
       songs={songs}
       chords={chords}
+      piano={piano}
       inputs={inputs}
       inputManager={inputManager}
       audio={audio}

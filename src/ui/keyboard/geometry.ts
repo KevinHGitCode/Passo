@@ -45,15 +45,17 @@ export interface ViewBoxOptions {
   readonly cascade?: boolean | undefined;
   /** Reserva la fila de la mano por debajo de las teclas. */
   readonly hand?: boolean | undefined;
+  /** Reserva esta altura (unidades del viewBox) por encima de las teclas: las notas que caen. */
+  readonly above?: number | undefined;
 }
 
 /** El `viewBox` del teclado con las filas reservadas: una sola escala para teclas, bloques y dedos. */
 export function viewBoxOf(
   x: number,
   width: number,
-  { cascade = false, hand = false }: ViewBoxOptions = {},
+  { cascade = false, hand = false, above: reserved }: ViewBoxOptions = {},
 ): { readonly x: number; readonly y: number; readonly width: number; readonly height: number } {
-  const above = cascade ? CASCADE_HEIGHT : KEY_MARGIN;
+  const above = reserved ?? (cascade ? CASCADE_HEIGHT : KEY_MARGIN);
   const below = hand ? HAND_HEIGHT : 0;
   return { x, y: -above, width, height: above + WHITE_HEIGHT + 4 + below };
 }

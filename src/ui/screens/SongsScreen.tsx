@@ -1,3 +1,5 @@
+import type { Instrument } from '@/core/domain/instrument';
+import { PIANO_SONGS, pianoSongMs } from '@/core/domain/piano-songs';
 import { SONGS, STYLE_LABELS } from '@/core/domain/songs';
 import type { Song } from '@/core/domain/songs';
 import { hrefOf, songRoute } from '../router/routes';
@@ -10,8 +12,44 @@ function durationText(song: Song): string {
   return seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
 }
 
+/** La lista de canciones de piano: las notas caen sobre el teclado. */
+function PianoSongsList() {
+  return (
+    <div className="songs" data-testid="songs">
+      <h1 id="canciones-titulo" tabIndex={-1} data-route-heading>
+        Canciones
+      </h1>
+      <p className="songs__lead">
+        Las notas caen sobre el teclado: tócalas esperando a que lleguen o a tempo, como en el
+        original.
+      </p>
+      <ul className="songs__list">
+        {PIANO_SONGS.map((song) => (
+          <li key={song.id} className="songs__card" data-style="piano">
+            <p className="songs__style">{song.artist}</p>
+            <h2 className="songs__title">{song.title}</h2>
+            <p className="songs__summary">{song.summary}</p>
+            <p className="songs__meta">
+              {song.steps.length} pasos · {song.bpm} pulsos por minuto ·{' '}
+              {Math.round(pianoSongMs(song) / 1000)} s
+            </p>
+            <a
+              className="songs__play"
+              href={hrefOf(songRoute(song.id))}
+              data-testid={`song-${song.id}`}
+            >
+              Tocar
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /** La lista de canciones de guitarra: melodías (notas sueltas) y rasgueos (acordes). */
-export function SongsScreen() {
+export function SongsScreen({ instrument = 'guitarra' }: { readonly instrument?: Instrument }) {
+  if (instrument === 'piano') return <PianoSongsList />;
   return (
     <div className="songs" data-testid="songs">
       <h1 id="canciones-titulo" tabIndex={-1} data-route-heading>
@@ -42,8 +80,8 @@ export function SongsScreen() {
         ))}
       </ul>
       <p className="songs__note">
-        Los rasgueos miden el tiempo del cambio de acorde; todavía no comprueban que el acorde sea
-        el correcto.
+        En los rasgueos se cuentan los golpes (con su dirección y su tiempo) y se comprueba el
+        acorde.
       </p>
     </div>
   );

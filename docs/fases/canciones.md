@@ -16,10 +16,11 @@ Una sección **Canciones** en la navegación de guitarra (`#/canciones`, `#/canc
 | Canción | Estilo | Notas |
 |---|---|---|
 | **Cumpleaños feliz** | Melodía | 25 notas en primera posición (cuerdas 1 a 3) |
+| **Mi corazón encantado** | Melodía | Opening de Dragon Ball GT: la introducción y la primera frase (~50 notas, cuerdas 1 a 5) |
 | **Estrellita, ¿dónde estás?** | Melodía | Canción popular; pasa por el traste 5 de la cuerda 1 |
 | **De colores (acordes sencillos)** | Rasgueo | G, C y D7 con «↓ ↓↑ ↑↓↑»; es una progresión sencilla, no el arreglo exacto |
 
-**«Mi corazón encantado» no está.** No se transcribe de memoria (no sé la melodía con certeza): hace falta tu tablatura o una grabación. El formato (`src/core/domain/songs.ts`) ya admite agregarla: una lista de `note(cuerda, traste, pulsos, letra)` o `chord(...)`.
+**«Mi corazón encantado»** sale de la tablatura de la comunidad de [LaCuerda](https://acordes.lacuerda.net/cesar_franco/mi_corazon_encantado.shtml) (transcrita por Alejandro Arnais), no de memoria: `stepsFromTab` lee las columnas de la tablatura (cuatro columnas = un pulso; las notas duran hasta la siguiente). Solo lleva la introducción y la primera frase, **sin letra** (es una canción con derechos). Esa tablatura no trae tempo ni compás: el tempo (80) y las duraciones son una estimación, así que si algo no suena como la canción, fíate de tu oído y dime qué corregir. Para agregar más canciones basta una lista de `note(...)`, `chord(...)` o una tablatura.
 
 ## Decisiones
 

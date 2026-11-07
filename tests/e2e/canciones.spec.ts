@@ -25,14 +25,14 @@ async function openSong(page: Page, id: string): Promise<void> {
   await expect(page.getByTestId('song-calibrating')).toHaveCount(0, { timeout: 10_000 });
 }
 
-test('Canciones · la lista tiene tres canciones y se llega desde la navegación', async ({
+test('Canciones · la lista tiene cuatro canciones y se llega desde la navegación', async ({
   page,
 }) => {
   await chooseGuitar(page);
   await page.goto('/?seed=7#/guitarra');
   await page.getByRole('link', { name: 'Canciones' }).first().click();
   await expect(page.getByRole('heading', { level: 1, name: 'Canciones' })).toBeVisible();
-  await expect(page.locator('.songs__card')).toHaveCount(3);
+  await expect(page.locator('.songs__card')).toHaveCount(4);
   await expect(page.getByTestId('song-cumpleanos-feliz')).toBeVisible();
   await capture(page, '01-lista');
 });

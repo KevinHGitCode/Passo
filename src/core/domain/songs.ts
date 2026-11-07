@@ -66,6 +66,38 @@ const chord = (
   lyric: string,
 ): ChordStep => ({ kind: 'acorde', chord: name, shape, strum, beats, lyric });
 
+/**
+ * Una melodía escrita como tablatura (seis líneas, de la cuerda 1 a la 6, sin las letras de las cuerdas).
+ * Cada columna es el mismo tiempo: una nota dura lo que hay hasta la siguiente (cuatro columnas = un pulso;
+ * la última, un pulso). Se leen solo los números; los guiones son silencio entre notas.
+ */
+const DIGIT = /[0-9]/;
+
+export function stepsFromTab(blocks: readonly (readonly string[])[]): SongStep[] {
+  const steps: SongStep[] = [];
+  for (const block of blocks) {
+    if (block.length !== 6) throw new RangeError('Un bloque de tablatura lleva seis líneas');
+    const found: { column: number; string: GuitarString; fret: number }[] = [];
+    const width = Math.max(...block.map((line) => line.length));
+    for (let column = 0; column < width; column++) {
+      for (let index = 0; index < 6; index++) {
+        const line = block[index] ?? '';
+        const char = line[column] ?? '-';
+        if (!DIGIT.test(char) || DIGIT.test(line[column - 1] ?? '-')) continue;
+        const fret = Number(/^[0-9]+/.exec(line.slice(column))?.[0]);
+        found.push({ column, string: (index + 1) as GuitarString, fret });
+        break;
+      }
+    }
+    found.forEach((item, position) => {
+      const next = found[position + 1];
+      const beats = next ? Math.min(2, Math.max(0.25, (next.column - item.column) / 4)) : 1;
+      steps.push(note(item.string, item.fret, beats, ''));
+    });
+  }
+  return steps;
+}
+
 const HAPPY_BIRTHDAY: readonly SongStep[] = [
   note(3, 0, 0.75, 'Cum'),
   note(3, 0, 0.25, 'ple'),
@@ -153,6 +185,34 @@ const TWINKLE: readonly SongStep[] = (() => {
   return [...a, ...b, ...c, ...d, ...a, ...b];
 })();
 
+/** Introducción y primera frase de la melodía de «Mi corazón encantado» (tablatura de la comunidad). */
+const MI_CORAZON: readonly SongStep[] = stepsFromTab([
+  [
+    '---3-3-----3-5-3---------------------------------',
+    '-------5-6-------6-5-3----5-5-----5-6-5----------',
+    '------------------------------5-7-------7-5-4-2--',
+    '-------------------------------------------------',
+    '-------------------------------------------------',
+    '-------------------------------------------------',
+  ],
+  [
+    '--------5-3---------------------------',
+    '--------------3-5-6-5-3---3----1-0-1--',
+    '--2-2-5-----5-----------5-------------',
+    '--------------------------------------',
+    '--------------------------------------',
+    '--------------------------------------',
+  ],
+  [
+    '----------------------------------',
+    '----------------------------------',
+    '----------------------------------',
+    '-----6-5-3---------8-6-5----------',
+    '---3-------6-5-6-5-------8-6-8-7--',
+    '----------------------------------',
+  ],
+]);
+
 const G_SHAPE =
   'Dedo 2 en la cuerda 6 (traste 3), dedo 1 en la 5 (traste 2), dedo 3 en la 1 (traste 3). Las seis cuerdas.';
 const C_SHAPE =
@@ -181,6 +241,15 @@ export const SONGS: readonly Song[] = [
     bpm: 90,
     summary: 'La melodía de siempre, en primera posición (cuerdas 1 a 3).',
     steps: HAPPY_BIRTHDAY,
+  },
+  {
+    id: 'mi-corazon-encantado',
+    title: 'Mi corazón encantado',
+    style: 'melodia',
+    bpm: 80,
+    summary:
+      'El opening de Dragon Ball GT: la introducción y la primera frase. Tablatura de la comunidad (LaCuerda); si algo no suena como la canción, fíate de tu oído.',
+    steps: MI_CORAZON,
   },
   {
     id: 'estrellita',

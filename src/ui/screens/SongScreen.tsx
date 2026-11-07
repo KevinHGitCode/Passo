@@ -42,7 +42,7 @@ function StepCard({
   if (step.kind === 'nota') {
     return (
       <div className="song__now" data-kind="nota" data-testid="song-now">
-        <p className="song__lyric">{step.lyric}</p>
+        {step.lyric ? <p className="song__lyric">{step.lyric}</p> : null}
         <p className="song__big">{noteLabel(step.midi, notation, 'guitarra')}</p>
         <p className="song__how">
           Cuerda {step.string} · {step.fret === 0 ? 'al aire' : `traste ${step.fret}`}

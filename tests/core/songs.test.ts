@@ -6,14 +6,16 @@ import {
   judgePace,
   paceText,
   stepMatches,
+  stepsFromTab,
   stepMs,
   summarize,
 } from '@/core/domain/songs';
 import type { StepResult } from '@/core/domain/songs';
 
 describe('el catálogo de canciones', () => {
-  it('hay al menos tres: dos melodías y un rasgueo, con «Cumpleaños feliz»', () => {
-    expect(SONGS.length).toBeGreaterThanOrEqual(3);
+  it('hay al menos cuatro: tres melodías (con «Cumpleaños feliz» y «Mi corazón encantado») y un rasgueo', () => {
+    expect(SONGS.length).toBeGreaterThanOrEqual(4);
+    expect(findSong('mi-corazon-encantado')?.style).toBe('melodia');
     expect(findSong('cumpleanos-feliz')?.style).toBe('melodia');
     expect(SONGS.some((song) => song.style === 'rasgueo')).toBe(true);
     expect(new Set(SONGS.map((song) => song.id)).size).toBe(SONGS.length);
@@ -45,6 +47,31 @@ describe('el catálogo de canciones', () => {
         }
       });
     }
+  });
+});
+
+describe('la tablatura', () => {
+  it('se lee de columna en columna: la cuerda, el traste y lo que dura hasta la siguiente', () => {
+    const steps = stepsFromTab([
+      ['--3---5-', '--------', '--------', '--------', '--------', '--------'],
+    ]);
+    expect(steps).toHaveLength(2);
+    expect(steps[0]).toMatchObject({ kind: 'nota', string: 1, fret: 3, midi: 67, beats: 1 });
+    expect(steps[1]).toMatchObject({ string: 1, fret: 5, beats: 1 });
+    const quick = stepsFromTab([['3-5-', '----', '----', '----', '----', '----']]);
+    expect(quick[0]?.beats).toBe(0.5);
+  });
+
+  it('un bloque lleva seis líneas', () => {
+    expect(() => stepsFromTab([['3-5']])).toThrow(RangeError);
+  });
+
+  it('«Mi corazón encantado» empieza con Sol y Sol en la cuerda 1 (traste 3) y no lleva letra', () => {
+    const steps = findSong('mi-corazon-encantado')?.steps ?? [];
+    expect(steps.length).toBeGreaterThan(40);
+    expect(steps[0]).toMatchObject({ string: 1, fret: 3, midi: 67 });
+    expect(steps[1]).toMatchObject({ string: 1, fret: 3, midi: 67 });
+    expect(steps.every((step) => step.kind === 'nota' && step.lyric === '')).toBe(true);
   });
 });
 

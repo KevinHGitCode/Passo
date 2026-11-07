@@ -555,6 +555,33 @@
 .tuner__steps-bar li[data-state='actual'] {
   background: var(--accent);
 }
+.tuner__needle[data-stale='true'] {
+  opacity: 0.45;
+}
+.tuner__read b[data-stale='true'] {
+  opacity: 0.55;
+}
+.tuner__auto {
+  min-height: 44px;
+  margin: 0;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+.tuner__auto[aria-pressed='false'] {
+  color: var(--text);
+  text-decoration: underline;
+}
+.tuner__auto:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
 /* Antes de activar el micrófono: una sola tarjeta con una sola acción. */
 .tuner__start {
   max-width: 520px;

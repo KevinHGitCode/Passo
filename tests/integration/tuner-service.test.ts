@@ -94,10 +94,57 @@ describe('TunerService', () => {
     expect(tuner.getSnapshot().status).toBe('alta');
     clock.advance(600);
     pitch.emit(null);
-    expect(tuner.getSnapshot().status).toBe('alta');
+    expect(tuner.getSnapshot()).toMatchObject({ status: 'alta', stale: false });
     clock.advance(1000);
     pitch.emit(null);
+    // La aguja se queda donde estaba, atenuada; solo mucho después se olvida.
+    expect(tuner.getSnapshot()).toMatchObject({ status: 'alta', cents: 15, stale: true });
+    clock.advance(31_000);
+    pitch.emit(null);
     expect(tuner.getSnapshot().status).toBe('sin-sonido');
+  });
+
+  it('en automático, tocar otra cuerda la elige sola y mide contra ella', () => {
+    const { tuner, play, pitch } = setup();
+    tuner.open();
+    expect(tuner.getSnapshot().auto).toBe(true);
+    // Con el modo automático se busca en todo el rango de la guitarra.
+    const range = pitch.searches[pitch.searches.length - 1];
+    expect(range?.minHz).toBeLessThan(stringFrequency(6));
+    expect(range?.maxHz).toBeGreaterThan(stringFrequency(1));
+    play(5, -30, 1200);
+    expect(tuner.getSnapshot()).toMatchObject({
+      string: 5,
+      status: 'baja',
+      cents: -30,
+      auto: true,
+    });
+    play(2, 12, 1200);
+    expect(tuner.getSnapshot()).toMatchObject({ string: 2, status: 'alta', cents: 12 });
+  });
+
+  it('en automático, una lectura suelta de otra cuerda no cambia la elegida', () => {
+    const { tuner, play, pitch, clock } = setup();
+    tuner.open();
+    play(1, 0, 600);
+    clock.advance(20);
+    pitch.emit({ frequency: stringFrequency(2), clarity: 0.9, at: clock.now() });
+    expect(tuner.getSnapshot().string).toBe(1);
+  });
+
+  it('tocar una clavija fija la cuerda (sale de automático) y se puede volver', () => {
+    const { tuner, play, pitch } = setup();
+    tuner.open();
+    tuner.selectString(4);
+    expect(tuner.getSnapshot()).toMatchObject({ string: 4, auto: false });
+    const range = pitch.searches[pitch.searches.length - 1];
+    expect(range?.maxHz).toBeLessThan(stringFrequency(3));
+    play(5, 0, 1200);
+    expect(tuner.getSnapshot().string).toBe(4);
+    tuner.setAuto(true);
+    expect(tuner.getSnapshot().auto).toBe(true);
+    play(5, 0, 1200);
+    expect(tuner.getSnapshot().string).toBe(5);
   });
 
   it('un tono a más de 300 cents de la cuerda (otra cuerda) no se mide', () => {
@@ -133,6 +180,9 @@ describe('TunerService', () => {
       clock.advance(20);
       pitch.emit(null);
     }
+    expect(tuner.getSnapshot()).toMatchObject({ status: 'baja', cents: -20, stale: true });
+    clock.advance(31_000);
+    pitch.emit(null);
     expect(tuner.getSnapshot()).toMatchObject({ status: 'sin-sonido', cents: null });
   });
 
@@ -152,6 +202,7 @@ describe('TunerService', () => {
   it('no avisa si nada cambió', () => {
     const { tuner, play, snapshots } = setup();
     tuner.open();
+    tuner.selectString(1);
     play(1, -20, 400);
     const count = snapshots.length;
     play(1, -20, 200);

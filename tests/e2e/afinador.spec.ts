@@ -161,6 +161,29 @@ test('Afinador · el modo guiado avanza solo, deja saltar y dice qué falta (vid
   await saveVideo(page, '02-modo-guiado.webm');
 });
 
+test('Afinador · automático: cualquier cuerda se detecta sola y la aguja no desaparece', async ({
+  page,
+}) => {
+  await openTuner(page);
+  await expect(page.getByTestId('tuner-auto')).toHaveAttribute('aria-pressed', 'true');
+  // Sin pulsar ninguna clavija: se toca la cuerda 5 (La2, 45) 30 cents baja.
+  await micNote(page, 45, { ms: 2200, cents: -30 });
+  await expect(page.getByTestId('tuner-target')).toContainText('Cuerda 5', { timeout: 8000 });
+  await expect(reading(page)).toContainText('Grave', { timeout: 8000 });
+  await expect(page.getByTestId('tuner-hint')).toContainText('Aprieta');
+  await capture(page, '12-automatico');
+  // Se calla: la lectura se queda, atenuada.
+  await expect(page.getByTestId('tuner-cents')).toHaveAttribute('data-stale', 'true', {
+    timeout: 10_000,
+  });
+  await expect(reading(page)).toContainText('Grave');
+  // Tocar una clavija fija la cuerda; el botón vuelve a automático.
+  await peg(page, 2).click();
+  await expect(page.getByTestId('tuner-auto')).toHaveAttribute('aria-pressed', 'false');
+  await page.getByTestId('tuner-auto').click();
+  await expect(page.getByTestId('tuner-auto')).toHaveAttribute('aria-pressed', 'true');
+});
+
 test('Afinador · el La₄ se cambia, se recuerda al recargar y mueve la meta', async ({ page }) => {
   await openTuner(page);
   await peg(page, 1).click();

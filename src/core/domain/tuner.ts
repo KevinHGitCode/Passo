@@ -21,11 +21,11 @@ export const READING_WINDOW_MS = 600;
 /** Tras empezar a sonar, la cuerda «se asienta»: el ataque sube unos 10–30 cents un momento. */
 export const SETTLE_MS = 150;
 /**
- * Sin lecturas durante este tiempo, vuelve a «sin sonido»; «Afinada» se deja ver más tiempo. Una cuerda
- * pulsada se apaga sola y el detector la pierde a ratos: la última lectura se mantiene un momento.
+ * La aguja no desaparece al callarse la cuerda: se queda donde estaba, atenuada («vieja») pasado `STALE_MS`,
+ * y solo se olvida tras `FORGET_MS` sin oír nada.
  */
-export const SILENCE_MS = 1500;
-export const TUNED_SILENCE_MS = 2000;
+export const STALE_MS = 1200;
+export const FORGET_MS = 30_000;
 /** Entre ±5 y ±15 cents la cuerda está «casi» (zona ámbar); más allá, claramente grave o aguda. */
 export const NEAR_CENTS = 15;
 /** A partir de aquí la cuerda está «muy» grave o aguda (se dice distinto). */
@@ -75,6 +75,27 @@ export function searchRange(
   };
 }
 
+/** El intervalo donde se busca el tono sin saber qué cuerda suena (de la 6 a la 1, con margen). */
+export function autoSearchRange(options: TuneOptions = {}): { minHz: number; maxHz: number } {
+  return {
+    minHz: searchRange(6, options).minHz,
+    maxHz: searchRange(1, options).maxHz,
+  };
+}
+
+/** La cuerda al aire más cercana a una frecuencia, y los cents que se desvía de ella. */
+export function nearestString(
+  frequency: number,
+  options: TuneOptions = {},
+): { readonly string: GuitarString; readonly cents: number } {
+  let best: { string: GuitarString; cents: number } = { string: 6, cents: Infinity };
+  for (const string of [6, 5, 4, 3, 2, 1] as const) {
+    const cents = centsFrom(stringFrequency(string, options), frequency);
+    if (Math.abs(cents) < Math.abs(best.cents)) best = { string, cents };
+  }
+  return best;
+}
+
 /** `afinando`: dentro de ±5 cents pero todavía sin sostenerlo el tiempo necesario. */
 export type TunerStatus = 'sin-sonido' | 'baja' | 'alta' | 'afinando' | 'afinada';
 
@@ -86,9 +107,17 @@ export interface TunerState {
   readonly far: boolean;
   /** Grave o aguda, pero a no más de `NEAR_CENTS` (la zona «casi»). */
   readonly near: boolean;
+  /** Hace rato que no se oye la cuerda: la lectura es la última que hubo. */
+  readonly stale: boolean;
 }
 
-export const NO_SOUND: TunerState = { status: 'sin-sonido', cents: null, far: false, near: false };
+export const NO_SOUND: TunerState = {
+  status: 'sin-sonido',
+  cents: null,
+  far: false,
+  near: false,
+  stale: false,
+};
 
 function median(values: readonly number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
@@ -125,15 +154,23 @@ export class TunerTracker {
   /** `cents` es la desviación medida respecto a la cuerda, o `null` si no se oyó nada claro. */
   push(cents: number | null, at: number): TunerState {
     if (cents !== null) {
+      // Un sonido nuevo tras un silencio empieza de cero (el ataque otra vez no cuenta), pero la aguja sigue.
+      if (at - this.lastReadingAt > STALE_MS) {
+        this.soundSince = at;
+        this.inTuneSince = null;
+        this.readings = [];
+      }
       this.lastReadingAt = at;
       this.soundSince ??= at;
+      if (this.state.stale) this.state = { ...this.state, stale: false };
       // Las lecturas del ataque (la cuerda sube unos cents al pulsarla) no entran en la mediana.
       if (at - this.soundSince >= SETTLE_MS) this.readings.push({ cents, at });
-    } else if (
-      at - this.lastReadingAt >=
-      (this.state.status === 'afinada' ? TUNED_SILENCE_MS : SILENCE_MS)
-    ) {
-      return this.reset();
+    } else {
+      const silent = at - this.lastReadingAt;
+      if (silent >= FORGET_MS) return this.reset();
+      if (silent >= STALE_MS && !this.state.stale && this.state.status !== 'sin-sonido') {
+        this.state = { ...this.state, stale: true };
+      }
     }
     this.readings = this.readings.filter((reading) => at - reading.at <= READING_WINDOW_MS);
     // Sin sonido nuevo no se opina de nuevo (lo anterior se mantiene), y el ataque no cuenta.
@@ -154,6 +191,7 @@ export class TunerTracker {
         cents: rounded,
         far: false,
         near: false,
+        stale: false,
       };
     } else {
       this.inTuneSince = null;
@@ -162,6 +200,7 @@ export class TunerTracker {
         cents: rounded,
         far: Math.abs(middle) > FAR_CENTS,
         near: Math.abs(middle) <= NEAR_CENTS,
+        stale: false,
       };
     }
     return this.state;

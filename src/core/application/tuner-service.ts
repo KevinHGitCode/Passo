@@ -21,6 +21,8 @@ import type { StringMarks } from '../domain/string-board';
 import {
   NO_SOUND,
   SEARCH_CENTS,
+  autoSearchRange,
+  nearestString,
   TunerTracker,
   centsFrom,
   isValidReference,
@@ -64,6 +66,8 @@ export interface TunerSnapshot extends TunerState {
   readonly open: boolean;
   /** Lo que se recuerda de cada cuerda mientras el afinador está abierto (afinada, sin afinar, revisar). */
   readonly strings: StringMarks;
+  /** Modo automático: la cuerda que se afina es la más cercana a lo que suena (tocar una clavija lo desactiva). */
+  readonly auto: boolean;
   /** El La4 con el que se mide (440 Hz por omisión). */
   readonly referenceHz: number;
   /** Hay dónde hacer sonar la nota de referencia. */
@@ -101,6 +105,9 @@ export class TunerService {
   /** La pasada guiada en curso y desde cuándo está afinada la cuerda actual. */
   private run: GuidedRun | null = null;
   private heldSince: number | null = null;
+  private auto = true;
+  /** En automático: la cuerda que parece sonar si no es la actual, y cuántas lecturas seguidas lo dicen. */
+  private candidate: { string: GuitarString; count: number } | null = null;
   private viewCache: { run: GuidedRun; marks: StringMarks; view: GuidedView } | null = null;
   private snapshot: TunerSnapshot;
 
@@ -111,6 +118,7 @@ export class TunerService {
       string: 1,
       open: false,
       strings: this.board.marks(deps.clock.now()),
+      auto: true,
       referenceHz: this.referenceHz,
       canReference: deps.tone !== undefined,
       tone: false,
@@ -134,9 +142,16 @@ export class TunerService {
     this.mutedUntil = -Infinity;
     this.run = null;
     this.heldSince = null;
-    this.deps.pitch.setPitchSearch(searchRange(this.snapshot.string, this.options()));
+    this.auto = true;
+    this.candidate = null;
     this.unsubscribe = this.deps.pitch.subscribePitch((reading) => this.onReading(reading));
-    this.update({ ...NO_SOUND, open: true, strings: this.marks(this.deps.clock.now()) });
+    this.update({
+      ...NO_SOUND,
+      open: true,
+      auto: true,
+      strings: this.marks(this.deps.clock.now()),
+    });
+    this.applySearch();
   }
 
   /** Deja de seguir el tono y de medir. */
@@ -162,11 +177,25 @@ export class TunerService {
       this.run = isFinished(this.run) ? null : jumpTo(this.run, string);
       this.heldSince = null;
     }
+    // Elegir una clavija fija la cuerda: sale del modo automático.
+    if (this.run === null) this.auto = false;
     if (string === this.snapshot.string) {
-      this.update({});
+      this.update({ auto: this.auto });
+      this.applySearch();
       return;
     }
     this.goTo(string);
+    this.update({ auto: this.auto });
+  }
+
+  /** Activa o desactiva el modo automático (detectar la cuerda que suena). */
+  setAuto(on: boolean): void {
+    if (on === this.auto) return;
+    this.auto = on;
+    this.candidate = null;
+    this.tracker.reset();
+    this.update({ ...NO_SOUND, auto: on });
+    this.applySearch();
   }
 
   /**
@@ -212,7 +241,7 @@ export class TunerService {
     this.board = StringBoard.empty();
     this.tracker.reset();
     if (this.snapshot.open) {
-      this.deps.pitch.setPitchSearch(searchRange(this.snapshot.string, this.options()));
+      this.applySearch();
     }
     this.update({
       ...NO_SOUND,
@@ -262,7 +291,9 @@ export class TunerService {
     if (this.run === null) return;
     this.run = null;
     this.heldSince = null;
+    this.candidate = null;
     this.update({});
+    this.applySearch();
   }
 
   /** Vuelve a mirar si alguna cuerda afinada ya pasó a «revisar» (lo llama la pantalla de vez en cuando). */
@@ -275,6 +306,13 @@ export class TunerService {
     // Mientras suena la referencia (y un momento después) el micrófono oye a la propia app: no se mide.
     if (this.playing || now < this.mutedUntil) return;
     if (this.run?.paused === true) return;
+    if (
+      reading !== null &&
+      this.auto &&
+      this.run === null &&
+      !this.followDetected(reading.frequency)
+    )
+      return;
     const target = stringFrequency(this.snapshot.string, this.options());
     // Un tono fuera del intervalo de la cuerda (p. ej. la anterior que aún suena) es como no oír nada.
     const cents = reading === null ? null : centsFrom(target, reading.frequency);
@@ -325,8 +363,37 @@ export class TunerService {
   private goTo(string: GuitarString): void {
     this.stopReference();
     this.tracker.reset();
-    if (this.snapshot.open) this.deps.pitch.setPitchSearch(searchRange(string, this.options()));
     this.update({ ...NO_SOUND, string, strings: this.marks(this.deps.clock.now()) });
+    this.applySearch();
+  }
+
+  /** Dónde se busca el tono: en todo el rango de la guitarra (automático) o alrededor de la cuerda elegida. */
+  private applySearch(): void {
+    if (!this.snapshot.open) return;
+    const automatic = this.auto && this.run === null;
+    this.deps.pitch.setPitchSearch(
+      automatic
+        ? autoSearchRange(this.options())
+        : searchRange(this.snapshot.string, this.options()),
+    );
+  }
+
+  /**
+   * En automático, la cuerda elegida sigue a lo que suena: cambia cuando tres lecturas seguidas apuntan a otra
+   * (una lectura suelta no la cambia). Devuelve `false` si esta lectura se descarta mientras se decide.
+   */
+  private followDetected(frequency: number): boolean {
+    const detected = nearestString(frequency, this.options()).string;
+    if (detected === this.snapshot.string) {
+      this.candidate = null;
+      return true;
+    }
+    const count = this.candidate?.string === detected ? this.candidate.count + 1 : 1;
+    this.candidate = { string: detected, count };
+    if (count < 3) return false;
+    this.candidate = null;
+    this.goTo(detected);
+    return true;
   }
 
   private toneEnded(id: number): void {
@@ -398,6 +465,8 @@ export class TunerService {
       next.strings === previous.strings &&
       next.referenceHz === previous.referenceHz &&
       next.tone === previous.tone &&
+      next.auto === previous.auto &&
+      next.stale === previous.stale &&
       next.canReference === previous.canReference &&
       next.guided === previous.guided
     ) {

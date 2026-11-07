@@ -57,7 +57,7 @@ const SPAN = FAR_CENTS * 2;
 const percent = (cents: number): string => `${(cents * 100) / SPAN}%`;
 
 /** La regla: de −50 a +50 cents, con la zona verde de ±5 y la ámbar («casi») de ±5 a ±15. */
-function Ruler({ cents }: { readonly cents: number | null }) {
+function Ruler({ cents, stale }: { readonly cents: number | null; readonly stale: boolean }) {
   const clamped = cents === null ? 0 : Math.max(-FAR_CENTS, Math.min(FAR_CENTS, cents));
   const position = 50 + (clamped / FAR_CENTS) * 50;
   const near = percent(NEAR_CENTS - IN_TUNE_CENTS);
@@ -75,7 +75,12 @@ function Ruler({ cents }: { readonly cents: number | null }) {
       <span className="tuner__ticks" />
       <span className="tuner__major" />
       <span className="tuner__mid" />
-      <span className="tuner__needle" style={{ left: `${position}%` }} data-idle={cents === null} />
+      <span
+        className="tuner__needle"
+        style={{ left: `${position}%` }}
+        data-idle={cents === null}
+        data-stale={stale}
+      />
       {[-50, -25, 0, 25, 50].map((value) => (
         <span key={value} className="tuner__label" style={{ left: `${50 + value}%` }}>
           {formatCents(value)}
@@ -276,7 +281,8 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
         Afinador
       </h1>
       <p className="tuner__lead">
-        Afinación estándar: Mi · La · Re · Sol · Si · Mi. Elige una cuerda y tócala al aire.
+        Afinación estándar: Mi · La · Re · Sol · Si · Mi. Toca cualquier cuerda al aire y te digo si
+        hay que apretarla o aflojarla.
       </p>
 
       <div className="tuner__ref" role="group" aria-label="La₄ de referencia">
@@ -342,6 +348,18 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
             onSelect={selectString}
             groupRef={groupRef}
           />
+          <button
+            type="button"
+            className="tuner__auto"
+            aria-pressed={snapshot.auto}
+            disabled={guided !== null}
+            onClick={() => tuner.setAuto(!snapshot.auto)}
+            data-testid="tuner-auto"
+          >
+            {snapshot.auto
+              ? 'Automático: detecto la cuerda que tocas'
+              : `Cuerda ${snapshot.string} fijada · volver a automático`}
+          </button>
           <p className="tuner__legend" aria-hidden="true">
             <span>○ sin afinar</span>
             <span>↑ súbela</span>
@@ -408,13 +426,17 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
                       ? ''
                       : ` · La₄ ${snapshot.referenceHz}`}
                   </p>
-                  <Ruler cents={snapshot.cents} />
+                  <Ruler cents={snapshot.cents} stale={snapshot.stale} />
                   <p className="tuner__ends" aria-hidden="true">
                     <span>♭ Grave</span>
                     <span>Aguda ♯</span>
                   </p>
                   <p className="tuner__read" aria-hidden="true">
-                    <b data-testid="tuner-cents" data-idle={snapshot.cents === null}>
+                    <b
+                      data-testid="tuner-cents"
+                      data-idle={snapshot.cents === null}
+                      data-stale={snapshot.stale}
+                    >
                       {snapshot.cents === null ? '—' : formatCents(snapshot.cents)}
                     </b>
                     {snapshot.cents === null ? null : <span>cents</span>}

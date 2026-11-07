@@ -57,6 +57,8 @@ export interface TunerHint {
 /** La instrucción de debajo del medidor. */
 export function tunerHint(
   snapshot: Pick<TunerSnapshot, 'status' | 'far' | 'near' | 'string' | 'tone'> & {
+    readonly auto?: boolean;
+  } & {
     readonly guided?: Pick<GuidedView, 'paused'> | null;
   },
   context: {
@@ -99,6 +101,9 @@ export function tunerHint(
       return { text: 'Lista. Puedes pasar a la siguiente cuerda.', icon: 'check' };
     case 'sin-sonido':
       if (!context.listening) return { text: '', icon: null };
+      if (snapshot.auto === true && context.weakHint === null && context.loud !== true) {
+        return { text: 'Toca una cuerda al aire y déjala sonar.', icon: 'listen' };
+      }
       if (context.loud === true && context.weakHint === null) {
         return {
           text: `Oigo sonido, pero no distingo la cuerda ${snapshot.string}. Toca solo esa cuerda, firme, y acércate al micrófono.`,

@@ -138,8 +138,11 @@ test('Guitarra · el afinador: grave y luego afinada (micrófono simulado, video
   await expect(page.getByTestId('tuner-reading')).toContainText('Grave', { timeout: 8000 });
   await guitarCapture(page, '07-afinador-grave');
   await expect(page.getByTestId('tuner-live')).toHaveText('Grave, cuerda 6');
-  // Se calla y vuelve a «sin sonido».
-  await expect(page.getByTestId('tuner-live')).toHaveText('', { timeout: 10_000 });
+  // Se calla: la aguja no desaparece, se queda donde estaba y se atenúa.
+  await expect(page.getByTestId('tuner-cents')).toHaveAttribute('data-stale', 'true', {
+    timeout: 10_000,
+  });
+  await expect(page.getByTestId('tuner-reading')).toContainText('Grave');
 
   // El mismo Mi, afinado: tras sostenerlo sale «Afinada».
   await micNote(page, 40, { ms: 3500 });

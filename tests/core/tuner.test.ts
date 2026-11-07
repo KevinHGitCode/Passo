@@ -5,8 +5,10 @@ import {
   OUT_OF_TUNE_CENTS,
   SEARCH_CENTS,
   SETTLE_MS,
-  SILENCE_MS,
-  TUNED_SILENCE_MS,
+  FORGET_MS,
+  STALE_MS,
+  autoSearchRange,
+  nearestString,
   TunerTracker,
   centsFrom,
   searchRange,
@@ -52,6 +54,24 @@ describe('frecuencias de las cuerdas', () => {
   });
 });
 
+describe('el modo automático: qué cuerda suena', () => {
+  it('la cuerda al aire más cercana y los cents que se desvía', () => {
+    expect(nearestString(stringFrequency(5))).toMatchObject({ string: 5, cents: 0 });
+    const flat = nearestString(stringFrequency(2) * 2 ** (-35 / 1200));
+    expect(flat.string).toBe(2);
+    expect(flat.cents).toBeCloseTo(-35, 6);
+    // Entre la 4 y la 3 gana la más cercana.
+    expect(nearestString(stringFrequency(4) * 2 ** (180 / 1200)).string).toBe(4);
+    expect(nearestString(stringFrequency(3) * 2 ** (-180 / 1200)).string).toBe(3);
+  });
+
+  it('el intervalo de búsqueda va de la 6 a la 1 con margen', () => {
+    const range = autoSearchRange();
+    expect(range.minHz).toBeLessThan(stringFrequency(6));
+    expect(range.maxHz).toBeGreaterThan(stringFrequency(1));
+  });
+});
+
 describe('TunerTracker', () => {
   it('sin lecturas no opina', () => {
     const tracker = new TunerTracker();
@@ -60,6 +80,7 @@ describe('TunerTracker', () => {
       cents: null,
       far: false,
       near: false,
+      stale: false,
     });
     tracker.push(null, 0);
     expect(tracker.getState().status).toBe('sin-sonido');
@@ -95,11 +116,23 @@ describe('TunerTracker', () => {
   it('floja, tirante y muy floja', () => {
     const low = new TunerTracker();
     feed(low, 0, 400, -20);
-    expect(low.getState()).toEqual({ status: 'baja', cents: -20, far: false, near: false });
+    expect(low.getState()).toEqual({
+      status: 'baja',
+      cents: -20,
+      far: false,
+      near: false,
+      stale: false,
+    });
 
     const high = new TunerTracker();
     feed(high, 0, 400, 35);
-    expect(high.getState()).toEqual({ status: 'alta', cents: 35, far: false, near: false });
+    expect(high.getState()).toEqual({
+      status: 'alta',
+      cents: 35,
+      far: false,
+      near: false,
+      stale: false,
+    });
 
     const far = new TunerTracker();
     feed(far, 0, 400, -(FAR_CENTS + 40));
@@ -111,7 +144,13 @@ describe('TunerTracker', () => {
     const end = feed(tracker, 0, 450, 2);
     expect(tracker.getState().status).toBe('afinando');
     feed(tracker, end, IN_TUNE_HOLD_MS, 2);
-    expect(tracker.getState()).toEqual({ status: 'afinada', cents: 2, far: false, near: false });
+    expect(tracker.getState()).toEqual({
+      status: 'afinada',
+      cents: 2,
+      far: false,
+      near: false,
+      stale: false,
+    });
   });
 
   it('un tirón breve no cuenta: hay que sostenerlo', () => {
@@ -158,21 +197,28 @@ describe('TunerTracker', () => {
     expect(Math.abs(state.cents ?? 99)).toBeLessThanOrEqual(15);
   });
 
-  it('tras el silencio vuelve a «sin sonido» y olvida lo anterior', () => {
+  it('al callarse la cuerda la aguja se queda, atenuada, y solo se olvida mucho después', () => {
     const tracker = new TunerTracker();
-    const end = feed(tracker, 0, 1000, 0);
-    expect(tracker.getState().status).toBe('afinada');
+    const end = feed(tracker, 0, 1000, -20);
+    expect(tracker.getState()).toMatchObject({ status: 'baja', cents: -20, stale: false });
     const lastReading = end - 20;
-    // «Afinada» se deja ver unos segundos tras callarse la cuerda (el nailon se apaga pronto).
-    tracker.push(null, lastReading + SILENCE_MS + 1);
-    expect(tracker.getState().status).toBe('afinada');
-    tracker.push(null, lastReading + TUNED_SILENCE_MS - 1);
-    expect(tracker.getState().status).toBe('afinada');
-    tracker.push(null, lastReading + TUNED_SILENCE_MS + 1);
-    expect(tracker.getState()).toMatchObject({ status: 'sin-sonido', cents: null, far: false });
-    // Con pocas lecturas nuevas todavía no opina (lo anterior se olvidó).
-    feed(tracker, end + 3000, 60, 0);
-    expect(tracker.getState().status).toBe('sin-sonido');
+    tracker.push(null, lastReading + STALE_MS - 1);
+    expect(tracker.getState()).toMatchObject({ cents: -20, stale: false });
+    tracker.push(null, lastReading + STALE_MS + 1);
+    expect(tracker.getState()).toMatchObject({ status: 'baja', cents: -20, stale: true });
+    tracker.push(null, lastReading + FORGET_MS - 1);
+    expect(tracker.getState()).toMatchObject({ status: 'baja', cents: -20, stale: true });
+    tracker.push(null, lastReading + FORGET_MS + 1);
+    expect(tracker.getState()).toMatchObject({ status: 'sin-sonido', cents: null, stale: false });
+  });
+
+  it('un sonido nuevo tras el silencio devuelve la lectura a «fresca» y mide de cero', () => {
+    const tracker = new TunerTracker();
+    const end = feed(tracker, 0, 1000, -20);
+    tracker.push(null, end + STALE_MS + 500);
+    expect(tracker.getState().stale).toBe(true);
+    feed(tracker, end + 3000, 1000, 12);
+    expect(tracker.getState()).toMatchObject({ status: 'alta', cents: 12, stale: false });
   });
 
   it('reset deja el estado de partida', () => {

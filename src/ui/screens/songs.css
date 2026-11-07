@@ -364,6 +364,49 @@
 .score__event[data-state='actual'] {
   color: var(--accent-strong);
 }
+.song__strokes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.song__strokes li {
+  display: grid;
+  place-items: center;
+  min-width: 46px;
+  padding: 6px 4px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-weight: 900;
+}
+.song__stroke-want {
+  font-size: 1.7rem;
+  line-height: 1;
+}
+.song__stroke-got {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+.song__strokes li[data-state='bien'] {
+  border-color: var(--ok);
+}
+.song__strokes li[data-state='bien'] .song__stroke-got {
+  color: var(--ok);
+}
+.song__strokes li[data-state='mal'] {
+  border-color: var(--warn);
+}
+.song__strokes li[data-state='mal'] .song__stroke-got {
+  color: var(--warn);
+}
+.song__chip-bar {
+  font-size: 11px;
+  font-weight: 900;
+}
 .song__speed {
   display: flex;
   flex-wrap: wrap;

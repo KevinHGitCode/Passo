@@ -1,9 +1,31 @@
-import { judgePace, paceText, previewEvents, stepMatches, stepMs } from '../domain/songs';
-import type { Pace, PreviewEvent, Song, SpeedId, StepResult } from '../domain/songs';
+import {
+  barText,
+  checkChord,
+  expectedStrokes,
+  judgeBar,
+  judgePace,
+  paceText,
+  previewEvents,
+  speedFactor,
+  stepMatches,
+  stepMs,
+} from '../domain/songs';
+import type {
+  BarJudgement,
+  ChordCheck,
+  ExpectedStroke,
+  Pace,
+  PlayedStroke,
+  PreviewEvent,
+  Song,
+  SpeedId,
+  StepResult,
+} from '../domain/songs';
 import type { AudioOutput } from '../ports/audio-output';
 import type { Clock } from '../ports/clock';
 import type { Midi } from '../domain/note';
 import type { NoteInput, Unsubscribe } from '../ports/note-input';
+import type { StrumEvent, StrumListener } from './strum-listener';
 
 /** Un sonido a menos de esto del anterior es la misma pulsación (la cuerda aún suena). */
 const MIN_GAP_MS = 250;
@@ -22,6 +44,18 @@ export interface SongFeedback {
   readonly step: number;
 }
 
+/** Cómo salió el rasgueo de un compás: los golpes y el acorde que se oyó. */
+export interface BarReport {
+  readonly judgement: BarJudgement;
+  readonly chord: ChordCheck | null;
+}
+
+/** El compás de rasgueo que se está tocando: los golpes que pide y los que van. */
+export interface LiveBar {
+  readonly expected: readonly ExpectedStroke[];
+  readonly strokes: readonly PlayedStroke[];
+}
+
 export interface SongSnapshot {
   readonly open: boolean;
   readonly song: Song | null;
@@ -30,6 +64,10 @@ export interface SongSnapshot {
   /** El paso que toca ahora. */
   readonly index: number;
   readonly results: readonly (StepResult | null)[];
+  /** El rasgueo de cada compás ya tocado (solo en los acordes). */
+  readonly bars: readonly (BarReport | null)[];
+  /** El compás de rasgueo en curso (entre su primer golpe y su final), si lo hay. */
+  readonly live: LiveBar | null;
   readonly feedback: SongFeedback | null;
   /** Una nota que no era la del paso (solo si se oyó con seguridad). */
   readonly wrong: Midi | null;
@@ -49,6 +87,8 @@ const CLOSED: SongSnapshot = {
   phase: 'listo',
   index: 0,
   results: [],
+  bars: [],
+  live: null,
   feedback: null,
   wrong: null,
   idealMs: null,
@@ -75,6 +115,17 @@ export class SongService {
   private cancelPreview: (() => void) | null = null;
   private sounding = new Set<number>();
   private ignoreUntil = -Infinity;
+  private readonly strums: StrumListener | undefined;
+  private strumUnsubscribe: Unsubscribe | null = null;
+  /** El compás de rasgueo en curso: desde el primer golpe hasta que pasa a lo siguiente. */
+  private bar: {
+    readonly t0: number;
+    readonly expected: readonly ExpectedStroke[];
+    readonly strokes: PlayedStroke[];
+    chord: ChordCheck | null;
+    readonly pace: StepResult | null;
+    cancel: (() => void) | null;
+  } | null = null;
 
   constructor(deps: {
     readonly input?: NoteInput | undefined;
@@ -85,12 +136,15 @@ export class SongService {
     readonly clock?: Clock | undefined;
     /** Cómo se pone una función en hora (el navegador usa un temporizador); sin él, la canción no avanza sola. */
     readonly schedule?: Schedule | undefined;
+    /** Oye los golpes y los acordes del rasgueo (los pasos de acorde se juzgan con él, no con notas sueltas). */
+    readonly strums?: StrumListener | undefined;
   }) {
     this.input = deps.input;
     this.listening = deps.listening;
     this.audio = deps.audio;
     this.clock = deps.clock;
     this.schedule = deps.schedule ?? (() => () => undefined);
+    this.strums = deps.strums;
   }
 
   getSnapshot = (): SongSnapshot => this.snapshot;
@@ -104,6 +158,14 @@ export class SongService {
   open(song: Song, speed: SpeedId = 'normal'): void {
     this.unsubscribe?.();
     this.unsubscribe = this.input?.subscribe((event) => this.onNote(event)) ?? null;
+    this.strumUnsubscribe?.();
+    this.strumUnsubscribe = null;
+    if (this.strums && song.steps.some((step) => step.kind === 'acorde')) {
+      this.strumUnsubscribe = this.strums.subscribe((event) => this.onStrum(event));
+      this.strums.start('acorde');
+    } else {
+      this.strums?.stop();
+    }
     if (!this.snapshot.open) this.listening?.enter();
     this.begin(song, speed);
   }
@@ -113,6 +175,10 @@ export class SongService {
     if (this.snapshot.open) this.listening?.leave();
     this.unsubscribe?.();
     this.unsubscribe = null;
+    this.strumUnsubscribe?.();
+    this.strumUnsubscribe = null;
+    this.strums?.stop();
+    this.dropBar();
     this.lastHitAt = -Infinity;
     this.set(CLOSED);
   }
@@ -192,6 +258,7 @@ export class SongService {
 
   private begin(song: Song, speed: SpeedId): void {
     this.endPreview(false);
+    this.dropBar();
     this.lastHitAt = -Infinity;
     this.set({
       ...CLOSED,
@@ -199,6 +266,7 @@ export class SongService {
       song,
       speed,
       results: song.steps.map(() => null),
+      bars: song.steps.map(() => null),
       turn: this.snapshot.turn + 1,
     });
   }
@@ -216,7 +284,8 @@ export class SongService {
     if (current.previewing || event.at < this.ignoreUntil) return;
     if (event.at - this.lastHitAt < MIN_GAP_MS) return;
     const step = song.steps[current.index];
-    if (!step) return;
+    // Los acordes se juzgan con los golpes del rasgueo (onStrum), no con una nota suelta.
+    if (!step || step.kind === 'acorde') return;
     if (!stepMatches(step, event.note)) {
       // Solo se avisa de una nota equivocada si se oyó con seguridad (el micrófono duda a veces).
       if (event.confidence === undefined || event.confidence === 'alta') {
@@ -250,6 +319,113 @@ export class SongService {
       phase: finished ? 'terminada' : 'tocando',
       index: finished ? current.index : next,
       results,
+      feedback,
+      wrong: null,
+      idealMs: finished || !nextStep ? null : stepMs(song, step, current.speed),
+      turn: current.turn + 1,
+    });
+  }
+
+  private dropBar(): void {
+    this.bar?.cancel?.();
+    this.bar = null;
+  }
+
+  /** Un golpe o un acorde oído mientras el paso es un acorde: empieza el compás, cuenta golpes y mide el acorde. */
+  private onStrum(event: StrumEvent): void {
+    const current = this.snapshot;
+    const song = current.song;
+    if (!current.open || !song || current.phase === 'terminada') return;
+    if (current.previewing || event.at < this.ignoreUntil) return;
+    const step = song.steps[current.index];
+    if (!step || step.kind !== 'acorde') return;
+
+    if (event.kind === 'golpe') {
+      const stroke: PlayedStroke = { at: event.at, direction: event.direction };
+      if (this.bar === null) {
+        if (event.at - this.lastHitAt < MIN_GAP_MS) return;
+        const duration = stepMs(song, step, current.speed);
+        const expected = expectedStrokes(step, duration);
+        const previous = song.steps[current.index - 1];
+        const pace =
+          current.index > 0 && previous
+            ? judgePace(stepMs(song, previous, current.speed), event.at - this.lastHitAt)
+            : null;
+        this.lastHitAt = event.at;
+        const beatMs = 60_000 / (song.bpm * speedFactor(current.speed));
+        const bar = { t0: event.at, expected, strokes: [stroke], chord: null, pace, cancel: null };
+        this.bar = bar as NonNullable<SongService['bar']>;
+        // El compás se cierra poco antes de que toque el siguiente acorde.
+        this.bar.cancel = this.schedule(
+          () => this.closeBar(),
+          Math.max(450, duration - 0.3 * beatMs),
+        );
+        this.set({ ...current, live: { expected, strokes: [stroke] }, wrong: null });
+        return;
+      }
+      this.bar.strokes.push(stroke);
+      this.set({
+        ...current,
+        live: { expected: this.bar.expected, strokes: [...this.bar.strokes] },
+      });
+      if (this.bar.strokes.length >= this.bar.expected.length && this.bar.chord !== null)
+        this.closeBar();
+    } else if (event.kind === 'acorde' && this.bar !== null && this.bar.chord === null) {
+      // El acorde se mide con el primer golpe del compás (los demás se mezclan con las cuerdas que aún suenan).
+      if (Math.abs(event.at - this.bar.t0) > 5 || !event.clean) return;
+      this.bar.chord = checkChord(step, event.notes);
+      if (this.bar.strokes.length >= this.bar.expected.length) this.closeBar();
+    }
+  }
+
+  /** Termina el compás de rasgueo: juzga los golpes y el acorde, lo dice y pasa al paso siguiente. */
+  private closeBar(): void {
+    const bar = this.bar;
+    const current = this.snapshot;
+    const song = current.song;
+    if (!bar || !song) return;
+    bar.cancel?.();
+    this.bar = null;
+    const step = song.steps[current.index];
+    if (!step || step.kind !== 'acorde') return;
+
+    const judgement = judgeBar(bar.expected, bar.strokes, bar.t0);
+    const report: BarReport = { judgement, chord: bar.chord };
+    const parts: string[] = [];
+    if (bar.pace) parts.push(paceText('acorde', bar.pace.pace, bar.pace.deltaMs));
+    if (bar.chord?.status === 'otro') {
+      parts.push(`Oí ${bar.chord.heard ?? '?'} y pedía ${step.chord}`);
+    } else if (bar.chord?.status === 'dudoso') {
+      parts.push(`El acorde no está claro (¿${bar.chord.heard ?? step.chord}?)`);
+    } else if (bar.chord === null) {
+      parts.push('No pude medir el acorde: déjalo sonar un momento tras el primer golpe');
+    } else {
+      parts.push(`Acorde ${step.chord} bien`);
+    }
+    parts.push(barText(judgement));
+    const clean =
+      judgement.ok === judgement.total &&
+      bar.chord?.status === 'bien' &&
+      (bar.pace === null || bar.pace.pace === 'a-tiempo');
+    const feedback: SongFeedback = {
+      text: parts.join(' · '),
+      pace: bar.pace?.pace ?? (clean ? 'a-tiempo' : 'lento'),
+      step: current.index,
+    };
+    const results = current.results.map((value, index) =>
+      index === current.index ? bar.pace : value,
+    );
+    const bars = current.bars.map((value, index) => (index === current.index ? report : value));
+    const next = current.index + 1;
+    const finished = next >= song.steps.length;
+    const nextStep = song.steps[next];
+    this.set({
+      ...current,
+      phase: finished ? 'terminada' : 'tocando',
+      index: finished ? current.index : next,
+      results,
+      bars,
+      live: null,
       feedback,
       wrong: null,
       idealMs: finished || !nextStep ? null : stepMs(song, step, current.speed),

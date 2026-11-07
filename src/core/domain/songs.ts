@@ -1,6 +1,10 @@
 import { midiAt } from './instrument';
 import type { GuitarString } from './instrument';
+import { chordSymbol, matchChords } from './chords';
+import type { ChordMatch } from './chords';
+import type { HeardNote } from './multi-pitch';
 import type { Midi } from './note';
+import type { StrumDirection } from './strum';
 
 /**
  * Las canciones de guitarra: una lista de pasos (una nota o un acorde con su rasgueo) con lo que dura cada
@@ -421,7 +425,7 @@ export type PreviewEvent =
   | { readonly at: number; readonly type: 'off'; readonly midi: Midi };
 
 /** Los golpes del rasgueo «↓ ↓↑ ↑↓↑» dentro de un compás de cuatro pulsos (en pulsos). */
-const STRUM_BEATS = [0, 1, 1.5, 2.5, 3, 3.5];
+export const STRUM_BEATS = [0, 1, 1.5, 2.5, 3, 3.5];
 const STRUM_SPREAD_MS = 22;
 
 /** La canción como una lista de instantes (en ms desde el inicio), a la velocidad elegida. */
@@ -464,4 +468,150 @@ export function songDurationMs(song: Song, speed: SpeedId): number {
 /** ¿Este sonido cuenta para el paso? Una nota se juzga por su nombre (no la octava); un acorde, por oírse algo. */
 export function stepMatches(step: SongStep, midi: Midi): boolean {
   return step.kind === 'acorde' || ((midi % 12) + 12) % 12 === ((step.midi % 12) + 12) % 12;
+}
+
+// ─── El rasgueo de un compás ───────────────────────────────────────────────────────────────────────
+
+export interface ExpectedStroke {
+  readonly direction: StrumDirection;
+  /** Cuándo toca, en ms desde el primer golpe del compás. */
+  readonly offsetMs: number;
+}
+
+/** Los golpes que pide el rasgueo de un acorde («↓ ↓↑ ↑↓↑» son seis) y cuándo toca cada uno. */
+export function expectedStrokes(step: ChordStep, durationMs: number): ExpectedStroke[] {
+  const arrows = step.strum.match(/[↓↑]/g) ?? [];
+  const offsets =
+    arrows.length === STRUM_BEATS.length
+      ? STRUM_BEATS.map((beat) => (beat / 4) * durationMs)
+      : arrows.map((_, index) => (index / Math.max(1, arrows.length)) * durationMs);
+  return arrows.map((arrow, index) => ({
+    direction: arrow === '↓' ? 'abajo' : 'arriba',
+    offsetMs: offsets[index] ?? 0,
+  }));
+}
+
+export interface PlayedStroke {
+  readonly at: number;
+  readonly direction: StrumDirection | null;
+}
+
+export interface StrokeJudgement {
+  readonly expected: StrumDirection;
+  /** Lo que se oyó en su lugar: la dirección, `'dudosa'` si no se distinguió, o `null` si no se tocó. */
+  readonly actual: StrumDirection | 'dudosa' | null;
+  /** Lo que se adelantó (−) o retrasó (+) respecto a su sitio, en ms; `null` si no se tocó. */
+  readonly deltaMs: number | null;
+  /** Se tocó, en su sitio y en la dirección pedida (una dirección dudosa no se penaliza). */
+  readonly ok: boolean;
+  readonly why: 'bien' | 'falta' | 'direccion' | 'tiempo';
+}
+
+export interface BarJudgement {
+  readonly strokes: readonly StrokeJudgement[];
+  readonly ok: number;
+  readonly total: number;
+  /** Golpes que se tocaron y no eran de este compás. */
+  readonly extra: number;
+}
+
+/** Cuánto se tolera de desvío en un golpe: casi la mitad del hueco más corto entre golpes (mínimo 110 ms). */
+export function strokeToleranceMs(expected: readonly ExpectedStroke[]): number {
+  let shortest = Infinity;
+  for (let i = 1; i < expected.length; i++) {
+    shortest = Math.min(shortest, (expected[i]?.offsetMs ?? 0) - (expected[i - 1]?.offsetMs ?? 0));
+  }
+  return Math.max(110, Number.isFinite(shortest) ? 0.45 * shortest : 110);
+}
+
+/**
+ * Compara los golpes tocados con los que pide el rasgueo. `start` es el instante del primer golpe tocado
+ * (el que marca el comienzo del compás).
+ */
+export function judgeBar(
+  expected: readonly ExpectedStroke[],
+  played: readonly PlayedStroke[],
+  start: number,
+): BarJudgement {
+  const tolerance = strokeToleranceMs(expected);
+  const used = new Set<number>();
+  const strokes = expected.map((want): StrokeJudgement => {
+    const target = start + want.offsetMs;
+    let best = -1;
+    let bestDistance = Infinity;
+    played.forEach((got, index) => {
+      const distance = Math.abs(got.at - target);
+      if (!used.has(index) && distance < bestDistance) {
+        best = index;
+        bestDistance = distance;
+      }
+    });
+    const got = best >= 0 ? played[best] : undefined;
+    if (!got || bestDistance > 2 * tolerance) {
+      return { expected: want.direction, actual: null, deltaMs: null, ok: false, why: 'falta' };
+    }
+    used.add(best);
+    const deltaMs = got.at - target;
+    const actual = got.direction ?? 'dudosa';
+    if (Math.abs(deltaMs) > tolerance) {
+      return { expected: want.direction, actual, deltaMs, ok: false, why: 'tiempo' };
+    }
+    if (got.direction !== null && got.direction !== want.direction) {
+      return { expected: want.direction, actual, deltaMs, ok: false, why: 'direccion' };
+    }
+    return { expected: want.direction, actual, deltaMs, ok: true, why: 'bien' };
+  });
+  return {
+    strokes,
+    ok: strokes.filter((stroke) => stroke.ok).length,
+    total: expected.length,
+    extra: played.length - used.size,
+  };
+}
+
+/** Lo que dice la frase de un compás de rasgueo («5 de 6 golpes bien: el 3.º iba hacia arriba»). */
+export function barText(bar: BarJudgement): string {
+  if (bar.ok === bar.total) return `Rasgueo perfecto: ${bar.total} golpes bien`;
+  const first = bar.strokes.findIndex((stroke) => !stroke.ok);
+  const stroke = bar.strokes[first];
+  const arrow = stroke ? (stroke.expected === 'abajo' ? '↓' : '↑') : '';
+  const reason =
+    stroke?.why === 'falta'
+      ? `faltó el golpe ${first + 1} (${arrow})`
+      : stroke?.why === 'direccion'
+        ? `el golpe ${first + 1} debía ir ${stroke.expected === 'abajo' ? 'hacia abajo' : 'hacia arriba'}`
+        : stroke
+          ? `el golpe ${first + 1} llegó ${(stroke.deltaMs ?? 0) < 0 ? 'antes' : 'después'} de tiempo (${(stroke.deltaMs ?? 0) < 0 ? '−' : '+'}${formatSeconds(stroke.deltaMs ?? 0)})`
+          : '';
+  const extra = bar.extra > 0 ? `, y sobraron ${bar.extra}` : '';
+  return `${bar.ok} de ${bar.total} golpes bien: ${reason}${extra}`;
+}
+
+export type ChordStatus = 'bien' | 'otro' | 'dudoso';
+
+export interface ChordCheck {
+  readonly status: ChordStatus;
+  /** El acorde que más se parece a lo que sonó (símbolo), si hay alguno. */
+  readonly heard: string | null;
+  /** Las clases de nota del acorde pedido que no se oyeron. */
+  readonly missing: readonly number[];
+}
+
+/** ¿Suena el acorde que pide el paso? Se empareja lo que se oyó con los acordes conocidos. */
+export function checkChord(step: ChordStep, notes: readonly HeardNote[]): ChordCheck {
+  const matches: ChordMatch[] = matchChords(notes, 200);
+  const top = matches[0];
+  if (!top) return { status: 'dudoso', heard: null, missing: [] };
+  const heard = chordSymbol(top.chord);
+  const expected = new Set(step.notes.map((midi) => ((midi % 12) + 12) % 12));
+  const present = new Set(
+    notes.filter((note) => note.strength >= 0.12).map((note) => ((note.midi % 12) + 12) % 12),
+  );
+  const missing = [...expected].filter((pc) => !present.has(pc));
+  if (heard === step.chord) return { status: 'bien', heard, missing };
+  // Se oyó otro nombre: si el acorde pedido encaja casi tanto como el que ganó (una nota de más, un armónico),
+  // es dudoso; si encaja bastante peor, se oyó otro acorde.
+  const wanted = matches.find((match) => chordSymbol(match.chord) === step.chord);
+  const close = wanted !== undefined && top.score - wanted.score <= 0.06;
+  return { status: close ? 'dudoso' : 'otro', heard, missing };
 }

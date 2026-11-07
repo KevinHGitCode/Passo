@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { chooseGuitar } from './guitar-helpers';
 import { noHorizontalScroll } from './fase3-helpers';
-import { FAKE_MIC_SCRIPT, micNote } from './mic-helpers';
+import { FAKE_MIC_SCRIPT, micNote, micStrum } from './mic-helpers';
 
 const CAPTURES_DIR = join('evidencias', 'canciones', 'capturas');
 
@@ -114,17 +114,30 @@ test('Canciones · la partitura del rasgueo lleva acordes apilados, su tablatura
   await capture(page, '10-partitura-movil');
 });
 
-test('Canciones · el rasgueo marca el cambio de acorde', async ({ page }) => {
+test('Canciones · el rasgueo mide los golpes, comprueba el acorde y marca el cambio', async ({
+  page,
+}) => {
   await openSong(page, 'de-colores');
   await expect(page.getByTestId('song-now')).toContainText('G');
-  await expect(page.getByTestId('song-now')).toContainText('↓ ↓↑ ↑↓↑');
-  await micNote(page, 43, { ms: 600 });
+  await expect(page.getByTestId('song-strokes').locator('li')).toHaveCount(6);
+  // Un solo golpe del Sol (de los seis que pide el patrón): al cerrarse el compás dice cuántos faltaron.
+  await micStrum(page, [43, 47, 50, 55, 59, 67]);
+  await expect(page.getByTestId('song-strokes').locator('li[data-state="bien"]')).toHaveCount(1, {
+    timeout: 8000,
+  });
+  await capture(page, '04-rasgueo-en-curso');
+  await expect(page.getByTestId('song-feedback')).toContainText('Acorde G bien', { timeout: 9000 });
+  await expect(page.getByTestId('song-feedback')).toContainText('faltó el golpe 2');
   await expect(page.getByTestId('song-now')).toContainText('C', { timeout: 8000 });
-  await page.waitForTimeout(1500);
-  // El cambio a C debía llegar a los 3,4 s; llega antes: «adelantado».
-  await micNote(page, 48, { ms: 600 });
-  await expect(page.getByTestId('song-feedback')).toContainText(/cambio|antes/i, { timeout: 8000 });
-  await capture(page, '04-rasgueo');
+  await capture(page, '05-rasgueo-compas');
+  // Un acorde equivocado (Re7 en vez de Do) se dice.
+  await micStrum(page, [50, 57, 60, 66]);
+  await expect(page.getByTestId('song-strokes').locator('li[data-state="bien"]')).toHaveCount(1, {
+    timeout: 8000,
+  });
+  await expect(page.getByTestId('song-feedback')).toContainText('Oí D7 y pedía C', {
+    timeout: 9000,
+  });
 });
 
 test('Canciones · en el móvil cabe sin desplazarse de lado', async ({ page }) => {

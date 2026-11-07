@@ -200,7 +200,10 @@ export function composeApp(search: string = window.location.search) {
   bindTunerToPreferences(tuner, preferences);
 
   // Las canciones de guitarra escuchan las notas del micrófono mientras su pantalla está abierta.
+  // Reconocer acordes y rasgueos: oye el sonido en bruto del micrófono solo mientras su pantalla está abierta.
+  const strumListener = new StrumListener({ frames: microphone });
   const songs = new SongService({
+    strums: strumListener,
     input: useMic ? microphone : undefined,
     // Escuchar la canción antes de tocarla (con el sonido de la propia app).
     audio,
@@ -218,8 +221,6 @@ export function composeApp(search: string = window.location.search) {
       : undefined,
   });
 
-  // Reconocer acordes y rasgueos: oye el sonido en bruto del micrófono solo mientras su pantalla está abierta.
-  const strumListener = new StrumListener({ frames: microphone });
   const chords = new ChordsService({ listener: strumListener });
 
   return {

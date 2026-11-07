@@ -3,7 +3,15 @@ import type { SongService, SongSnapshot } from '@/core/application/song-service'
 import { noteLabel } from '@/core/domain/instrument';
 import { noteValueOf, noteValueText } from '@/core/domain/score';
 import type { NotationMode } from '@/core/domain/note';
-import { PACE_MARK, SPEEDS, findSong, formatSeconds, stepMs, summarize } from '@/core/domain/songs';
+import {
+  PACE_MARK,
+  SPEEDS,
+  expectedStrokes,
+  findSong,
+  formatSeconds,
+  stepMs,
+  summarize,
+} from '@/core/domain/songs';
 import type { Song, SongStep } from '@/core/domain/songs';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { NoteInput } from '@/core/ports/note-input';
@@ -76,6 +84,46 @@ function StepCard({
   );
 }
 
+/**
+ * Los golpes del rasgueo de este compás: cada flecha que toca, y debajo cómo va lo que tocas (✓ en su sitio,
+ * ✗ si la dirección no era, un punto si aún no llega).
+ */
+function StrokeRow({
+  song,
+  step,
+  snapshot,
+}: {
+  readonly song: Song;
+  readonly step: Extract<SongStep, { kind: 'acorde' }>;
+  readonly snapshot: SongSnapshot;
+}) {
+  const expected = expectedStrokes(step, stepMs(song, step, snapshot.speed));
+  const played = snapshot.live?.strokes ?? [];
+  return (
+    <ol className="song__strokes" aria-label="Golpes del rasgueo" data-testid="song-strokes">
+      {expected.map((stroke, index) => {
+        const got = played[index];
+        const state = !got
+          ? 'pendiente'
+          : got.direction === null || got.direction === stroke.direction
+            ? 'bien'
+            : 'mal';
+        return (
+          <li key={index} data-state={state}>
+            <span className="song__stroke-want">{stroke.direction === 'abajo' ? '↓' : '↑'}</span>
+            <span className="song__stroke-got" aria-hidden="true">
+              {!got ? '·' : state === 'bien' ? '✓' : '✗'}
+            </span>
+            <span className="sr-only">
+              {state === 'pendiente' ? 'falta' : state === 'bien' ? 'bien' : 'dirección distinta'}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 /** «Escuchar la canción»: la hace sonar entera a la velocidad elegida (no mientras se toca). */
 function PreviewButton({
   songs,
@@ -121,6 +169,12 @@ function Strip({ song, snapshot }: { readonly song: Song; readonly snapshot: Son
               {step.kind === 'nota' ? noteLabel(step.midi, 'latina', 'guitarra') : step.chord}
             </span>
             {result ? <span className="song__chip-mark">{PACE_MARK[result.pace]}</span> : null}
+            {snapshot.bars[index] ? (
+              <span className="song__chip-bar" data-testid={`song-bar-${index}`}>
+                {snapshot.bars[index]?.judgement.ok}/{snapshot.bars[index]?.judgement.total}{' '}
+                {snapshot.bars[index]?.chord?.status === 'bien' ? '✓' : '✗'}
+              </span>
+            ) : null}
           </li>
         );
       })}
@@ -138,6 +192,13 @@ function Summary({
   readonly songs: SongService;
 }) {
   const summary = summarize(snapshot.results);
+  const reports = snapshot.bars.flatMap((report) => (report ? [report] : []));
+  const rasgueo = {
+    bars: reports.length,
+    strokes: reports.reduce((sum, report) => sum + report.judgement.total, 0),
+    strokesOk: reports.reduce((sum, report) => sum + report.judgement.ok, 0),
+    chordsOk: reports.filter((report) => report.chord?.status === 'bien').length,
+  };
   const name = (index: number): string => {
     const step = song.steps[index];
     if (!step) return '';
@@ -159,6 +220,12 @@ function Summary({
         {summary.onTime} de {summary.total} pasos a tiempo · {summary.slow} lentos · {summary.fast}{' '}
         rápidos.
       </p>
+      {rasgueo.bars > 0 ? (
+        <p data-testid="song-rasgueo-summary">
+          Rasgueo: {rasgueo.strokesOk} de {rasgueo.strokes} golpes bien · acorde correcto en{' '}
+          {rasgueo.chordsOk} de {rasgueo.bars} compases.
+        </p>
+      ) : null}
       {summary.slowest.length > 0 ? (
         <>
           <p>Lo que más te costó:</p>
@@ -329,6 +396,9 @@ export function SongScreen({
       ) : step ? (
         <>
           <StepCard step={step} notation={notation} showValue={view === 'partitura'} />
+          {step.kind === 'acorde' ? (
+            <StrokeRow song={song} step={step} snapshot={snapshot} />
+          ) : null}
           {view === 'partitura' ? (
             <>
               <Score song={song} current={snapshot.previewIndex ?? snapshot.index} />

@@ -203,14 +203,6 @@ describe('SongService', () => {
     expect(songs.getSnapshot().index).toBe(1);
   });
 
-  it('en un rasgueo cualquier ataque llega al acorde y se juzga el cambio', () => {
-    const { songs, input } = setup('de-colores');
-    input.emitEvent({ type: 'on', note: 43, velocity: 80, at: 0, source: 'microfono' });
-    // G dura 4 pulsos a 70: ~3,43 s. Llega a los 7 s: «el cambio de acorde tardó demasiado».
-    input.emitEvent({ type: 'on', note: 48, velocity: 80, at: 7000, source: 'microfono' });
-    expect(songs.getSnapshot().feedback?.text).toContain('El cambio de acorde tardó demasiado');
-  });
-
   it('recorrer todos los pasos termina la canción; «de nuevo» y la velocidad reinician', () => {
     const { songs, input, song } = setup();
     let at = 0;

@@ -1,0 +1,229 @@
+/* Reconocer acordes: el resultado, los golpes del rasgueo y las cuerdas una a una. */
+.chords {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.chords__lead,
+.chords__note,
+.chords__muted {
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.chords__card,
+.chords__result,
+.chords__strokes {
+  padding: 18px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.chords__mic {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.chords__modes {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+.chords__mode {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 10px 14px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.chords__mode > span {
+  display: flex;
+  flex-direction: column;
+}
+.chords__mode small {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.chords__mode:has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.chords__mode:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.chords__calibrating {
+  margin: 0;
+  padding: 10px 14px;
+  border: 2px dashed var(--warn);
+  border-radius: 12px;
+  color: var(--warn);
+  font-weight: 800;
+}
+
+/* El resultado. */
+.chords__result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.chords__result[data-level='alta'] {
+  border-color: var(--ok);
+}
+.chords__result[data-level='media'] {
+  border-color: var(--warn);
+}
+.chords__result[data-level='baja'] {
+  border-color: var(--err);
+}
+.chords__confidence {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.chords__symbol {
+  margin: 0;
+  color: var(--accent);
+  font-size: clamp(56px, 16vw, 104px);
+  font-weight: 900;
+  line-height: 1;
+}
+.chords__name {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+.chords__tones,
+.chords__also,
+.chords__heard {
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.chords__warn {
+  margin: 0;
+  color: var(--warn);
+  font-weight: 800;
+}
+
+/* Los golpes del rasgueo: una flecha por golpe. */
+.chords__label {
+  margin: 0 0 6px;
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.chords__arrows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.chords__arrows li {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-size: 1.6rem;
+  font-weight: 900;
+}
+.chords__arrows li[data-direction='abajo'] {
+  border-color: var(--accent);
+  color: var(--accent);
+  animation: chords-pop 180ms ease-out both;
+}
+.chords__arrows li[data-direction='arriba'] {
+  border-color: var(--ok);
+  color: var(--ok);
+  animation: chords-pop 180ms ease-out both;
+}
+.chords__arrows li[data-direction='incierto'] {
+  color: var(--text-muted);
+}
+.chords__arrows .chords__muted {
+  display: block;
+  min-height: 0;
+  border: 0;
+  font-size: 1rem;
+}
+@keyframes chords-pop {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+}
+
+/* Cuerda por cuerda. */
+.chords__played {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.chords__played li {
+  display: grid;
+  grid-template-columns: 4.5em 7em minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-weight: 800;
+}
+.chords__played li[data-status='bien'] {
+  border-color: var(--ok);
+}
+.chords__played li[data-status='desafinada'] {
+  border-color: var(--warn);
+}
+.chords__played li[data-status='de-mas'] {
+  border-color: var(--err);
+}
+.chords__pitch {
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+.chords__cents {
+  color: var(--text-muted);
+}
+.chords__status {
+  min-width: 0;
+}
+.chords__actions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .chords__played li {
+    grid-template-columns: 3.4em 5.6em minmax(0, 1fr);
+    gap: 6px;
+    padding: 8px 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chords__arrows li {
+    animation: none !important;
+  }
+}

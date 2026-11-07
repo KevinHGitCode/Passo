@@ -1,7 +1,15 @@
 import { Icon } from '../game/icons';
 import type { IconName } from '../game/icons';
 import type { Instrument } from '@/core/domain/instrument';
-import { AFINADOR, CANCIONES, PRACTICA, caminoOf, hrefOf, progresoOf } from '../router/routes';
+import {
+  ACORDES,
+  AFINADOR,
+  CANCIONES,
+  PRACTICA,
+  caminoOf,
+  hrefOf,
+  progresoOf,
+} from '../router/routes';
 import type { Route, RouteName } from '../router/routes';
 
 interface Item {
@@ -23,6 +31,12 @@ const common = (instrument: Instrument): readonly Item[] => [
           label: 'Canciones',
           icon: 'music' as const,
           active: ['canciones', 'cancion'] as const,
+        },
+        {
+          route: ACORDES,
+          label: 'Acordes',
+          icon: 'guitar' as const,
+          active: ['acordes'] as const,
         },
       ]
     : []),

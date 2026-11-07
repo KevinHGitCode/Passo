@@ -8,13 +8,16 @@ import { PracticeSession } from '@/core/application/practice-session';
 import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
 import { ProgressService } from '@/core/application/progress-service';
+import { ChordsService } from '@/core/application/chords-service';
 import { SongService } from '@/core/application/song-service';
+import { StrumListener } from '@/core/application/strum-listener';
 import { TunerService } from '@/core/application/tuner-service';
 import { createSeededRng } from '@/core/domain/rng';
 import { Shell } from '@/ui/shell/Shell';
 import { FakeAudioControl } from '../fakes/fake-audio-control';
 import { FakeCalendar } from '../fakes/fake-calendar';
 import { FakeClock } from '../fakes/fake-clock';
+import { FakeFrameSource } from '../fakes/fake-frame-source';
 import { FakeMicInput } from '../fakes/fake-mic-input';
 import { FakeNoteInput } from '../fakes/fake-note-input';
 import { FakePitch } from '../fakes/fake-pitch';
@@ -85,6 +88,7 @@ function setup(options: { hash?: string; narrow?: boolean; stored?: unknown } = 
       lessonFlow={lessonFlow}
       tuner={new TunerService({ pitch: new FakePitch(), clock: new FakeClock(0) })}
       songs={new SongService({})}
+      chords={new ChordsService({ listener: new StrumListener({ frames: new FakeFrameSource() }) })}
     />,
   );
   const go = (hash: string) =>
@@ -442,7 +446,13 @@ describe('la dirección dice el instrumento', () => {
     const hrefs = [
       ...screen.getByRole('navigation', { name: 'Principal' }).querySelectorAll('a'),
     ].map((a) => a.getAttribute('href'));
-    expect(hrefs).toEqual(['#/guitarra', '#/guitarra/progreso', '#/canciones', '#/afinador']);
+    expect(hrefs).toEqual([
+      '#/guitarra',
+      '#/guitarra/progreso',
+      '#/canciones',
+      '#/acordes',
+      '#/afinador',
+    ]);
   });
 
   it('#/canciones lista las canciones de guitarra y cada una abre su pantalla', () => {

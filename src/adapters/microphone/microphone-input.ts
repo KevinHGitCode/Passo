@@ -6,6 +6,7 @@ import type { Midi } from '@/core/domain/note';
 import { detectPitch, fundamentalShare } from '@/core/domain/pitch';
 import type { NoteEvent } from '@/core/domain/note-event';
 import { NoteTracker } from '@/core/domain/note-tracker';
+import type { AudioFrame, FrameSource } from '@/core/ports/audio-frames';
 import type { Clock } from '@/core/ports/clock';
 import type { ChordLogSource } from '@/core/ports/chord-log';
 import type { ExpectationSink } from '@/core/ports/expectation-sink';
@@ -121,6 +122,7 @@ export class MicrophoneInput
     ListeningProfileSink,
     PitchMonitor,
     PitchTarget,
+    FrameSource,
     ChordLogSource
 {
   readonly source = 'microfono';
@@ -146,6 +148,8 @@ export class MicrophoneInput
   private pitchSearch: { minHz: number; maxHz: number } | null = null;
   private pitch: PitchReading | null = null;
   private readonly pitchHandlers = new Set<(reading: PitchReading | null) => void>();
+  /** Quien quiere el sonido en bruto (rasgueos, acordes): solo cuesta algo si hay alguien. */
+  private readonly frameHandlers = new Set<(frame: AudioFrame) => void>();
   /** Contexto creado en el gesto mientras se espera el permiso: hay que cerrarlo si se apaga antes. */
   private pendingContext: MicAudioContextLike | null = null;
 
@@ -184,6 +188,11 @@ export class MicrophoneInput
 
   getPitch(): PitchReading | null {
     return this.pitch;
+  }
+
+  subscribeFrames(handler: (frame: AudioFrame) => void): Unsubscribe {
+    this.frameHandlers.add(handler);
+    return () => this.frameHandlers.delete(handler);
   }
 
   subscribePitch(handler: (reading: PitchReading | null) => void): Unsubscribe {
@@ -371,6 +380,23 @@ export class MicrophoneInput
         );
       } catch {
         // Medir el tono (afinador) nunca debe costarle a este fotograma sus eventos de nota.
+      }
+      if (this.frameHandlers.size > 0) {
+        const frame: AudioFrame = {
+          at: endAt,
+          sampleRate,
+          samples: capture.buffer.subarray(0, windowEnd),
+          newSamples: consumed,
+          noiseRms: state.noiseFloor,
+          listening: state.phase === 'escuchando',
+        };
+        for (const handler of this.frameHandlers) {
+          try {
+            handler(frame);
+          } catch {
+            // Un oyente que falla no debe detener la escucha.
+          }
+        }
       }
       // Un hueco corto de audio deja el anillo discontinuo: el oyente de acordes olvida lo anterior.
       if (gap) this.emitAll(this.chords.reset(at));

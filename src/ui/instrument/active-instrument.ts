@@ -22,6 +22,7 @@ export function activeInstrument(route: Route, preferred: Instrument): Instrumen
       return 'piano';
     case 'afinador':
     case 'canciones':
+    case 'acordes':
     case 'cancion':
       return 'guitarra';
     default:

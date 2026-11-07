@@ -226,3 +226,25 @@ export async function targetNote(page: Page): Promise<number> {
   if (value === null) throw new Error('No hay nota objetivo en pantalla');
   return Number(value);
 }
+
+/** Un rasgueo: las notas suenan casi a la vez, cada una `spacingMs` después de la anterior (en el orden dado). */
+export function micStrum(
+  page: Page,
+  midis: readonly number[],
+  options: { spacingMs?: number; ms?: number; amp?: number } = {},
+): Promise<void> {
+  const { spacingMs = 9, ms = 1400, amp = 0.12 } = options;
+  return page.evaluate(
+    ([notes, spacing, duration, amplitude]) => {
+      const mic = (window as unknown as { __fakeMic: FakeMic }).__fakeMic;
+      (notes as number[]).forEach((midi, index) => {
+        mic.note(midi, {
+          ms: duration as number,
+          amp: amplitude as number,
+          offsetMs: index * (spacing as number),
+        });
+      });
+    },
+    [midis, spacingMs, ms, amp] as const,
+  );
+}

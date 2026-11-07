@@ -24,7 +24,9 @@ import { bindProfileToSession } from '@/core/application/profile-sync';
 import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
 import { ProgressService } from '@/core/application/progress-service';
+import { ChordsService } from '@/core/application/chords-service';
 import { SongService } from '@/core/application/song-service';
+import { StrumListener } from '@/core/application/strum-listener';
 import { TunerService } from '@/core/application/tuner-service';
 import { bindTunerToPreferences } from '@/core/application/tuner-sync';
 import { isExerciseMode } from '@/core/domain/curriculum';
@@ -216,11 +218,16 @@ export function composeApp(search: string = window.location.search) {
       : undefined,
   });
 
+  // Reconocer acordes y rasgueos: oye el sonido en bruto del micrófono solo mientras su pantalla está abierta.
+  const strumListener = new StrumListener({ frames: microphone });
+  const chords = new ChordsService({ listener: strumListener });
+
   return {
     session,
     preferences,
     tuner,
     songs,
+    chords,
     /** Progreso guardado y flujo de las lecciones (las usa el marco del camino). */
     progress,
     lessonFlow,

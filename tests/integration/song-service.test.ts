@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SongService } from '@/core/application/song-service';
 import { findSong } from '@/core/domain/songs';
+import { FakeClock } from '../fakes/fake-clock';
 import { FakeNoteInput } from '../fakes/fake-note-input';
 
 function setup(id = 'cumpleanos-feliz') {
@@ -11,6 +12,117 @@ function setup(id = 'cumpleanos-feliz') {
   songs.open(song);
   return { input, songs, song };
 }
+
+/** Un audio que apunta lo que suena y un reloj de mentira que se adelanta a mano. */
+function withAudio() {
+  const played: string[] = [];
+  const audio = {
+    noteOn: (note: number) => played.push(`on:${note}`),
+    noteOff: (note: number) => played.push(`off:${note}`),
+  };
+  const pending: { run: () => void; ms: number; cancelled: boolean }[] = [];
+  const schedule = (run: () => void, ms: number) => {
+    const item = { run, ms, cancelled: false };
+    pending.push(item);
+    return () => {
+      item.cancelled = true;
+    };
+  };
+  const clock = new FakeClock(0);
+  const input = new FakeNoteInput('microfono');
+  const songs = new SongService({ input, audio, clock, schedule });
+  const song = findSong('cumpleanos-feliz');
+  if (!song) throw new Error('falta la canción');
+  songs.open(song);
+  /** Deja pasar el tiempo hasta que no queda nada por sonar. */
+  const flush = () => {
+    for (let guard = 0; guard < 500; guard++) {
+      const next = pending.shift();
+      if (!next) return;
+      if (!next.cancelled) next.run();
+    }
+  };
+  return { songs, input, song, played, flush, clock, pending };
+}
+
+describe('SongService · escuchar la canción', () => {
+  it('sin salida de sonido no hay vista previa', () => {
+    const { songs, song } = setup();
+    expect(songs.canPreview()).toBe(false);
+    songs.preview();
+    expect(songs.getSnapshot().previewing).toBe(false);
+    expect(song.steps.length).toBeGreaterThan(0);
+  });
+
+  it('toca todas las notas en orden, avisa del paso en que va y al final se detiene sola', () => {
+    const { songs, song, played, flush } = withAudio();
+    songs.preview();
+    expect(songs.getSnapshot()).toMatchObject({ previewing: true, previewIndex: 0 });
+    flush();
+    const ons = played
+      .filter((item) => item.startsWith('on:'))
+      .map((item) => Number(item.slice(3)));
+    expect(ons).toEqual(song.steps.map((step) => (step.kind === 'nota' ? step.midi : -1)));
+    expect(songs.getSnapshot()).toMatchObject({ previewing: false, previewIndex: null });
+  });
+
+  it('detenerla suelta lo que suena y no sigue', () => {
+    const { songs, played, flush, pending } = withAudio();
+    songs.preview();
+    songs.stopPreview();
+    expect(songs.getSnapshot().previewing).toBe(false);
+    expect(played).toContain('off:55');
+    const before = played.length;
+    flush();
+    expect(played.length).toBe(before);
+    expect(pending.every((item) => item.cancelled || true)).toBe(true);
+  });
+
+  it('mientras suena y un momento después, el micrófono no cuenta como tocar', () => {
+    const { songs, input, song, clock, flush } = withAudio();
+    const first = song.steps[0];
+    if (first?.kind !== 'nota') throw new Error('paso');
+    songs.preview();
+    input.emitEvent({ type: 'on', note: first.midi, velocity: 80, at: 100, source: 'microfono' });
+    expect(songs.getSnapshot().index).toBe(0);
+    flush();
+    clock.advance(50);
+    input.emitEvent({
+      type: 'on',
+      note: first.midi,
+      velocity: 80,
+      at: clock.now(),
+      source: 'microfono',
+    });
+    expect(songs.getSnapshot().index).toBe(0);
+    clock.advance(1000);
+    input.emitEvent({
+      type: 'on',
+      note: first.midi,
+      velocity: 80,
+      at: clock.now(),
+      source: 'microfono',
+    });
+    expect(songs.getSnapshot().index).toBe(1);
+  });
+
+  it('no se puede escuchar a mitad de una pasada (rompería los tiempos)', () => {
+    const { songs, input, song } = withAudio();
+    const first = song.steps[0];
+    if (first?.kind !== 'nota') throw new Error('paso');
+    input.emitEvent({ type: 'on', note: first.midi, velocity: 80, at: 5000, source: 'microfono' });
+    songs.preview();
+    expect(songs.getSnapshot().previewing).toBe(false);
+  });
+
+  it('cerrar la canción corta la vista previa', () => {
+    const { songs, played } = withAudio();
+    songs.preview();
+    songs.close();
+    expect(songs.getSnapshot().open).toBe(false);
+    expect(played.some((item) => item.startsWith('off:'))).toBe(true);
+  });
+});
 
 describe('SongService', () => {
   it('abre en el primer paso, sin tiempo ideal y sin resultados', () => {

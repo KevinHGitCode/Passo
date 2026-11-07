@@ -1,10 +1,17 @@
-import { judgePace, paceText, stepMatches, stepMs } from '../domain/songs';
-import type { Pace, Song, SpeedId, StepResult } from '../domain/songs';
+import { judgePace, paceText, previewEvents, stepMatches, stepMs } from '../domain/songs';
+import type { Pace, PreviewEvent, Song, SpeedId, StepResult } from '../domain/songs';
+import type { AudioOutput } from '../ports/audio-output';
+import type { Clock } from '../ports/clock';
 import type { Midi } from '../domain/note';
 import type { NoteInput, Unsubscribe } from '../ports/note-input';
 
 /** Un sonido a menos de esto del anterior es la misma pulsación (la cuerda aún suena). */
 const MIN_GAP_MS = 250;
+/** Tras escuchar la canción el micrófono sigue oyendo la sala un momento: no cuenta como tocar. */
+const PREVIEW_GUARD_MS = 700;
+
+/** Pone una función en hora; devuelve cómo cancelarla. */
+export type Schedule = (run: () => void, ms: number) => () => void;
 
 export type SongPhase = 'listo' | 'tocando' | 'terminada';
 
@@ -30,6 +37,9 @@ export interface SongSnapshot {
   readonly idealMs: number | null;
   /** Cambia con cada paso (la pantalla reinicia con él la barra del tiempo ideal). */
   readonly turn: number;
+  /** Está sonando la canción (la «vista previa»), y por qué paso va. */
+  readonly previewing: boolean;
+  readonly previewIndex: number | null;
 }
 
 const CLOSED: SongSnapshot = {
@@ -43,6 +53,8 @@ const CLOSED: SongSnapshot = {
   wrong: null,
   idealMs: null,
   turn: 0,
+  previewing: false,
+  previewIndex: null,
 };
 
 /**
@@ -57,14 +69,28 @@ export class SongService {
   private unsubscribe: Unsubscribe | null = null;
   private lastHitAt = -Infinity;
   private snapshot: SongSnapshot = CLOSED;
+  private readonly audio: AudioOutput | undefined;
+  private readonly clock: Clock | undefined;
+  private readonly schedule: Schedule;
+  private cancelPreview: (() => void) | null = null;
+  private sounding = new Set<number>();
+  private ignoreUntil = -Infinity;
 
   constructor(deps: {
     readonly input?: NoteInput | undefined;
     /** Cómo escucha el micrófono mientras hay una canción abierta (y cómo vuelve a escuchar al salir). */
     readonly listening?: { enter(): void; leave(): void } | undefined;
+    /** Con él se puede escuchar la canción antes de tocarla. */
+    readonly audio?: AudioOutput | undefined;
+    readonly clock?: Clock | undefined;
+    /** Cómo se pone una función en hora (el navegador usa un temporizador); sin él, la canción no avanza sola. */
+    readonly schedule?: Schedule | undefined;
   }) {
     this.input = deps.input;
     this.listening = deps.listening;
+    this.audio = deps.audio;
+    this.clock = deps.clock;
+    this.schedule = deps.schedule ?? (() => () => undefined);
   }
 
   getSnapshot = (): SongSnapshot => this.snapshot;
@@ -83,6 +109,7 @@ export class SongService {
   }
 
   close(): void {
+    this.endPreview(false);
     if (this.snapshot.open) this.listening?.leave();
     this.unsubscribe?.();
     this.unsubscribe = null;
@@ -101,7 +128,70 @@ export class SongService {
     this.begin(this.snapshot.song, speed);
   }
 
+  /** Hay con qué escuchar la canción. */
+  canPreview(): boolean {
+    return this.audio !== undefined;
+  }
+
+  /**
+   * Hace sonar la canción entera a la velocidad elegida, paso a paso (solo antes de empezar a tocar o al
+   * terminar). Mientras suena no se oye al micrófono, y un momento después tampoco.
+   */
+  preview(): void {
+    const { song, speed, phase, previewing } = this.snapshot;
+    const audio = this.audio;
+    if (!audio || !song || !this.snapshot.open || previewing || phase === 'tocando') return;
+    const events = previewEvents(song, speed);
+    this.set({ ...this.snapshot, previewing: true, previewIndex: 0, wrong: null });
+    const run = (position: number): void => {
+      const event = events[position];
+      if (!event) {
+        this.endPreview(true);
+        return;
+      }
+      this.play(event, audio);
+      const next = events[position + 1];
+      if (!next) {
+        // Un último respiro para que se oiga el final antes de dar la canción por terminada.
+        this.cancelPreview = this.schedule(() => this.endPreview(true), 400);
+        return;
+      }
+      const wait = next.at - event.at;
+      if (wait <= 0) run(position + 1);
+      else this.cancelPreview = this.schedule(() => run(position + 1), wait);
+    };
+    run(0);
+  }
+
+  /** Corta la canción si suena. */
+  stopPreview(): void {
+    this.endPreview(true);
+  }
+
+  private play(event: PreviewEvent, audio: AudioOutput): void {
+    if (event.type === 'paso') {
+      this.set({ ...this.snapshot, previewIndex: event.index });
+    } else if (event.type === 'on') {
+      this.sounding.add(event.midi);
+      audio.noteOn(event.midi, event.velocity);
+    } else {
+      this.sounding.delete(event.midi);
+      audio.noteOff(event.midi);
+    }
+  }
+
+  private endPreview(notify: boolean): void {
+    this.cancelPreview?.();
+    this.cancelPreview = null;
+    for (const midi of this.sounding) this.audio?.noteOff(midi);
+    this.sounding.clear();
+    if (!this.snapshot.previewing) return;
+    this.ignoreUntil = (this.clock?.now() ?? 0) + PREVIEW_GUARD_MS;
+    if (notify) this.set({ ...this.snapshot, previewing: false, previewIndex: null });
+  }
+
   private begin(song: Song, speed: SpeedId): void {
+    this.endPreview(false);
     this.lastHitAt = -Infinity;
     this.set({
       ...CLOSED,
@@ -122,6 +212,8 @@ export class SongService {
     const current = this.snapshot;
     const song = current.song;
     if (!current.open || !song || current.phase === 'terminada' || event.type !== 'on') return;
+    // El micrófono oye la propia canción: mientras suena (y un momento después) no es el que toca.
+    if (current.previewing || event.at < this.ignoreUntil) return;
     if (event.at - this.lastHitAt < MIN_GAP_MS) return;
     const step = song.steps[current.index];
     if (!step) return;

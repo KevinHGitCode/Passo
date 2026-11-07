@@ -33,6 +33,8 @@ export interface ChordStep {
   readonly shape: string;
   /** El patrón de la mano derecha, p. ej. «↓ ↓↑ ↑↓↑». */
   readonly strum: string;
+  /** Las notas que suenan (MIDI sonoro, de la cuerda grave a la aguda): para escuchar la canción. */
+  readonly notes: readonly Midi[];
   readonly beats: number;
   readonly lyric: string;
 }
@@ -61,10 +63,11 @@ const note = (string: GuitarString, fret: number, beats: number, lyric: string):
 const chord = (
   name: string,
   shape: string,
+  notes: readonly Midi[],
   strum: string,
   beats: number,
   lyric: string,
-): ChordStep => ({ kind: 'acorde', chord: name, shape, strum, beats, lyric });
+): ChordStep => ({ kind: 'acorde', chord: name, shape, strum, notes, beats, lyric });
 
 /**
  * Una melodía escrita como tablatura (seis líneas, de la cuerda 1 a la 6, sin las letras de las cuerdas).
@@ -220,17 +223,21 @@ const C_SHAPE =
 const D7_SHAPE =
   'Dedo 2 en la cuerda 3 (traste 2), dedo 1 en la 2 (traste 1), dedo 3 en la 1 (traste 2). De la 4 a la 1.';
 const STRUM = '↓ ↓↑ ↑↓↑';
+/** G: 3 2 0 0 0 3 · C: x 3 2 0 1 0 · D7: x x 0 2 1 2 (MIDI sonoro, de grave a agudo). */
+const G_NOTES: readonly Midi[] = [43, 47, 50, 55, 59, 67];
+const C_NOTES: readonly Midi[] = [48, 52, 55, 60, 64];
+const D7_NOTES: readonly Midi[] = [50, 57, 60, 66];
 
 const DE_COLORES: readonly SongStep[] = [
-  chord('G', G_SHAPE, STRUM, 4, 'De colores, de colores'),
-  chord('C', C_SHAPE, STRUM, 4, 'se visten los campos'),
-  chord('G', G_SHAPE, STRUM, 4, 'en la primavera'),
-  chord('D7', D7_SHAPE, STRUM, 4, 'De colores, de colores'),
-  chord('G', G_SHAPE, STRUM, 4, 'son los pajaritos'),
-  chord('C', C_SHAPE, STRUM, 4, 'que vienen de afuera'),
-  chord('G', G_SHAPE, STRUM, 4, 'De colores, de colores'),
-  chord('D7', D7_SHAPE, STRUM, 4, 'es el arco iris'),
-  chord('G', G_SHAPE, STRUM, 4, 'que vemos lucir'),
+  chord('G', G_SHAPE, G_NOTES, STRUM, 4, 'De colores, de colores'),
+  chord('C', C_SHAPE, C_NOTES, STRUM, 4, 'se visten los campos'),
+  chord('G', G_SHAPE, G_NOTES, STRUM, 4, 'en la primavera'),
+  chord('D7', D7_SHAPE, D7_NOTES, STRUM, 4, 'De colores, de colores'),
+  chord('G', G_SHAPE, G_NOTES, STRUM, 4, 'son los pajaritos'),
+  chord('C', C_SHAPE, C_NOTES, STRUM, 4, 'que vienen de afuera'),
+  chord('G', G_SHAPE, G_NOTES, STRUM, 4, 'De colores, de colores'),
+  chord('D7', D7_SHAPE, D7_NOTES, STRUM, 4, 'es el arco iris'),
+  chord('G', G_SHAPE, G_NOTES, STRUM, 4, 'que vemos lucir'),
 ];
 
 export const SONGS: readonly Song[] = [
@@ -381,6 +388,55 @@ export function summarize(results: readonly (StepResult | null)[]): SongSummary 
       .map(({ index, deltaMs }) => ({ index, deltaMs })),
     suggestSlower: judged.length > 0 && slowSteps.length * 3 >= judged.length,
   };
+}
+
+// ─── Escuchar la canción ───────────────────────────────────────────────────────────────────────────
+
+/** Un instante de la canción sonando: una nota que empieza o acaba, o el paso que va por su turno. */
+export type PreviewEvent =
+  | { readonly at: number; readonly type: 'paso'; readonly index: number }
+  | { readonly at: number; readonly type: 'on'; readonly midi: Midi; readonly velocity: number }
+  | { readonly at: number; readonly type: 'off'; readonly midi: Midi };
+
+/** Los golpes del rasgueo «↓ ↓↑ ↑↓↑» dentro de un compás de cuatro pulsos (en pulsos). */
+const STRUM_BEATS = [0, 1, 1.5, 2.5, 3, 3.5];
+const STRUM_SPREAD_MS = 22;
+
+/** La canción como una lista de instantes (en ms desde el inicio), a la velocidad elegida. */
+export function previewEvents(song: Song, speed: SpeedId): PreviewEvent[] {
+  const events: PreviewEvent[] = [];
+  let start = 0;
+  song.steps.forEach((step, index) => {
+    const duration = stepMs(song, step, speed);
+    events.push({ at: start, type: 'paso', index });
+    if (step.kind === 'nota') {
+      events.push({ at: start, type: 'on', midi: step.midi, velocity: 90 });
+      events.push({ at: start + duration * 0.92, type: 'off', midi: step.midi });
+    } else {
+      const strokes =
+        (step.strum.match(/[↓↑]/g) ?? []).length === STRUM_BEATS.length
+          ? (step.strum.match(/[↓↑]/g) ?? [])
+          : ['↓'];
+      strokes.forEach((stroke, position) => {
+        const beat = strokes.length === STRUM_BEATS.length ? (STRUM_BEATS[position] ?? 0) : 0;
+        const at = start + (beat / 4) * duration;
+        // Hacia abajo, de la cuerda grave a la aguda; hacia arriba, solo las agudas y al revés.
+        const notes = stroke === '↓' ? step.notes : [...step.notes].slice(-4).reverse();
+        notes.forEach((midi, order) => {
+          const when = at + order * STRUM_SPREAD_MS;
+          events.push({ at: when, type: 'on', midi, velocity: stroke === '↓' ? 90 : 65 });
+          events.push({ at: Math.min(start + duration * 0.95, when + 700), type: 'off', midi });
+        });
+      });
+    }
+    start += duration;
+  });
+  return events.sort((a, b) => a.at - b.at);
+}
+
+/** Lo que dura la canción entera a esa velocidad (ms). */
+export function songDurationMs(song: Song, speed: SpeedId): number {
+  return song.steps.reduce((sum, step) => sum + stepMs(song, step, speed), 0);
 }
 
 /** ¿Este sonido cuenta para el paso? Una nota se juzga por su nombre (no la octava); un acorde, por oírse algo. */

@@ -200,6 +200,13 @@ export function composeApp(search: string = window.location.search) {
   // Las canciones de guitarra escuchan las notas del micrófono mientras su pantalla está abierta.
   const songs = new SongService({
     input: useMic ? microphone : undefined,
+    // Escuchar la canción antes de tocarla (con el sonido de la propia app).
+    audio,
+    clock,
+    schedule: (run, ms) => {
+      const id = window.setTimeout(run, ms);
+      return () => window.clearTimeout(id);
+    },
     // Las notas repetidas de una canción piden otro ajuste de escucha; al salir vuelve el del instrumento.
     listening: useMic
       ? {

@@ -233,6 +233,16 @@
   color: var(--accent-strong);
 }
 
+.song__previewing {
+  margin: 0;
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+.song__chip[data-playing='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateY(-3px);
+}
 .song__speed {
   display: flex;
   flex-wrap: wrap;

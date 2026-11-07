@@ -6,6 +6,8 @@ import {
   judgePace,
   paceText,
   stepMatches,
+  previewEvents,
+  songDurationMs,
   stepsFromTab,
   stepMs,
   summarize,
@@ -72,6 +74,47 @@ describe('la tablatura', () => {
     expect(steps[0]).toMatchObject({ string: 1, fret: 3, midi: 67 });
     expect(steps[1]).toMatchObject({ string: 1, fret: 3, midi: 67 });
     expect(steps.every((step) => step.kind === 'nota' && step.lyric === '')).toBe(true);
+  });
+});
+
+describe('escuchar la canción', () => {
+  it('cada nota suena en su turno y se suelta justo antes de la siguiente', () => {
+    const song = findSong('cumpleanos-feliz');
+    if (!song) throw new Error('falta');
+    const events = previewEvents(song, 'normal');
+    expect(events.filter((event) => event.type === 'paso')).toHaveLength(song.steps.length);
+    expect(events.filter((event) => event.type === 'on')).toHaveLength(song.steps.length);
+    const first = events.find((event) => event.type === 'on');
+    expect(first).toMatchObject({ at: 0, midi: 55 });
+    const off = events.find((event) => event.type === 'off');
+    expect(off?.at).toBeCloseTo(0.92 * ((0.75 * 60000) / 90), 6);
+    expect(events.map((event) => event.at)).toEqual(
+      [...events.map((event) => event.at)].sort((a, b) => a - b),
+    );
+  });
+
+  it('un rasgueo suena como seis golpes por compás con las notas del acorde', () => {
+    const song = findSong('de-colores');
+    if (!song) throw new Error('falta');
+    const events = previewEvents(song, 'normal');
+    const first = song.steps[0];
+    if (!first) throw new Error('falta el paso');
+    const firstBar = events.filter(
+      (event) => event.type === 'on' && event.at < stepMs(song, first, 'normal'),
+    );
+    // 1 golpe hacia abajo con 6 cuerdas + 2 hacia arriba (4 agudas)… en total seis golpes.
+    const strokes = new Set(firstBar.map((event) => Math.floor(event.at / 100)));
+    expect(strokes.size).toBeGreaterThanOrEqual(6);
+    expect(firstBar.some((event) => event.type === 'on' && event.midi === 43)).toBe(true);
+  });
+
+  it('más lento dura más y todas las notas del catálogo suenan', () => {
+    for (const song of SONGS) {
+      expect(songDurationMs(song, 'lento')).toBeCloseTo(2 * songDurationMs(song, 'normal'), 6);
+      for (const step of song.steps) {
+        if (step.kind === 'acorde') expect(step.notes.length).toBeGreaterThanOrEqual(4);
+      }
+    }
   });
 });
 

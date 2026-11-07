@@ -181,7 +181,7 @@ de instrumento y la ventana de la lección como hoja que sube desde abajo.
 | **Juego** | Experiencia, niveles, racha de días (con un día de descanso por semana) y meta diaria de 5 minutos |
 | **Progreso** | Mapa de calor del teclado, curva de precisión, notas que más cuestan por instrumento |
 | **Afinador de guitarra** | Automático (detecta la cuerda que tocas y dice si apretar o aflojar; la aguja no desaparece al callarse), clavijero con el estado de las seis cuerdas, medidor (Grave / Aguda / Casi / Afinada, cents y Hz), nota de referencia, modo guiado «Afinar las 6» y La₄ ajustable |
-| **Canciones de guitarra** | Cumpleaños feliz, Mi corazón encantado (Dragon Ball GT), Estrellita y un rasgueo (De colores): te muestran la nota o el acorde de cada paso y dicen si vas a tiempo, lento o rápido, también en el cambio de acorde |
+| **Canciones de guitarra** | Cumpleaños feliz, Mi corazón encantado (Dragon Ball GT), Estrellita y un rasgueo (De colores): te muestran la nota o el acorde de cada paso y dicen si vas a tiempo, lento o rápido, también en el cambio de acorde; con «Escuchar la canción» la oyes entera antes de tocarla |
 | **Práctica libre** | La pantalla de siempre: notas, terceras o acordes, a tu nivel y con la ayuda que elijas |
 | **Ajustes** | Entrada (micrófono, MIDI o teclado del PC), ejercicio y nivel, notación Do Re Mi o C D E, ayuda y tema. Se recuerdan |
 | **Accesibilidad** | Contraste AA comprobado por pruebas, nada depende solo del color, navegación con teclado, anuncios para lector de pantalla y respeto de «reducir movimiento» |
@@ -327,7 +327,7 @@ evidencias/    videos y capturas de cada fase cerrada, con su informe
 | `E2E_VIDEO=off npm run e2e` | Lo mismo sin grabar video |
 | `npm run build` · `npm run preview` | Compilación de producción y vista previa |
 
-`npm run check` pasa con **1591 pruebas** en 85 archivos y la suite e2e tiene **68 pruebas en Edge**.
+`npm run check` pasa con **1600 pruebas** en 85 archivos y la suite e2e tiene **69 pruebas en Edge**.
 Cada fase cerrada deja su informe, su video y sus capturas en [`evidencias/`](evidencias/).
 
 Para volver a generar las capturas de este README (usan un micrófono simulado y no corren con

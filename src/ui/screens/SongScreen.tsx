@@ -63,6 +63,27 @@ function StepCard({
   );
 }
 
+/** «Escuchar la canción»: la hace sonar entera a la velocidad elegida (no mientras se toca). */
+function PreviewButton({
+  songs,
+  snapshot,
+}: {
+  readonly songs: SongService;
+  readonly snapshot: SongSnapshot;
+}) {
+  if (!songs.canPreview() || snapshot.phase === 'tocando') return null;
+  return (
+    <GameButton
+      variant="secondary"
+      onClick={() => (snapshot.previewing ? songs.stopPreview() : songs.preview())}
+      data-testid="song-preview"
+      data-playing={snapshot.previewing}
+    >
+      {snapshot.previewing ? 'Detener' : 'Escuchar la canción'}
+    </GameButton>
+  );
+}
+
 function Strip({ song, snapshot }: { readonly song: Song; readonly snapshot: SongSnapshot }) {
   return (
     <ol className="song__strip" aria-label="Los pasos de la canción">
@@ -79,6 +100,7 @@ function Strip({ song, snapshot }: { readonly song: Song; readonly snapshot: Son
             key={index}
             className="song__chip"
             data-state={state}
+            data-playing={snapshot.previewIndex === index}
             data-pace={result?.pace ?? 'ninguno'}
             aria-current={state === 'actual' ? 'step' : undefined}
           >
@@ -209,11 +231,21 @@ export function SongScreen({
             Activar micrófono
           </GameButton>
         </section>
+        <section className="songs__card song__mic" aria-label="Escuchar la canción">
+          <p>¿Quieres oír cómo suena antes de tocarla?</p>
+          <PreviewButton songs={songs} snapshot={snapshot} />
+          {snapshot.previewing ? (
+            <p className="song__previewing" role="status">
+              Escuchando… paso {(snapshot.previewIndex ?? 0) + 1} de {song.steps.length}
+            </p>
+          ) : null}
+        </section>
       </div>
     );
   }
 
-  const step = song.steps[snapshot.index];
+  // Al escuchar la canción, la tarjeta sigue el paso que suena.
+  const step = song.steps[snapshot.previewIndex ?? snapshot.index];
   const total = song.steps.length;
   const finished = snapshot.phase === 'terminada';
   const previous = song.steps[snapshot.index - 1];
@@ -228,11 +260,13 @@ export function SongScreen({
         </p>
       ) : null}
       <p className="songs__lead">
-        {snapshot.phase === 'listo'
-          ? 'Toca el primer paso cuando quieras: el tiempo empieza a contar desde ahí.'
-          : finished
-            ? 'Se acabó la canción.'
-            : `Paso ${snapshot.index + 1} de ${total}`}
+        {snapshot.previewing
+          ? `Escuchando la canción… paso ${(snapshot.previewIndex ?? 0) + 1} de ${total}`
+          : snapshot.phase === 'listo'
+            ? 'Toca el primer paso cuando quieras: el tiempo empieza a contar desde ahí.'
+            : finished
+              ? 'Se acabó la canción.'
+              : `Paso ${snapshot.index + 1} de ${total}`}
       </p>
 
       {snapshot.phase === 'listo' ? (
@@ -255,12 +289,12 @@ export function SongScreen({
         </div>
       ) : null}
 
-      {finished ? (
+      {finished && !snapshot.previewing ? (
         <Summary song={song} snapshot={snapshot} songs={songs} />
       ) : step ? (
         <>
           <StepCard step={step} notation={notation} />
-          {snapshot.idealMs !== null && previous ? (
+          {snapshot.idealMs !== null && previous && !snapshot.previewing ? (
             <div className="song__ideal" data-testid="song-ideal">
               <span className="song__ideal-label">
                 Tiempo ideal: {formatSeconds(stepMs(song, previous, snapshot.speed))}
@@ -301,6 +335,7 @@ export function SongScreen({
         {snapshot.feedback ? snapshot.feedback.text : ''}
       </p>
 
+      <PreviewButton songs={songs} snapshot={snapshot} />
       <Strip song={song} snapshot={snapshot} />
     </div>
   );

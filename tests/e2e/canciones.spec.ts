@@ -59,6 +59,31 @@ test('Canciones · una melodía va paso a paso y dice si vas a tiempo o lento', 
   await expect(page.getByTestId('song-wrong')).toBeVisible({ timeout: 8000 });
 });
 
+test('Canciones · se puede escuchar la canción antes de tocarla y detenerla', async ({ page }) => {
+  await page.addInitScript(FAKE_MIC_SCRIPT);
+  await chooseGuitar(page);
+  await page.goto('/?seed=7#/cancion/cumpleanos-feliz');
+  // Se oye aunque el micrófono todavía no esté activado.
+  await page.getByTestId('song-preview').click();
+  await expect(page.getByText(/Escuchando… paso/)).toBeVisible();
+  await expect(page.getByTestId('song-preview')).toContainText('Detener');
+  await capture(page, '06-escuchando');
+  await page.waitForTimeout(1500);
+  await expect(page.getByText(/Escuchando… paso [2-9]/)).toBeVisible();
+  await page.getByTestId('song-preview').click();
+  await expect(page.getByTestId('song-preview')).toContainText('Escuchar la canción');
+
+  // Ya con el micrófono: también ahí, con la tarjeta siguiendo el paso que suena.
+  await page.getByTestId('song-activate').click();
+  await expect(page.getByTestId('song-calibrating')).toHaveCount(0, { timeout: 10_000 });
+  await page.getByTestId('song-preview').click();
+  await expect(page.getByTestId('song-now')).toBeVisible();
+  await expect(page.locator('.song__chip[data-playing="true"]')).toHaveCount(1);
+  await capture(page, '07-escuchando-con-microfono');
+  await page.getByTestId('song-preview').click();
+  await expect(page.locator('.song__chip[data-playing="true"]')).toHaveCount(0);
+});
+
 test('Canciones · el rasgueo marca el cambio de acorde', async ({ page }) => {
   await openSong(page, 'de-colores');
   await expect(page.getByTestId('song-now')).toContainText('G');

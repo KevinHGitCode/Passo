@@ -9,6 +9,7 @@ Una sección **Canciones** en la navegación de guitarra (`#/canciones`, `#/canc
 - **Velocidad:** Lento (50 %), Medio (75 %) o Normal, que se elige antes de empezar y cambia el tiempo esperado.
 - **Barra de tiempo ideal:** se llena en lo que debería tardar el paso y pasa a ámbar si te pasas.
 - **Cada paso queda marcado** (✓ a tiempo, ↑ rápido, ↓ lento, ↓↓ muy lento) y al final hay un resumen con lo que más costó y, si hace falta, la sugerencia de ir más despacio.
+- **Escuchar la canción:** el botón «Escuchar la canción» la hace sonar entera, a la velocidad elegida, con el paso que suena resaltado (se puede detener; está antes de activar el micrófono y al terminar, no a mitad de una pasada porque rompería los tiempos). Las melodías suenan nota a nota; el rasgueo, como seis golpes por compás (↓ con las cuerdas del acorde, ↑ con las agudas). Usa el sonido de la propia app (de teclado, no de guitarra) y mientras suena —y 0,7 s después— el micrófono no cuenta como tocar.
 - **Ritmo:** «a tiempo» es llegar dentro del 25 % (mínimo 250 ms) de lo esperado; «lento» hasta un 75 % más (mínimo 700 ms); más allá, «muy lento».
 
 ## Canciones incluidas
@@ -34,5 +35,6 @@ Una sección **Canciones** en la navegación de guitarra (`#/canciones`, `#/canc
 
 - **Rasgueo: solo se mide el tiempo del cambio.** Cualquier ataque cuenta como llegar al acorde; **no se comprueba que el acorde sea el correcto** ni que el patrón de rasgueo sea el pedido (se muestra como guía).
 - **Sin probar con guitarra real.** El perfil de 350 ms puede contar de más una cuerda que aún suena (un falso «lento» o un paso saltado); hay que confirmarlo y, si hace falta, subirlo.
+- La vista previa **no suena a guitarra** (es el sonido simple de la app) y el rasgueo se aproxima con un patrón fijo de seis golpes.
 - Los resultados **no se guardan** (ni mejores marcas ni estrellas por canción) y no se cuentan en el progreso.
 - Pendientes: más estilos (arpegios, flamenco, jazz), tablatura de varias notas a la vez, modo con metrónomo que corra solo, compases y acordes con cejilla, «Mi corazón encantado».

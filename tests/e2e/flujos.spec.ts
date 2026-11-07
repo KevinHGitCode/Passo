@@ -41,7 +41,7 @@ test('Flujos · tocar una lección abre su ventana: «Ahora no» la cierra y «E
   await expect(page.getByTestId('lesson-intro')).toBeVisible();
 });
 
-test('Flujos · la ventana de la lección en el móvil sube desde abajo y no desborda', async ({
+test('Flujos · el globo de la lección en el móvil queda bajo su nodo, dentro de la pantalla y sin desbordar', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -52,9 +52,11 @@ test('Flujos · la ventana de la lección en el móvil sube desde abajo y no des
   await expect(dialog).toBeVisible();
   const box = await dialog.boundingBox();
   expect(box).not.toBeNull();
-  // La hoja va pegada al borde inferior y ocupa todo el ancho.
-  expect(Math.round((box?.y ?? 0) + (box?.height ?? 0))).toBe(844);
-  expect(Math.round(box?.width ?? 0)).toBe(390);
+  // El globo cabe de lado a lado y está debajo del nodo que señala.
+  const nodeBox = await page.getByTestId('node-u1-1').boundingBox();
+  expect(box?.x ?? -1).toBeGreaterThanOrEqual(0);
+  expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390);
+  expect(box?.y ?? 0).toBeGreaterThan((nodeBox?.y ?? 0) + (nodeBox?.height ?? 0) - 1);
   expect(await noHorizontalScroll(page)).toBe(true);
   await capture(page, '02-ventana-movil');
 });

@@ -375,7 +375,11 @@ export function CaminoScreen({
 }: CaminoScreenProps) {
   const { state, saved } = useSyncExternalStore(progress.subscribe, progress.getSnapshot);
   const [explanation, setExplanation] = useState<Explanation | null>(null);
-  const [starting, setStarting] = useState<{ lesson: Lesson; done: boolean } | null>(null);
+  const [starting, setStarting] = useState<{
+    lesson: Lesson;
+    done: boolean;
+    opener: HTMLElement;
+  } | null>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const noteRef = useRef<HTMLDivElement>(null);
   const today = progress.today();
@@ -457,7 +461,7 @@ export function CaminoScreen({
               onExplain={(text, settings) => setExplanation({ text, settings, play })}
               onOpen={(lesson, nodeState, opener) => {
                 openerRef.current = opener;
-                setStarting({ lesson, done: nodeState === 'hecha' });
+                setStarting({ lesson, done: nodeState === 'hecha', opener });
               }}
             />
           ))}
@@ -472,6 +476,7 @@ export function CaminoScreen({
           stars={stars(starting.lesson.id) as StarCount}
           done={starting.done}
           source={source}
+          anchor={starting.opener}
           onClose={closeStart}
         />
       ) : null}

@@ -29,7 +29,8 @@ export function DebugPanel({
 }) {
   const snapshot = useSessionSnapshot(session);
   const monitor = useMonitor(microphone);
-  const samples = useRef<number[]>([]);
+  // Las muestras sobreviven a salir y volver a la práctica (por ejemplo, tras pasar por los ajustes).
+  const samples = useRef<number[]>(window.__passoLatency ?? []);
   const [shown, setShown] = useState<readonly number[]>([]);
   const attempts = snapshot.exercise?.attempts;
   useEffect(() => {

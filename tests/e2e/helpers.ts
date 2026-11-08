@@ -105,12 +105,13 @@ export const EMPTY_MIDI_SCRIPT = `
 })();
 `;
 
-/** Abre el panel de ajustes (el engranaje de la cabecera). */
+/** Abre la página de ajustes (el engranaje de la cabecera). */
 export async function openSettings(page: Page): Promise<void> {
   await page.getByTestId('settings-button').click();
   await expect(page.getByTestId('settings-panel')).toBeVisible();
 }
 
+/** «Volver»: regresa a la pantalla de la que se vino. */
 export async function closeSettings(page: Page): Promise<void> {
   await page.getByTestId('settings-close').click();
   await expect(page.getByTestId('settings-panel')).toHaveCount(0);

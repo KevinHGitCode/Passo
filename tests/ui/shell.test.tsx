@@ -177,29 +177,47 @@ describe('el marco del juego', () => {
   });
 });
 
-describe('ajustes dentro del marco', () => {
-  it('el engranaje abre el panel de ajustes y devuelve el foco al cerrar', () => {
-    setup();
-    fireEvent.click(screen.getByTestId('settings-button'));
-    expect(screen.getByTestId('settings-panel')).toBeTruthy();
-    fireEvent.click(screen.getByTestId('settings-close'));
-    expect(document.activeElement).toBe(screen.getByTestId('settings-button'));
+describe('ajustes como página', () => {
+  it('el engranaje es un enlace a #/ajustes (no abre una ventana)', () => {
+    const { go } = setup();
+    const gear = screen.getByTestId('settings-button');
+    expect(gear.tagName).toBe('A');
+    expect(gear.getAttribute('href')).toBe('#/ajustes');
+    expect(gear.getAttribute('aria-current')).toBeNull();
+    go('#/ajustes');
+    expect(screen.getByRole('heading', { level: 1, name: 'Ajustes' })).toBeTruthy();
+    expect(document.title).toBe('Ajustes · Passo');
+    expect(screen.getByTestId('settings-button').getAttribute('aria-current')).toBe('page');
+    // Es una página dentro del marco: la navegación sigue ahí y no hay diálogo.
+    expect(screen.getByTestId('game-nav')).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByTestId('settings-close').textContent).toBe('Volver');
   });
 
-  it('en una lección el panel no deja cambiar el ejercicio ni el nivel', () => {
-    const { lessonFlow } = setup({ hash: '#/' });
-    act(() => lessonFlow.prepare('u1-1'));
-    fireEvent.click(screen.getByTestId('settings-button'));
-    expect(screen.getByTestId('lesson-note')).toBeTruthy();
-    expect(screen.queryByTestId('mode-notas')).toBeNull();
-    expect(screen.queryByTestId('level-1')).toBeNull();
+  it('Ctrl+, lleva a los ajustes', () => {
+    setup();
+    fireEvent.keyDown(window, { key: ',', ctrlKey: true });
+    expect(window.location.hash).toBe('#/ajustes');
+    // La coma sola no hace nada.
+    window.location.hash = '#/';
+    fireEvent.keyDown(window, { key: ',' });
+    expect(window.location.hash).toBe('#/');
   });
 
-  it('fuera de una lección sí se elige ejercicio y nivel', () => {
-    setup();
-    fireEvent.click(screen.getByTestId('settings-button'));
-    expect(screen.queryByTestId('lesson-note')).toBeNull();
+  it('en la página se elige entrada, ejercicio y nivel', () => {
+    const { go } = setup();
+    go('#/ajustes');
     expect(screen.getByTestId('mode-notas')).toBeTruthy();
+    expect(screen.getByTestId('input-microfono')).toBeTruthy();
+    expect(screen.getByTestId('theme-oscuro')).toBeTruthy();
+  });
+
+  it('desde una lección también se llega a los ajustes (se sale de la lección)', () => {
+    const { go, lessonFlow } = setup({ hash: '#/' });
+    act(() => lessonFlow.prepare('u1-1'));
+    go('#/ajustes');
+    expect(screen.getByRole('heading', { level: 1, name: 'Ajustes' })).toBeTruthy();
+    expect(lessonFlow.isActive()).toBe(false);
   });
 });
 
@@ -221,6 +239,41 @@ describe('la práctica libre', () => {
     const { session, go } = setup({ hash: '#/practica' });
     act(() => session.start());
     expect(session.getSnapshot().phase).toBe('en-curso');
+    go('#/');
+    expect(session.getSnapshot().phase).toBe('inactiva');
+  });
+
+  it('ir a los ajustes desde la práctica libre guarda la ronda en pausa y al volver sigue', () => {
+    const { session, go } = setup({
+      hash: '#/practica',
+      stored: { version: 1, input: 'teclado-pc' },
+    });
+    act(() => session.start());
+    go('#/ajustes');
+    expect(session.getSnapshot()).toMatchObject({ phase: 'pausada', pauseReason: 'manual' });
+    go('#/practica');
+    expect(session.getSnapshot().phase).toBe('en-curso');
+  });
+
+  it('si la ronda ya estaba en pausa (la pausó la persona), volver de los ajustes no la reanuda', () => {
+    const { session, go } = setup({
+      hash: '#/practica',
+      stored: { version: 1, input: 'teclado-pc' },
+    });
+    act(() => session.start());
+    act(() => session.pause());
+    go('#/ajustes');
+    go('#/practica');
+    expect(session.getSnapshot().phase).toBe('pausada');
+  });
+
+  it('desde los ajustes a otra pantalla (no a la práctica) la sesión se vacía', () => {
+    const { session, go } = setup({
+      hash: '#/practica',
+      stored: { version: 1, input: 'teclado-pc' },
+    });
+    act(() => session.start());
+    go('#/ajustes');
     go('#/');
     expect(session.getSnapshot().phase).toBe('inactiva');
   });
@@ -287,19 +340,6 @@ describe('accesibilidad del marco', () => {
     setup({ hash: '#/leccion/u1-1' });
     fireEvent.click(screen.getByRole('button', { name: 'Saltar al contenido' }));
     expect(document.activeElement?.id).toBe('contenido');
-  });
-
-  it('en una lección los ajustes avisan de que cambiar de entrada reinicia', () => {
-    const { lessonFlow } = setup({ hash: '#/' });
-    act(() => lessonFlow.prepare('u1-1'));
-    fireEvent.click(screen.getByTestId('settings-button'));
-    expect(screen.getByTestId('lesson-input-note').textContent).toContain('vuelve a empezar');
-  });
-
-  it('fuera de una lección ese aviso no sale', () => {
-    setup();
-    fireEvent.click(screen.getByTestId('settings-button'));
-    expect(screen.queryByTestId('lesson-input-note')).toBeNull();
   });
 
   it('cada pantalla nueva empieza arriba del todo, salvo el camino (que centra tu lección)', () => {

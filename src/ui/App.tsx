@@ -1,4 +1,3 @@
-import { useEffect, useRef } from 'react';
 import type { InputManager } from '@/core/application/input-manager';
 import type { PracticeSession } from '@/core/application/practice-session';
 import type { PreferencesService } from '@/core/application/preferences-service';
@@ -7,11 +6,11 @@ import type { ChordLogSource } from '@/core/ports/chord-log';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { NoteInput } from '@/core/ports/note-input';
 import { DebugPanel } from './debug/DebugPanel';
-import { useInputSelection, useSessionSnapshot } from './practice/hooks';
+import { useInputSelection } from './practice/hooks';
 import { PracticeScreen } from './practice/PracticeScreen';
 import { StatusZone } from './status/StatusZone';
-import { SettingsButton, SettingsPanel } from './settings/SettingsPanel';
-import { useSettingsPanel } from './settings/use-settings-panel';
+import { SettingsButton } from './settings/SettingsScreen';
+import { useSettingsShortcut } from './settings/use-settings-shortcut';
 import { useTheme } from './theme/use-theme';
 
 export interface AppProps {
@@ -43,16 +42,8 @@ export function App({
   brandHref,
 }: AppProps) {
   useTheme(preferences);
-  const settings = useSettingsPanel(session);
-  const gearRef = useRef<HTMLButtonElement>(null);
-  // Al cerrar los ajustes el foco vuelve al engranaje (si no, se perdería).
-  const wasOpen = useRef(false);
-  useEffect(() => {
-    if (wasOpen.current && !settings.open) gearRef.current?.focus({ preventScroll: true });
-    wasOpen.current = settings.open;
-  }, [settings.open]);
+  useSettingsShortcut(false);
   const selected = useInputSelection(inputManager);
-  const { phase } = useSessionSnapshot(session);
 
   // Con gestor, la pantalla solo muestra la entrada elegida; sin gestor, las que se pidieron en la dirección.
   const activeInputs = selected === null ? inputs : inputs.filter((i) => i.source === selected);
@@ -67,9 +58,7 @@ export function App({
       <PracticeScreen
         session={session}
         brandHref={brandHref}
-        headerActions={
-          <SettingsButton open={settings.open} onToggle={settings.toggle} buttonRef={gearRef} />
-        }
+        headerActions={<SettingsButton />}
         statusZone={
           <StatusZone
             inputs={activeInputs}
@@ -81,15 +70,6 @@ export function App({
         showPcKeys={showPcKeys}
         microphone={micActive ? microphone : undefined}
         canStartWithoutMic={canStartWithoutMic}
-      />
-      <SettingsPanel
-        open={settings.open}
-        onClose={settings.close}
-        preferences={preferences}
-        inputs={inputs}
-        inputManager={inputManager}
-        microphone={microphone}
-        roundPaused={phase === 'pausada'}
       />
       {debug && (
         <DebugPanel

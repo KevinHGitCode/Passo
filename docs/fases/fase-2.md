@@ -24,7 +24,8 @@ siga corrigiendo al instante.
 
 - **A. Octava (el «Mi»):** si hay energía fuerte una octava por debajo de la altura detectada, se
   corrige hacia la octava inferior (hoy, un 2.º armónico fuerte hace oír «Mi5» en lugar de «Mi4»).
-- **B. Panel de ajustes (engranaje):** panel lateral que se esconde. Entrada (micrófono / piano MIDI /
+- **B. Panel de ajustes (engranaje):** (en su día un panel lateral; desde noviembre de 2026 es la **página** `#/ajustes`, con «Volver»).
+  Panel lateral que se esconde. Entrada (micrófono / piano MIDI /
   teclado del PC), modo (notas / terceras / acordes), nivel, mano, notación, ayuda, dedos, notas que
   caen, tema. Se recuerdan en el navegador. Cambiar de entrada enciende una y apaga las otras.
 - **C. Objetivos con varias notas:** el objetivo pasa a ser un conjunto de notas. Agregador de pulsaciones

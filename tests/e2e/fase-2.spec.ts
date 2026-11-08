@@ -381,31 +381,21 @@ test('Fase 2 · ajustes: elegir entrada y ejercicio desde el engranaje, con la r
     await expect(page.getByTestId('welcome')).toContainText('Toca la tercera que aparece');
   });
 
-  await test.step('Con la ronda en curso, los ajustes la pausan y Esc la reanuda', async () => {
+  await test.step('Ctrl+, lleva a la página de ajustes y «Volver» regresa a la ronda, que sigue', async () => {
     await page.getByTestId('start').click();
-    const target = await targetMidis(page);
-    await down(page, target[0] as number);
-    await expect(feedback(page)).toContainText('Casi');
-    await releaseAll(page, target);
-
+    await expect(page.getByTestId('target')).toBeVisible();
     await page.keyboard.press('Control+Comma');
     await expect(page.getByTestId('settings-panel')).toBeVisible();
-    await expect(page.locator('.paused')).toBeVisible();
-    await expect(
-      page.getByTestId('settings-panel').getByRole('heading', { name: 'Ajustes' }),
-    ).toBeFocused();
-    await beat(page, 700);
-    await f2Capture(page, '16-ajustes-con-ronda-en-pausa');
-    // En pausa las teclas no cuentan.
-    await down(page, target[0] as number);
-    await releaseAll(page, target);
-    await expect(page.getByTestId('counters')).toContainText('Errores 0');
-    await expect(page.getByTestId('counters')).toContainText('Terceras 0/12');
-
-    await page.keyboard.press('Escape');
+    await expect(page.getByRole('heading', { level: 1, name: 'Ajustes' })).toBeFocused();
+    // Es una página, no una ventana: ni diálogo ni fondo que tape.
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await beat(page, 500);
+    await f2Capture(page, '16-ajustes-pagina');
+    await page.getByTestId('settings-close').click();
     await expect(page.getByTestId('settings-panel')).toHaveCount(0);
+    // La ronda estaba guardada en pausa y al volver se reanuda.
+    await expect(page.getByTestId('target')).toBeVisible();
     await expect(page.locator('.paused')).toHaveCount(0);
-    await expect(page.getByTestId('settings-button')).toBeFocused();
     await playTarget(page);
     await expect(page.getByTestId('counters')).toContainText('Terceras 1/12');
   });
@@ -460,22 +450,23 @@ test('Fase 2 · ajustes: lo elegido se recuerda al recargar (entrada y ejercicio
   await expect(page.getByTestId('mode-notas')).toBeChecked();
 });
 
-test('Fase 2 · ajustes en un móvil: panel modal que cierra con Esc y devuelve el foco', async ({
+test('Fase 2 · ajustes en un móvil: una página que cabe sin desplazarse de lado y vuelve atrás', async ({
   browser,
 }) => {
   const context = await browser.newContext({ viewport: { width: 375, height: 812 } });
   const page = await context.newPage();
   await page.goto('/?seed=7&pc&mic=off#/practica');
   await openSettings(page);
-  await expect(page.getByTestId('settings-panel')).toHaveAttribute('aria-modal', 'true');
-  await expect(page.locator('.settings-backdrop')).toBeVisible();
+  await expect(page.getByTestId('settings-panel')).not.toHaveAttribute('aria-modal', 'true');
+  await expect(page.locator('.settings-backdrop')).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
   await beat(page, 600);
   await f2Capture(page, '18-ajustes-movil');
-  await page.keyboard.press('Escape');
-  await expect(page.getByTestId('settings-panel')).toHaveCount(0);
-  await expect(page.getByTestId('settings-button')).toBeFocused();
+  await closeSettings(page);
   await openSettings(page);
-  await page.locator('.settings-backdrop').click({ position: { x: 5, y: 400 } });
+  await page.goBack();
   await expect(page.getByTestId('settings-panel')).toHaveCount(0);
   await context.close();
 });
@@ -824,10 +815,11 @@ for (const size of [
         await expect(feedback(page)).toContainText('Casi');
         tops[`${mode}${level}-parcial`] = await keyboardTop(page);
 
+        // Los ajustes son otra página: la ronda queda guardada y al volver el teclado sigue en su sitio.
         await openSettings(page);
-        await expect(page.locator('.paused')).toBeVisible();
-        tops[`${mode}${level}-ajustes`] = await keyboardTop(page);
         await closeSettings(page);
+        await expect(page.getByTestId('target-detail')).toBeVisible();
+        tops[`${mode}${level}-ajustes`] = await keyboardTop(page);
 
         const extra = extraNote(notes);
         await down(page, extra);

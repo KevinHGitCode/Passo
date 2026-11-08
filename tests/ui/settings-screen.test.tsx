@@ -7,8 +7,8 @@ import { PracticeSession } from '@/core/application/practice-session';
 import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
 import { createSeededRng } from '@/core/domain/rng';
-import { App } from '@/ui/App';
-import { FakeAudioControl } from '../fakes/fake-audio-control';
+import { SettingsScreen } from '@/ui/settings/SettingsScreen';
+import { useTheme } from '@/ui/theme/use-theme';
 import { FakeClock } from '../fakes/fake-clock';
 import { FakeNoteInput } from '../fakes/fake-note-input';
 import { FakePreferencesStore } from '../fakes/fake-preferences-store';
@@ -42,104 +42,43 @@ function setup(options: { stored?: unknown; dev?: boolean } = {}) {
     manager = new InputManager(inputs, preferences.getSnapshot().input);
     bindInputsToPreferences(manager, session, preferences);
   }
-  render(
-    <App
-      session={session}
-      preferences={preferences}
-      inputs={inputs}
-      inputManager={manager}
-      audio={new FakeAudioControl()}
-    />,
-  );
-  const openPanel = () => fireEvent.click(screen.getByTestId('settings-button'));
-  return { mic, midi, pc, preferences, session, manager, openPanel };
+  function Page() {
+    useTheme(preferences);
+    return (
+      <SettingsScreen
+        preferences={preferences}
+        inputs={inputs}
+        inputManager={manager}
+        microphone={undefined}
+      />
+    );
+  }
+  render(<Page />);
+  return { mic, midi, pc, preferences, session, manager };
 }
 
 const KEYBOARD = { version: 1, input: 'teclado-pc' };
 
-describe('panel de ajustes · abrir y cerrar', () => {
-  it('el engranaje abre el panel, mueve el foco a su título y avisa con aria-expanded', () => {
-    const { openPanel } = setup();
-    const button = screen.getByTestId('settings-button');
-    expect(button.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.queryByTestId('settings-panel')).toBeNull();
-    openPanel();
-    expect(button.getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getByTestId('settings-panel').getAttribute('role')).toBe('dialog');
-    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Ajustes' }));
-  });
-
-  it('cerrar devuelve el foco al engranaje', () => {
-    const { openPanel } = setup();
-    openPanel();
-    fireEvent.click(screen.getByTestId('settings-close'));
-    expect(screen.queryByTestId('settings-panel')).toBeNull();
-    expect(document.activeElement).toBe(screen.getByTestId('settings-button'));
-  });
-
-  it('Esc cierra y Ctrl+, abre y cierra', () => {
+describe('página de ajustes · encabezado', () => {
+  it('es una página con su título y un botón para volver', () => {
     setup();
-    fireEvent.keyDown(window, { key: ',', ctrlKey: true });
-    expect(screen.getByTestId('settings-panel')).toBeTruthy();
-    fireEvent.keyDown(window, { key: 'Escape' });
-    expect(screen.queryByTestId('settings-panel')).toBeNull();
-    fireEvent.keyDown(window, { key: ',', ctrlKey: true });
-    fireEvent.keyDown(window, { key: ',', ctrlKey: true });
-    expect(screen.queryByTestId('settings-panel')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Ajustes' })).toBeTruthy();
+    expect(screen.getByTestId('settings-close').textContent).toBe('Volver');
+    // No es una ventana emergente: ni diálogo ni fondo que tape lo demás.
+    expect(screen.getByTestId('settings-panel').getAttribute('role')).toBeNull();
+    expect(document.querySelector('.settings-backdrop')).toBeNull();
   });
 
-  it('la coma sola no abre nada', () => {
+  it('ya no lleva los controles sueltos de la cabecera ni avisos de pausa', () => {
     setup();
-    fireEvent.keyDown(window, { key: ',' });
-    expect(screen.queryByTestId('settings-panel')).toBeNull();
-  });
-
-  it('abrir pausa la ronda en curso y cerrar la reanuda', () => {
-    const { session, openPanel } = setup({ stored: KEYBOARD });
-    act(() => session.start());
-    openPanel();
-    expect(session.getSnapshot()).toMatchObject({ phase: 'pausada', pauseReason: 'manual' });
-    fireEvent.click(screen.getByTestId('settings-close'));
-    expect(session.getSnapshot().phase).toBe('en-curso');
-  });
-
-  it('si la ronda ya estaba en pausa (la pausó la persona), cerrar los ajustes no la reanuda', () => {
-    const { session, openPanel } = setup({ stored: KEYBOARD });
-    act(() => session.start());
-    act(() => session.pause());
-    openPanel();
-    fireEvent.click(screen.getByTestId('settings-close'));
-    expect(session.getSnapshot().phase).toBe('pausada');
-  });
-
-  it('el aviso de «ronda en pausa» solo sale si hay una ronda en pausa', () => {
-    const { session, openPanel } = setup({ stored: KEYBOARD });
-    openPanel();
     expect(screen.queryByTestId('settings-pause-note')).toBeNull();
-    fireEvent.click(screen.getByTestId('settings-close'));
-    act(() => session.start());
-    openPanel();
-    expect(screen.getByTestId('settings-pause-note').textContent).toContain('en pausa');
-  });
-
-  it('sin ronda (bienvenida) abrir y cerrar no cambia nada', () => {
-    const { session, openPanel } = setup();
-    openPanel();
-    fireEvent.click(screen.getByTestId('settings-close'));
-    expect(session.getSnapshot().phase).toBe('inactiva');
-  });
-
-  it('la cabecera ya no lleva los controles sueltos: notación, ayuda y tema están en el panel', () => {
-    setup();
-    expect(screen.queryByTestId('help-switch')).toBeNull();
-    expect(screen.queryByLabelText('C D E')).toBeNull();
+    expect(screen.queryByTestId('lesson-note')).toBeNull();
   });
 });
 
-describe('panel de ajustes · entrada', () => {
+describe('página de ajustes · entrada', () => {
   it('muestra las tres entradas con la elegida marcada y su estado', () => {
-    const { openPanel } = setup();
-    openPanel();
+    setup();
     expect((screen.getByTestId('input-microfono') as HTMLInputElement).checked).toBe(true);
     expect((screen.getByTestId('input-midi') as HTMLInputElement).checked).toBe(false);
     expect((screen.getByTestId('input-teclado-pc') as HTMLInputElement).checked).toBe(false);
@@ -147,8 +86,7 @@ describe('panel de ajustes · entrada', () => {
   });
 
   it('elegir otra entrada la enciende y apaga las demás (exclusivas)', () => {
-    const { openPanel, pc, mic, manager, preferences } = setup();
-    openPanel();
+    const { pc, mic, manager, preferences } = setup();
     fireEvent.click(screen.getByTestId('input-teclado-pc'));
     expect(preferences.getSnapshot().input).toBe('teclado-pc');
     expect(manager?.getSnapshot().selected).toBe('teclado-pc');
@@ -158,24 +96,21 @@ describe('panel de ajustes · entrada', () => {
   });
 
   it('elegir el micrófono no lo enciende: lo hace la persona desde su botón', () => {
-    const { openPanel, mic } = setup({ stored: KEYBOARD });
-    openPanel();
+    const { mic } = setup({ stored: KEYBOARD });
     fireEvent.click(screen.getByTestId('input-microfono'));
     expect(mic.startCalls).toBe(0);
   });
 
   it('en modo de desarrollo las entradas no se pueden cambiar y lo explica', () => {
-    const { openPanel } = setup({ dev: true });
-    openPanel();
+    setup({ dev: true });
     expect(screen.getByTestId('input-dev-note').textContent).toContain('?pc');
     expect((screen.getByTestId('input-midi') as HTMLInputElement).disabled).toBe(true);
   });
 });
 
-describe('panel de ajustes · ejercicio', () => {
+describe('página de ajustes · ejercicio', () => {
   it('con el micrófono solo hay notas: terceras y acordes están desactivados y se explica por qué', () => {
-    const { openPanel } = setup();
-    openPanel();
+    setup();
     expect((screen.getByTestId('mode-notas') as HTMLInputElement).checked).toBe(true);
     expect((screen.getByTestId('mode-terceras') as HTMLInputElement).disabled).toBe(true);
     expect((screen.getByTestId('mode-acordes') as HTMLInputElement).disabled).toBe(true);
@@ -183,8 +118,7 @@ describe('panel de ajustes · ejercicio', () => {
   });
 
   it('con el micrófono aparece «Oír varias notas a la vez (beta)»; activarlo habilita terceras y acordes', () => {
-    const { openPanel, session, preferences } = setup();
-    openPanel();
+    const { session, preferences } = setup();
     const toggle = screen.getByTestId('polyphonic-switch');
     expect(toggle.getAttribute('aria-checked')).toBe('false');
     expect(toggle.textContent).toContain('BETA');
@@ -197,24 +131,21 @@ describe('panel de ajustes · ejercicio', () => {
   });
 
   it('apagar la beta con acordes elegidos vuelve a notas', () => {
-    const { openPanel, session } = setup({
+    const { session } = setup({
       stored: { version: 1, input: 'microfono', polyphonicMic: true, mode: 'acordes' },
     });
-    openPanel();
     expect(session.getSnapshot().mode).toBe('acordes');
     fireEvent.click(screen.getByTestId('polyphonic-switch'));
     expect(session.getSnapshot().mode).toBe('notas');
   });
 
   it('con otra entrada no se ofrece la beta del micrófono', () => {
-    const { openPanel } = setup({ stored: KEYBOARD });
-    openPanel();
+    setup({ stored: KEYBOARD });
     expect(screen.queryByTestId('polyphonic-switch')).toBeNull();
   });
 
   it('con el teclado del PC se puede elegir modo y nivel, y la sesión lo recibe', () => {
-    const { openPanel, session, preferences } = setup({ stored: KEYBOARD });
-    openPanel();
+    const { session, preferences } = setup({ stored: KEYBOARD });
     fireEvent.click(screen.getByTestId('mode-terceras'));
     expect(session.getSnapshot()).toMatchObject({ mode: 'terceras', level: 1 });
     expect(
@@ -233,40 +164,34 @@ describe('panel de ajustes · ejercicio', () => {
     expect(session.getSnapshot()).toMatchObject({ mode: 'terceras', level: 3 });
   });
 
-  it('cambiar de ejercicio con una ronda en curso empieza otra, en pausa mientras el panel siga abierto', () => {
-    const { openPanel, session } = setup({ stored: KEYBOARD });
+  it('cambiar de ejercicio con una ronda en curso empieza otra', () => {
+    const { session } = setup({ stored: KEYBOARD });
     act(() => session.start());
-    openPanel();
     fireEvent.click(screen.getByTestId('mode-acordes'));
-    expect(session.getSnapshot()).toMatchObject({ mode: 'acordes', phase: 'pausada', hits: 0 });
+    expect(session.getSnapshot()).toMatchObject({ mode: 'acordes', hits: 0 });
     expect(session.getSnapshot().exercise?.target.notes).toHaveLength(3);
-    fireEvent.click(screen.getByTestId('settings-close'));
-    expect(session.getSnapshot().phase).toBe('en-curso');
   });
 
   it('pasar al micrófono desde acordes vuelve a notas', () => {
-    const { openPanel, session } = setup({
+    const { session } = setup({
       stored: { version: 1, input: 'teclado-pc', mode: 'acordes' },
     });
-    openPanel();
     fireEvent.click(screen.getByTestId('input-microfono'));
     expect(session.getSnapshot().mode).toBe('notas');
     expect((screen.getByTestId('mode-acordes') as HTMLInputElement).disabled).toBe(true);
   });
 });
 
-describe('panel de ajustes · apariencia', () => {
+describe('página de ajustes · apariencia', () => {
   it('la notación cambia los nombres en la sesión y se guarda', () => {
-    const { openPanel, session, preferences } = setup();
-    openPanel();
+    const { session, preferences } = setup();
     fireEvent.click(screen.getByLabelText('C D E'));
     expect(session.getSnapshot().notation).toBe('americana');
     expect(preferences.getSnapshot().notation).toBe('americana');
   });
 
   it('el interruptor de ayuda llega a la sesión y a las preferencias', () => {
-    const { openPanel, session, preferences } = setup();
-    openPanel();
+    const { session, preferences } = setup();
     const toggle = screen.getByTestId('help-switch');
     expect(toggle.getAttribute('aria-checked')).toBe('true');
     fireEvent.click(toggle);
@@ -276,8 +201,7 @@ describe('panel de ajustes · apariencia', () => {
   });
 
   it('el tema se aplica a la página y se guarda', () => {
-    const { openPanel, preferences } = setup();
-    openPanel();
+    const { preferences } = setup();
     fireEvent.click(screen.getByTestId('theme-oscuro'));
     expect(document.documentElement.getAttribute('data-theme')).toBe('oscuro');
     expect(preferences.getSnapshot().theme).toBe('oscuro');
@@ -286,7 +210,7 @@ describe('panel de ajustes · apariencia', () => {
   });
 
   it('restablecer vuelve a los valores de fábrica', () => {
-    const { openPanel, session, preferences } = setup({
+    const { session, preferences } = setup({
       stored: {
         version: 1,
         input: 'teclado-pc',
@@ -295,7 +219,6 @@ describe('panel de ajustes · apariencia', () => {
         theme: 'claro',
       },
     });
-    openPanel();
     fireEvent.click(screen.getByTestId('settings-reset'));
     expect(preferences.getSnapshot()).toMatchObject({
       input: 'microfono',
@@ -304,51 +227,5 @@ describe('panel de ajustes · apariencia', () => {
       theme: 'auto',
     });
     expect(session.getSnapshot()).toMatchObject({ notation: 'latina', help: true });
-  });
-});
-
-describe('panel de ajustes · pantalla estrecha', () => {
-  function narrow() {
-    window.matchMedia = ((query: string) => ({
-      matches: query.includes('max-width'),
-      media: query,
-      addEventListener: () => undefined,
-      removeEventListener: () => undefined,
-    })) as unknown as typeof window.matchMedia;
-  }
-
-  it('es modal: aria-modal, fondo que cierra y el tabulador no sale del panel', () => {
-    narrow();
-    const { openPanel } = setup();
-    openPanel();
-    const panel = screen.getByTestId('settings-panel');
-    expect(panel.getAttribute('aria-modal')).toBe('true');
-    const buttons = panel.querySelectorAll<HTMLElement>('button, input:not([disabled])');
-    const last = buttons[buttons.length - 1] as HTMLElement;
-    last.focus();
-    fireEvent.keyDown(panel, { key: 'Tab' });
-    expect(document.activeElement).toBe(panel.querySelector('button, input:not([disabled])'));
-
-    const backdrop = document.querySelector('.settings-backdrop') as HTMLElement;
-    fireEvent.click(backdrop);
-    expect(screen.queryByTestId('settings-panel')).toBeNull();
-  });
-
-  it('Mayús+Tab desde el título (que recibe el foco al abrir) no saca el foco del panel', () => {
-    narrow();
-    const { openPanel } = setup();
-    openPanel();
-    const panel = screen.getByTestId('settings-panel');
-    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Ajustes' }));
-    fireEvent.keyDown(panel, { key: 'Tab', shiftKey: true });
-    const focusable = panel.querySelectorAll<HTMLElement>('button, input:not([disabled])');
-    expect(document.activeElement).toBe(focusable[focusable.length - 1]);
-  });
-
-  it('en pantalla ancha no hay fondo y no es modal', () => {
-    const { openPanel } = setup();
-    openPanel();
-    expect(screen.getByTestId('settings-panel').getAttribute('aria-modal')).toBe('false');
-    expect(document.querySelector('.settings-backdrop')).toBeNull();
   });
 });

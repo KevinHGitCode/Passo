@@ -1,5 +1,4 @@
-import { useEffect, useRef, useSyncExternalStore } from 'react';
-import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
+import { useSyncExternalStore } from 'react';
 import type { InputManager } from '@/core/application/input-manager';
 import type { PreferencesService } from '@/core/application/preferences-service';
 import { EXERCISE_MODES, levelsOf } from '@/core/domain/curriculum';
@@ -9,12 +8,10 @@ import { INPUT_CHOICES, THEME_CHOICES } from '@/core/domain/preferences';
 import type { ThemeChoice } from '@/core/domain/preferences';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { NoteInput } from '@/core/ports/note-input';
-import { useIsNarrow, useMonitor } from '../practice/hooks';
+import { useMonitor } from '../practice/hooks';
+import { AJUSTES, CAMINO, hrefOf, navigate } from '../router/routes';
 import { describeInputStatus } from '../status/describe-status';
 import './settings.css';
-
-export const SETTINGS_PANEL_ID = 'settings-panel';
-const NARROW_MAX_WIDTH = 899;
 
 const INPUT_TEXT: Readonly<Record<InputSource, { title: string; hint: string }>> = {
   microfono: { title: 'Micrófono', hint: 'Oye tu piano o teclado' },
@@ -34,19 +31,13 @@ const THEME_TEXT: Readonly<Record<ThemeChoice, string>> = {
   oscuro: 'Oscuro',
 };
 
-export interface SettingsPanelProps {
-  readonly open: boolean;
-  readonly onClose: () => void;
+export interface SettingsScreenProps {
   readonly preferences: PreferencesService;
   /** Todas las entradas que existen. */
   readonly inputs: readonly NoteInput[];
   /** Sin gestor (modo de desarrollo) la entrada no se puede cambiar desde aquí. */
   readonly inputManager?: InputManager | undefined;
   readonly microphone?: (NoteInput & InputMonitor) | undefined;
-  /** Hay una ronda en pausa mientras los ajustes están abiertos: se avisa. */
-  readonly roundPaused?: boolean | undefined;
-  /** Hay una lección en curso: ella decide el ejercicio y el nivel, que no se pueden cambiar. */
-  readonly lessonActive?: boolean | undefined;
 }
 
 function GearIcon() {
@@ -68,32 +59,27 @@ function GearIcon() {
   );
 }
 
-/** Botón del engranaje, en la cabecera. `Ctrl+,` hace lo mismo. */
-export function SettingsButton({
-  open,
-  onToggle,
-  buttonRef,
-}: {
-  readonly open: boolean;
-  readonly onToggle: () => void;
-  readonly buttonRef: RefObject<HTMLButtonElement | null>;
-}) {
+/** El engranaje de la cabecera: lleva a la página de ajustes (`Ctrl+,` hace lo mismo). */
+export function SettingsButton({ current = false }: { readonly current?: boolean }) {
   return (
-    <button
-      type="button"
-      ref={buttonRef}
+    <a
       className="gear"
-      aria-expanded={open}
-      aria-controls={SETTINGS_PANEL_ID}
+      href={hrefOf(AJUSTES)}
+      aria-current={current ? 'page' : undefined}
       aria-keyshortcuts="Control+,"
       title="Ajustes (Ctrl+,)"
-      onClick={onToggle}
       data-testid="settings-button"
     >
       <GearIcon />
       <span>Ajustes</span>
-    </button>
+    </a>
   );
+}
+
+/** Vuelve a la pantalla de la que se vino (o al camino si se entró directamente a los ajustes). */
+export function leaveSettings(): void {
+  if (window.history.length > 1) window.history.back();
+  else navigate(CAMINO);
 }
 
 function InputChoice({
@@ -144,94 +130,38 @@ function InputChoice({
   );
 }
 
-/** En pantallas estrechas el panel es modal: el foco no sale de él con el tabulador. */
-function trapTab(event: ReactKeyboardEvent<HTMLElement>): void {
-  if (event.key !== 'Tab') return;
-  const focusable = [
-    ...event.currentTarget.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
-    ),
-  ];
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  if (!first || !last) return;
-  // El título recibe el foco al abrir (tabindex −1): Mayús+Tab desde él también debe quedarse dentro.
-  const active = document.activeElement as HTMLElement | null;
-  if (event.shiftKey && (active === first || active === null || !focusable.includes(active))) {
-    event.preventDefault();
-    last.focus();
-  } else if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault();
-    first.focus();
-  }
-}
-
 /**
- * Ajustes: entrada, ejercicio y apariencia. Va **encima** del tablero (no lo empuja); en pantallas
- * estrechas es modal. Todo lo que cambia se guarda en las preferencias.
+ * La página de ajustes: entrada, ejercicio y apariencia. Todo lo que cambia se guarda en las preferencias.
  */
-export function SettingsPanel({
-  open,
-  onClose,
+export function SettingsScreen({
   preferences,
   inputs,
   inputManager,
   microphone,
-  roundPaused = false,
-  lessonActive = false,
-}: SettingsPanelProps) {
+}: SettingsScreenProps) {
   const prefs = useSyncExternalStore(preferences.subscribe, preferences.getSnapshot);
-  const narrow = useIsNarrow(NARROW_MAX_WIDTH);
-  const headingRef = useRef<HTMLHeadingElement>(null);
-
-  useEffect(() => {
-    if (open) headingRef.current?.focus({ preventScroll: true });
-  }, [open]);
-
-  if (!open) return null;
-
   const groupsBlocked = prefs.input === 'microfono' && !prefs.polyphonicMic;
   const levels = levelsOf(prefs.mode);
   const available = INPUT_CHOICES.map((source) => inputs.find((input) => input.source === source));
 
   return (
-    <>
-      {narrow && <div className="settings-backdrop" onClick={onClose} aria-hidden="true" />}
-      <aside
-        id={SETTINGS_PANEL_ID}
-        className="settings-panel"
-        role="dialog"
-        aria-modal={narrow}
-        aria-labelledby="settings-title"
-        data-testid="settings-panel"
-        onKeyDown={narrow ? trapTab : undefined}
-      >
-        <header className="settings-panel__head">
-          <h2 id="settings-title" tabIndex={-1} ref={headingRef}>
-            Ajustes
-          </h2>
-          <button
-            type="button"
-            className="button button--ghost"
-            onClick={onClose}
-            data-testid="settings-close"
-          >
-            Cerrar
-          </button>
-        </header>
-        {roundPaused && (
-          <p className="settings-panel__note" data-testid="settings-pause-note">
-            La ronda está en pausa mientras los ajustes están abiertos.
-          </p>
-        )}
-
+    <div className="settings-page" data-testid="settings-panel">
+      <header className="settings-page__head">
+        <h1 id="ajustes-titulo" tabIndex={-1} data-route-heading>
+          Ajustes
+        </h1>
+        <button
+          type="button"
+          className="button button--ghost"
+          onClick={leaveSettings}
+          data-testid="settings-close"
+        >
+          Volver
+        </button>
+      </header>
+      <div className="settings-page__body">
         <fieldset className="settings-group">
           <legend>Cómo toco</legend>
-          {lessonActive && (
-            <p className="settings-group__note" data-testid="lesson-input-note">
-              Si cambias de entrada, la lección vuelve a empezar.
-            </p>
-          )}
           {inputManager === undefined && (
             <p className="settings-group__note" data-testid="input-dev-note">
               Modo de desarrollo: las entradas vienen de la dirección (<code>?pc</code>,{' '}
@@ -276,66 +206,57 @@ export function SettingsPanel({
           )}
         </fieldset>
 
-        {lessonActive ? (
-          <fieldset className="settings-group">
-            <legend>Qué practico</legend>
-            <p className="settings-group__note" data-testid="lesson-note">
-              La lección decide qué practicas. Sal de ella para elegir ejercicio y nivel.
-            </p>
-          </fieldset>
-        ) : (
-          <fieldset className="settings-group">
-            <legend>Qué practico</legend>
-            <div className="segmented segmented--wrap" role="radiogroup" aria-label="Ejercicio">
-              {EXERCISE_MODES.map((mode) => {
-                const blocked = groupsBlocked && mode !== 'notas';
-                return (
-                  <label key={mode} className="segmented__option">
-                    <input
-                      type="radio"
-                      name="mode"
-                      value={mode}
-                      checked={prefs.mode === mode}
-                      disabled={blocked}
-                      aria-describedby={blocked ? 'mode-blocked' : undefined}
-                      onChange={() => preferences.update({ mode })}
-                      data-testid={`mode-${mode}`}
-                    />
-                    <span>{MODE_TEXT[mode]}</span>
-                  </label>
-                );
-              })}
-            </div>
-            {groupsBlocked && (
-              <p id="mode-blocked" className="settings-group__note" data-testid="mode-blocked">
-                Terceras y acordes necesitan el teclado del PC o un piano MIDI. Con el micrófono,
-                activa «Oír varias notas a la vez» (beta).
-              </p>
-            )}
-            <div className="levels" role="radiogroup" aria-label="Nivel">
-              {levels.map((def) => (
-                <label
-                  key={def.level}
-                  className="choice choice--compact"
-                  data-checked={prefs.levels[prefs.mode] === def.level}
-                >
+        <fieldset className="settings-group">
+          <legend>Qué practico</legend>
+          <div className="segmented segmented--wrap" role="radiogroup" aria-label="Ejercicio">
+            {EXERCISE_MODES.map((mode) => {
+              const blocked = groupsBlocked && mode !== 'notas';
+              return (
+                <label key={mode} className="segmented__option">
                   <input
                     type="radio"
-                    name="level"
-                    value={def.level}
-                    checked={prefs.levels[prefs.mode] === def.level}
-                    onChange={() => preferences.update({ levels: { [prefs.mode]: def.level } })}
-                    data-testid={`level-${def.level}`}
+                    name="mode"
+                    value={mode}
+                    checked={prefs.mode === mode}
+                    disabled={blocked}
+                    aria-describedby={blocked ? 'mode-blocked' : undefined}
+                    onChange={() => preferences.update({ mode })}
+                    data-testid={`mode-${mode}`}
                   />
-                  <span className="choice__body">
-                    <span className="choice__title">Nivel {def.level}</span>
-                    <span className="choice__hint">{def.title}</span>
-                  </span>
+                  <span>{MODE_TEXT[mode]}</span>
                 </label>
-              ))}
-            </div>
-          </fieldset>
-        )}
+              );
+            })}
+          </div>
+          {groupsBlocked && (
+            <p id="mode-blocked" className="settings-group__note" data-testid="mode-blocked">
+              Terceras y acordes necesitan el teclado del PC o un piano MIDI. Con el micrófono,
+              activa «Oír varias notas a la vez» (beta).
+            </p>
+          )}
+          <div className="levels" role="radiogroup" aria-label="Nivel">
+            {levels.map((def) => (
+              <label
+                key={def.level}
+                className="choice choice--compact"
+                data-checked={prefs.levels[prefs.mode] === def.level}
+              >
+                <input
+                  type="radio"
+                  name="level"
+                  value={def.level}
+                  checked={prefs.levels[prefs.mode] === def.level}
+                  onChange={() => preferences.update({ levels: { [prefs.mode]: def.level } })}
+                  data-testid={`level-${def.level}`}
+                />
+                <span className="choice__body">
+                  <span className="choice__title">Nivel {def.level}</span>
+                  <span className="choice__hint">{def.title}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         <fieldset className="settings-group">
           <legend>Cómo lo veo</legend>
@@ -390,13 +311,13 @@ export function SettingsPanel({
 
         <button
           type="button"
-          className="button button--ghost settings-panel__reset"
+          className="button button--ghost settings-page__reset"
           onClick={() => preferences.reset()}
           data-testid="settings-reset"
         >
           Restablecer ajustes
         </button>
-      </aside>
-    </>
+      </div>
+    </div>
   );
 }

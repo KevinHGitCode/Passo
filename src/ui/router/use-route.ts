@@ -22,6 +22,10 @@ export function useRoute(): Route {
  * Al cambiar de pantalla: sale de la lección si ya no estás en ella, vacía la sesión al dejar la
  * práctica libre y apaga el micrófono al salir de ambas (las demás entradas siguen vivas). Es idempotente,
  * así vale aunque React repita el efecto.
+ *
+ * Los ajustes son una página aparte, pero la práctica libre los «espera»: al ir a ellos desde la práctica la
+ * ronda se queda guardada y en pausa (y el micrófono encendido), y al volver se reanuda. Si desde los
+ * ajustes se va a otra pantalla, entonces sí se vacía la sesión y se apaga el micrófono.
  */
 export function useRouteLifecycle(
   route: Route,
@@ -30,15 +34,45 @@ export function useRouteLifecycle(
   microphone?: NoteInput,
 ): void {
   const previous = useRef<Route['name'] | null>(null);
+  /** Se fue a los ajustes desde la práctica libre: su sesión sigue guardada. */
+  const holdingPractice = useRef(false);
+  /** La ronda la pausó el paso por los ajustes (y es esa pausa la que hay que quitar al volver). */
+  const pausedBySettings = useRef(false);
   const name = route.name;
   useEffect(() => {
     const before = previous.current;
     previous.current = name;
     if (name !== 'leccion') flow.leave();
-    if (before === 'practica' && name !== 'practica') session.reset();
+
+    let keepMicrophone = false;
+    if (name === 'ajustes' && before === 'practica') {
+      holdingPractice.current = true;
+      if (session.getSnapshot().phase === 'en-curso') {
+        session.pause();
+        pausedBySettings.current = true;
+      }
+      keepMicrophone = true;
+    } else if (before === 'ajustes' && holdingPractice.current) {
+      holdingPractice.current = false;
+      if (name === 'practica') {
+        if (pausedBySettings.current) {
+          const { phase, pauseReason } = session.getSnapshot();
+          if (phase === 'pausada' && pauseReason === 'manual') session.resume();
+        }
+        keepMicrophone = true;
+      } else {
+        session.reset();
+        microphone?.stop();
+      }
+      pausedBySettings.current = false;
+    } else if (before === 'practica' && name !== 'practica') {
+      session.reset();
+    }
+
     // El micrófono solo escucha donde hay una pantalla que lo usa: al salir de la lección o de la
     // práctica o del afinador se apaga (la luz del equipo no debe quedar encendida); hay que activarlo con un gesto.
     if (
+      !keepMicrophone &&
       (before === 'leccion' ||
         before === 'practica' ||
         before === 'afinador' ||

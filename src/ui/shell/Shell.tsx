@@ -1,4 +1,4 @@
-import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 import type { LessonFlow } from '@/core/application/lesson-flow';
 import type { ProgressService } from '@/core/application/progress-service';
@@ -24,10 +24,10 @@ import { SongScreen } from '../screens/SongScreen';
 import { SongsScreen } from '../screens/SongsScreen';
 import { TunerScreen } from '../screens/TunerScreen';
 import { usePlayContext } from '../screens/use-play-context';
-import { SettingsButton, SettingsPanel } from '../settings/SettingsPanel';
-import { useSettingsPanel } from '../settings/use-settings-panel';
+import { SettingsButton, SettingsScreen } from '../settings/SettingsScreen';
+import { useSettingsShortcut } from '../settings/use-settings-shortcut';
 import { useTheme } from '../theme/use-theme';
-import { CAMINO, caminoOf, hrefOf, navigate, progresoOf } from '../router/routes';
+import { AJUSTES, CAMINO, caminoOf, hrefOf, navigate, progresoOf } from '../router/routes';
 import type { Route } from '../router/routes';
 import { useCanonicalRoute, useInstrumentFromRoute } from '../router/use-instrument-route';
 import { useRoute, useRouteAnnouncer, useRouteLifecycle } from '../router/use-route';
@@ -48,7 +48,7 @@ export interface ShellProps extends AppProps {
 /** Debajo de este ancho la navegación pasa a una barra inferior y los ajustes a la cabecera. */
 const NARROW_MAX_WIDTH = 899;
 
-const noop = (): void => undefined;
+const openSettings = (): void => navigate(AJUSTES);
 
 function Screen({
   route,
@@ -109,6 +109,15 @@ function Screen({
       return <TunerScreen tuner={shell.tuner} microphone={shell.microphone} notation={notation} />;
     case 'canciones':
       return <SongsScreen instrument={instrument} />;
+    case 'ajustes':
+      return (
+        <SettingsScreen
+          preferences={shell.preferences}
+          inputs={shell.inputs}
+          inputManager={shell.inputManager}
+          microphone={shell.microphone}
+        />
+      );
     case 'mipiano':
       return (
         <MiPianoScreen
@@ -149,21 +158,11 @@ function Screen({
 
 /** El marco de las pantallas del juego: navegación, ajustes y la pantalla que toque. */
 function GameLayout({ route, shell }: { readonly route: Route; readonly shell: ShellProps }) {
-  const { session, preferences, inputs, inputManager, microphone, lessonFlow } = shell;
+  const { preferences, inputs, inputManager } = shell;
   const prefs = useSyncExternalStore(preferences.subscribe, preferences.getSnapshot);
   const instrument = activeInstrument(route, prefs.instrument);
-  const settings = useSettingsPanel(session);
-  const gearRef = useRef<HTMLButtonElement>(null);
-  // Al cerrar los ajustes el foco vuelve al engranaje (si no, se perdería).
-  const wasOpen = useRef(false);
-  useEffect(() => {
-    if (wasOpen.current && !settings.open) gearRef.current?.focus({ preventScroll: true });
-    wasOpen.current = settings.open;
-  }, [settings.open]);
+  useSettingsShortcut(route.name === 'ajustes');
   const narrow = useIsNarrow(NARROW_MAX_WIDTH);
-  // Solo la fase: no se vuelve a dibujar el marco con cada pulsación.
-  const phase = useSyncExternalStore(session.subscribe, () => session.getSnapshot().phase);
-  const lessonActive = useSyncExternalStore(lessonFlow.subscribe, lessonFlow.isActive);
   const play = usePlayContext(preferences, inputManager, inputs);
 
   const skipToContent = (
@@ -195,31 +194,10 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
       }}
     />
   );
-  const gear = (
-    <SettingsButton open={settings.open} onToggle={settings.toggle} buttonRef={gearRef} />
-  );
+  const gear = <SettingsButton current={route.name === 'ajustes'} />;
   const screen = (
-    <Screen
-      route={route}
-      shell={shell}
-      play={play}
-      gear={gear}
-      openSettings={settings.open ? noop : settings.toggle}
-    />
+    <Screen route={route} shell={shell} play={play} gear={gear} openSettings={openSettings} />
   );
-  const panel = (
-    <SettingsPanel
-      open={settings.open}
-      onClose={settings.close}
-      preferences={preferences}
-      inputs={inputs}
-      inputManager={inputManager}
-      microphone={microphone}
-      roundPaused={phase === 'pausada'}
-      lessonActive={lessonActive}
-    />
-  );
-
   // Una lección ocupa toda la pantalla: sin barra lateral ni inferior (se sale con la X).
   if (route.name === 'leccion') {
     return (
@@ -228,7 +206,6 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
         <main className="game-main game-main--lesson" id="contenido" tabIndex={-1}>
           {screen}
         </main>
-        {panel}
       </div>
     );
   }
@@ -261,7 +238,6 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
         {screen}
       </main>
       {narrow ? <GameNav route={route} bottom instrument={instrument} /> : null}
-      {panel}
     </div>
   );
 }

@@ -53,7 +53,7 @@ test('Fase 3 · primera visita: el camino sin datos invita a empezar (claro y os
   await page.goto('/?seed=7#/');
   await expect(page.getByRole('heading', { level: 1, name: 'Aprender' })).toBeVisible();
   await expect(page).toHaveTitle('Aprender · Passo');
-  await expect(page.getByTestId('game-nav').getByRole('link')).toHaveCount(3);
+  await expect(page.getByTestId('game-nav').getByRole('link')).toHaveCount(5);
   await expect(page.locator('.unit')).toHaveCount(6);
   await expect(page.getByTestId('node-u1-1')).toHaveAttribute('data-state', 'actual');
   await expect(page.getByTestId('node-u1-1')).toContainText('Empieza aquí');

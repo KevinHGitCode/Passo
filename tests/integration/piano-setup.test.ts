@@ -17,15 +17,15 @@ describe('PianoSetupService · la prueba del piano', () => {
     setup.start(61);
     expect(setup.getSnapshot()).toMatchObject({ phase: 'probando', index: 0 });
     const notes = setup.getSnapshot().notes;
-    expect(notes[0]).toBe(40);
+    expect(notes[0]).toBe(48);
     // La primera sale bien, la segunda una octava arriba.
     press(input, notes[0] as number, 1000);
     press(input, (notes[1] as number) + 12, 2000);
     expect(setup.getSnapshot().results).toEqual([
-      { expected: 40, detected: 40 },
-      { expected: 48, detected: 60 },
+      { expected: 48, detected: 48 },
+      { expected: 52, detected: 64 },
     ]);
-    expect(setup.getSnapshot().lastHeard).toBe(60);
+    expect(setup.getSnapshot().lastHeard).toBe(64);
   });
 
   it('un mismo sonido oído dos veces seguidas no pasa a la siguiente nota', () => {
@@ -58,7 +58,7 @@ describe('PianoSetupService · la prueba del piano', () => {
     const setup = new PianoSetupService({ input });
     setup.start(61);
     setup.skip();
-    expect(setup.getSnapshot().results[0]).toEqual({ expected: 40, detected: null });
+    expect(setup.getSnapshot().results[0]).toEqual({ expected: 48, detected: null });
     setup.stop();
     expect(setup.getSnapshot().phase).toBe('inactiva');
   });

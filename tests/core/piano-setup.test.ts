@@ -4,7 +4,9 @@ import {
   correctNote,
   fixesFrom,
   isKeyboardSize,
+  keysOutsideMic,
   keyboardRange,
+  MIC_RANGE,
   namingShift,
   octaveCount,
   probeKind,
@@ -94,9 +96,23 @@ describe('corregir lo que lee el micrófono', () => {
 
 describe('la prueba', () => {
   it('pide notas repartidas por el teclado y solo las que existen en él', () => {
-    expect(testNotes(61)).toEqual([40, 48, 52, 55, 60, 64, 67, 72, 79, 84]);
+    expect(testNotes(61)).toEqual([48, 52, 55, 60, 64, 67, 72, 76, 79, 84]);
     expect(testNotes(25)).toEqual([48, 52, 55, 60, 64, 67, 72]);
-    expect(testNotes(88).every((note) => note >= 21 && note <= 108)).toBe(true);
+    // Nunca se piden notas que el micrófono no puede oír (el bajo de un 61 teclas, los agudos de un 88).
+    for (const keys of KEYBOARD_SIZES) {
+      const { low, high } = keyboardRange(keys);
+      for (const note of testNotes(keys)) {
+        expect(note).toBeGreaterThanOrEqual(Math.max(low, MIC_RANGE.low));
+        expect(note).toBeLessThanOrEqual(Math.min(high, MIC_RANGE.high));
+      }
+    }
+  });
+
+  it('cuenta las teclas que el micrófono no puede oír', () => {
+    // 61 teclas (Do2–Do7): 12 graves (Do2–Si2) y 12 agudas (Do♯6–Do7).
+    expect(keysOutsideMic(61)).toEqual({ below: 12, above: 12 });
+    expect(keysOutsideMic(25)).toEqual({ below: 0, above: 0 });
+    expect(keysOutsideMic(88)).toEqual({ below: 27, above: 24 });
   });
 
   it('cada lectura se clasifica: bien, una octava arriba o abajo, otra', () => {

@@ -112,14 +112,29 @@ export function correctNote(fixes: readonly MicFix[], detected: Midi): Midi {
 
 // ─── La prueba ─────────────────────────────────────────────────────────────────────────────────────
 
-/** Las notas que se piden en la prueba: repartidas por el teclado, solo las que existen en él. */
+/**
+ * Las notas que el micrófono puede oír con un piano: del Do3 al Do6 (en nombres estándar; MIDI 48–84). Por debajo, el
+ * altavoz de un teclado casi no da graves; por encima, el sonido es demasiado agudo para medirlo bien. Es el rango
+ * del rastreador de notas (`minMidi` y `maxMidi`).
+ */
+export const MIC_RANGE = { low: 48, high: 84 } as const;
+
+/** Las notas que se piden en la prueba: repartidas por la parte del teclado que el micrófono puede oír. */
 export function testNotes(keys: KeyboardSize): Midi[] {
   const { low, high } = keyboardRange(keys);
-  const wanted = [48, 52, 55, 60, 64, 67, 72, 79, 84];
-  const inside = wanted.filter((note) => note >= low && note <= high);
-  // Si el teclado llega más abajo del Do3, se añade una nota grave para ver cómo lee el micrófono.
-  if (low <= 40) return [low <= 36 ? 40 : low + 4, ...inside];
-  return inside;
+  const wanted = [48, 52, 55, 60, 64, 67, 72, 76, 79, 84];
+  return wanted.filter(
+    (note) => note >= Math.max(low, MIC_RANGE.low) && note <= Math.min(high, MIC_RANGE.high),
+  );
+}
+
+/** Cuántas teclas del teclado quedan fuera de lo que el micrófono puede oír (por debajo y por encima). */
+export function keysOutsideMic(keys: KeyboardSize): { below: number; above: number } {
+  const { low, high } = keyboardRange(keys);
+  return {
+    below: Math.max(0, Math.min(high, MIC_RANGE.low - 1) - low + 1),
+    above: Math.max(0, high - Math.max(low, MIC_RANGE.high + 1) + 1),
+  };
 }
 
 export type ProbeKind = 'bien' | 'octava-arriba' | 'octava-abajo' | 'otra';

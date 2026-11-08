@@ -332,7 +332,7 @@ evidencias/    videos y capturas de cada fase cerrada, con su informe
 | `E2E_VIDEO=off npm run e2e` | Lo mismo sin grabar video |
 | `npm run build` · `npm run preview` | Compilación de producción y vista previa |
 
-`npm run check` pasa con **1717 pruebas** en 96 archivos y la suite e2e tiene **80 pruebas en Edge**.
+`npm run check` pasa con **1718 pruebas** en 96 archivos y la suite e2e tiene **81 pruebas en Edge**.
 Cada fase cerrada deja su informe, su video y sus capturas en [`evidencias/`](evidencias/).
 
 Para volver a generar las capturas de este README (usan un micrófono simulado y no corren con

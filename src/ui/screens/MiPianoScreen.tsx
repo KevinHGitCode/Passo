@@ -1,11 +1,14 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { PianoSetupService } from '@/core/application/piano-setup-service';
 import type { PreferencesService } from '@/core/application/preferences-service';
-import { noteName } from '@/core/domain/note';
+import { isBlackKey, noteName, pitchClass } from '@/core/domain/note';
+import type { Midi } from '@/core/domain/note';
 import type { NotationMode } from '@/core/domain/note';
 import {
   KEYBOARD_SIZES,
+  MIC_RANGE,
   keyboardRange,
+  keysOutsideMic,
   octaveCount,
   probeKind,
   probeSummary,
@@ -14,6 +17,8 @@ import type { OctaveNaming, ProbeKind } from '@/core/domain/piano-setup';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { NoteInput } from '@/core/ports/note-input';
 import { GameButton } from '../game/GameButton';
+import { PianoKeyboard } from '../keyboard/piano-keyboard';
+import type { KeyVisual } from '../keyboard/piano-keyboard';
 import { useInputStatus, useMonitor } from '../practice/hooks';
 import './mi-piano.css';
 
@@ -23,6 +28,14 @@ const KIND_TEXT: Readonly<Record<ProbeKind, string>> = {
   'octava-abajo': '↓ una octava más grave',
   otra: '✗ otra nota',
 };
+
+/** El Do central (MIDI 60): el punto de referencia para saber cómo llama el piano a sus notas. */
+const MIDDLE_C = 60;
+/** Si en tantos segundos no se oye la nota pedida, se avisa de que puede estar fuera del rango. */
+const SILENCE_HINT_MS = 6000;
+
+const whiteBelow = (midi: Midi): Midi => (isBlackKey(midi) ? midi - 1 : midi);
+const whiteAbove = (midi: Midi): Midi => (isBlackKey(midi) ? midi + 1 : midi);
 
 /** Los parámetros del piano: cuántas teclas tiene, cómo llama al Do central y una prueba del micrófono. */
 export function MiPianoScreen({
@@ -53,6 +66,41 @@ export function MiPianoScreen({
   const fixes = setup.fixes();
   const summary = probeSummary(probe.results);
   const prompt = probe.notes[probe.index];
+  const outside = keysOutsideMic(prefs.pianoKeys);
+  const probing = probe.phase === 'probando' && prompt !== undefined;
+
+  // Si pasan unos segundos sin oír la tecla pedida, se dice por qué puede ser y que se puede saltar. Se guarda
+  // para qué nota y qué última lectura ya pasó el tiempo (así no hay que reiniciar nada al cambiar).
+  const askKey = probing ? `${probe.index}:${probe.lastHeard ?? '-'}` : null;
+  const [silentKey, setSilentKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (askKey === null) return;
+    const id = window.setTimeout(() => setSilentKey(askKey), SILENCE_HINT_MS);
+    return () => window.clearTimeout(id);
+  }, [askKey]);
+  const silent = askKey !== null && silentKey === askKey;
+
+  // El teclado de tu piano: sus octavas, el Do central y, en la prueba, la tecla que toca.
+  const visuals = new Map<Midi, KeyVisual>();
+  if (probing) {
+    for (const result of probe.results) {
+      if (result.detected === null) continue;
+      visuals.set(result.expected, {
+        feedback: result.detected === result.expected ? 'correct' : 'wrong',
+      });
+    }
+    visuals.set(prompt, { target: true });
+    if (probe.lastHeard !== null) {
+      visuals.set(probe.lastHeard, { ...visuals.get(probe.lastHeard), heard: true });
+    }
+  } else if (probe.phase === 'inactiva') {
+    visuals.set(MIDDLE_C, { target: true });
+  }
+  const labelFor = (midi: Midi): string | undefined => {
+    if (isBlackKey(midi)) return undefined;
+    // Se rotulan los Do (con su octava) y la tecla que se pide; si no, el teclado sería ilegible.
+    return pitchClass(midi) === 0 || (probing && midi === prompt) ? name(midi) : undefined;
+  };
 
   return (
     <div className="mipiano" data-testid="mipiano">
@@ -63,6 +111,25 @@ export function MiPianoScreen({
         Cuéntame cómo es tu piano para que la app lo entienda bien: cuántas teclas tiene, cómo llama
         a sus notas y si el micrófono las lee en la octava correcta.
       </p>
+
+      <section
+        className="mipiano__card mipiano__board"
+        aria-label="Tu teclado"
+        data-testid="mipiano-board"
+      >
+        <PianoKeyboard
+          from={whiteBelow(range.low)}
+          to={whiteAbove(range.high)}
+          visuals={visuals}
+          labelFor={labelFor}
+          ariaLabel={`Tu teclado de ${prefs.pianoKeys} teclas, de ${name(range.low)} a ${name(range.high)}`}
+        />
+        <p className="mipiano__muted" data-testid="mipiano-board-caption">
+          {probing
+            ? `Toca la tecla marcada: el ${name(prompt)}.`
+            : `Tu teclado: ${prefs.pianoKeys} teclas, de ${name(range.low)} a ${name(range.high)}. La tecla marcada es el Do central (${name(MIDDLE_C)}).`}
+        </p>
+      </section>
 
       <section className="mipiano__card" aria-labelledby="mipiano-teclas">
         <h2 id="mipiano-teclas" className="mipiano__title">
@@ -154,6 +221,11 @@ export function MiPianoScreen({
         ) : probe.phase === 'inactiva' ? (
           <>
             <p className="mipiano__muted">
+              El micrófono solo oye de {name(MIC_RANGE.low)} a {name(MIC_RANGE.high)}: por debajo,
+              el altavoz casi no da graves y por encima el sonido es demasiado agudo.
+              {outside.below + outside.above > 0
+                ? ` En tu piano hay ${outside.below} teclas más graves y ${outside.above} más agudas que eso: para esas, usa MIDI.`
+                : ''}{' '}
               Te pediré tocar varias teclas, una a una. Comparo lo que oye el micrófono con lo que
               pedí: si alguna sale una octava más arriba o abajo (por ejemplo, tocas un Mi3 y oye un
               Mi4), lo corrijo solo.
@@ -177,6 +249,13 @@ export function MiPianoScreen({
                 ? 'Pulsa la tecla y déjala sonar un momento.'
                 : `Lo último que oí: ${name(probe.lastHeard)}`}
             </p>
+            {silent ? (
+              <p className="mipiano__warn" role="status" data-testid="mipiano-silent">
+                No oigo esa tecla. Prueba a tocarla más fuerte y más cerca del micrófono; si no
+                suena (o es de las más graves o agudas), sáltala: así sabremos hasta dónde llega el
+                micrófono.
+              </p>
+            ) : null}
             <div className="mipiano__actions">
               <GameButton
                 variant="secondary"
@@ -217,7 +296,7 @@ export function MiPianoScreen({
                     <tr key={result.expected} data-kind={kind ?? 'saltada'}>
                       <td>{name(result.expected)}</td>
                       <td>{result.detected === null ? '—' : name(result.detected)}</td>
-                      <td>{kind === null ? 'saltada' : KIND_TEXT[kind]}</td>
+                      <td>{kind === null ? 'no se oyó' : KIND_TEXT[kind]}</td>
                     </tr>
                   );
                 })}

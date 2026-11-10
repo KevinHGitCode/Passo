@@ -4,7 +4,7 @@
 
 ## Para qué
 
-Kevin notó que al tocar sus teclas la app las escribía una octava más arriba (su «Mi3» salía como Mi4, el «Do3» como Do4, el «Re3» como Re4). Puede haber dos causas distintas y la pantalla **Mi piano** (`#/mi-piano`, en la navegación del piano) las separa:
+Kevin notó que al tocar sus teclas la app las escribía una octava más arriba (su «Mi3» salía como Mi4, el «Do3» como Do4, el «Re3» como Re4). Puede haber dos causas distintas y la sección **Mi teclado** y la prueba del micrófono de los **ajustes del piano** (`#/piano/ajustes`; antes era la pantalla «Mi piano», ya sin entrada propia en la navegación) las separa:
 
 1. **El nombre.** Yamaha, Casio y otros llaman **Do3** al Do central (MIDI 60); la app (y la mayoría) lo llama **Do4**. Es solo una cuestión de nombre: el sonido es el mismo. Con la opción «Do3 (Yamaha…)» la app escribe todos los nombres con una octava menos (`setOctaveLabelShift`, que solo cambia el número que se muestra; las lecciones y el MIDI no cambian).
 2. **El micrófono.** Con un altavoz de portátil, las notas graves pueden leerse una octava más arriba (el detector toma el 2.º armónico). La prueba lo comprueba nota a nota.

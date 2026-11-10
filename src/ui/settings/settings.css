@@ -42,6 +42,41 @@
 .settings-page__head h1:focus {
   outline: none;
 }
+.settings-tabs {
+  display: flex;
+  gap: 8px;
+}
+.settings-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 18px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
+.settings-tab:hover {
+  background: var(--surface-2);
+}
+.settings-tab[aria-current='page'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.stepper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.stepper__value {
+  min-width: 120px;
+  text-align: center;
+  font-weight: 800;
+}
 .settings-page__body {
   display: flex;
   flex-direction: column;

@@ -5,20 +5,19 @@ import type { Page } from '@playwright/test';
 import { chooseInput, noHorizontalScroll } from './fase3-helpers';
 import { FAKE_MIC_SCRIPT, micNote } from './mic-helpers';
 
-const CAPTURES_DIR = join('evidencias', 'mi-piano', 'capturas');
+const CAPTURES_DIR = join('evidencias', 'ajustes-piano', 'capturas');
 
 test.beforeAll(() => mkdirSync(CAPTURES_DIR, { recursive: true }));
 
 const capture = (page: Page, name: string) =>
   page.screenshot({ path: join(CAPTURES_DIR, `${name}.png`) });
 
-test('Mi piano · las teclas y el nombre del Do central se eligen y se recuerdan', async ({
+test('Ajustes del piano · las teclas y el nombre del Do central se eligen y se recuerdan', async ({
   page,
 }) => {
   await chooseInput(page, 'teclado-pc');
-  await page.goto('/?seed=7#/piano');
-  await page.getByRole('link', { name: 'Mi piano' }).first().click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Mi piano' })).toBeVisible();
+  await page.goto('/?seed=7#/piano/ajustes');
+  await expect(page.getByRole('heading', { level: 1, name: 'Ajustes' })).toBeVisible();
   // Por omisión: 61 teclas (5 octavas), de Do2 a Do7, con el Do central como Do4.
   await expect(page.getByTestId('piano-range')).toContainText('Do2');
   await expect(page.getByTestId('piano-range')).toContainText('Do7');
@@ -38,9 +37,11 @@ test('Mi piano · las teclas y el nombre del Do central se eligen y se recuerdan
   await expect(page.getByTestId('piano-range')).toContainText('7 octavas');
 });
 
-test('Mi piano · el teclado muestra las octavas elegidas y el Do central', async ({ page }) => {
+test('Ajustes del piano · el teclado muestra las octavas elegidas y el Do central', async ({
+  page,
+}) => {
   await chooseInput(page, 'teclado-pc');
-  await page.goto('/?seed=7#/mi-piano');
+  await page.goto('/?seed=7#/piano/ajustes');
   await expect(page.getByTestId('mipiano-board')).toContainText('Do2');
   await expect(page.getByTestId('mipiano-board')).toContainText('Do central (Do4)');
   // 61 teclas = 36 blancas; con 25 teclas el teclado se acorta.
@@ -51,12 +52,12 @@ test('Mi piano · el teclado muestra las octavas elegidas y el Do central', asyn
   await expect(page.getByTestId('mipiano-board')).toContainText('Do central (Do3)');
 });
 
-test('Mi piano · la prueba del micrófono detecta una octava de más y la corrige', async ({
+test('Ajustes del piano · la prueba del micrófono detecta una octava de más y la corrige', async ({
   page,
 }) => {
   await page.addInitScript(FAKE_MIC_SCRIPT);
   await chooseInput(page, 'microfono');
-  await page.goto('/?seed=7#/mi-piano');
+  await page.goto('/?seed=7#/piano/ajustes');
   await page.getByTestId('mipiano-activate').click();
   await expect(page.getByTestId('mipiano-start')).toBeVisible({ timeout: 10_000 });
   await page.getByTestId('mipiano-start').click();
@@ -86,11 +87,11 @@ test('Mi piano · la prueba del micrófono detecta una octava de más y la corri
   await expect(page.getByTestId('mipiano-saved')).toHaveCount(0);
 });
 
-test('Mi piano · en el móvil cabe sin desplazarse de lado', async ({ page }) => {
+test('Ajustes del piano · en el móvil cabe sin desplazarse de lado', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await chooseInput(page, 'teclado-pc');
-  await page.goto('/?seed=7#/mi-piano');
-  await expect(page.getByTestId('mipiano')).toBeVisible();
+  await page.goto('/?seed=7#/piano/ajustes');
+  await expect(page.getByTestId('piano-keyboard-settings')).toBeVisible();
   expect(await noHorizontalScroll(page)).toBe(true);
   await capture(page, '04-movil');
 });

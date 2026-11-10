@@ -77,7 +77,6 @@ export function useRouteLifecycle(
         before === 'practica' ||
         before === 'afinador' ||
         before === 'acordes' ||
-        before === 'mipiano' ||
         before === 'cancion') &&
       name !== before
     ) {

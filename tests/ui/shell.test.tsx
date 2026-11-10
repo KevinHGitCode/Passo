@@ -109,7 +109,7 @@ describe('el marco del juego', () => {
     expect(screen.getByTestId('game-shell')).toBeTruthy();
     expect(screen.getByRole('heading', { level: 1, name: 'Aprender' })).toBeTruthy();
     const nav = screen.getByRole('navigation', { name: 'Principal' });
-    expect(nav.querySelectorAll('a')).toHaveLength(5);
+    expect(nav.querySelectorAll('a')).toHaveLength(4);
     expect(document.title).toBe('Aprender · Passo');
   });
 
@@ -131,13 +131,7 @@ describe('el marco del juego', () => {
     const hrefs = [
       ...screen.getByRole('navigation', { name: 'Principal' }).querySelectorAll('a'),
     ].map((a) => a.getAttribute('href'));
-    expect(hrefs).toEqual([
-      '#/piano',
-      '#/piano/progreso',
-      '#/canciones',
-      '#/mi-piano',
-      '#/practica',
-    ]);
+    expect(hrefs).toEqual(['#/piano', '#/piano/progreso', '#/canciones', '#/practica']);
   });
 
   it('en pantallas estrechas la navegación pasa abajo y los ajustes a la cabecera', () => {
@@ -182,7 +176,7 @@ describe('ajustes como página', () => {
     const { go } = setup();
     const gear = screen.getByTestId('settings-button');
     expect(gear.tagName).toBe('A');
-    expect(gear.getAttribute('href')).toBe('#/ajustes');
+    expect(gear.getAttribute('href')).toBe('#/piano/ajustes');
     expect(gear.getAttribute('aria-current')).toBeNull();
     go('#/ajustes');
     expect(screen.getByRole('heading', { level: 1, name: 'Ajustes' })).toBeTruthy();
@@ -197,7 +191,7 @@ describe('ajustes como página', () => {
   it('Ctrl+, lleva a los ajustes', () => {
     setup();
     fireEvent.keyDown(window, { key: ',', ctrlKey: true });
-    expect(window.location.hash).toBe('#/ajustes');
+    expect(window.location.hash).toBe('#/piano/ajustes');
     // La coma sola no hace nada.
     window.location.hash = '#/';
     fireEvent.keyDown(window, { key: ',' });
@@ -521,14 +515,16 @@ describe('la dirección dice el instrumento', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Canción no encontrada' })).toBeTruthy();
   });
 
-  it('con piano hay «Mi piano»: teclas, nombre del Do central y la prueba del micrófono', () => {
+  it('«Mi piano» ya no es una pantalla: sus parámetros están en los ajustes del piano', () => {
     const { go } = setup({ stored: PIANO });
     const hrefs = [
       ...screen.getByRole('navigation', { name: 'Principal' }).querySelectorAll('a'),
     ].map((a) => a.getAttribute('href'));
-    expect(hrefs).toContain('#/mi-piano');
+    expect(hrefs).not.toContain('#/mi-piano');
+    // La dirección de antes lleva a los ajustes del piano.
     go('#/mi-piano');
-    expect(screen.getByRole('heading', { level: 1, name: 'Mi piano' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Ajustes' })).toBeTruthy();
+    expect(screen.getByTestId('settings-panel').getAttribute('data-instrument')).toBe('piano');
     expect((screen.getByTestId('piano-keys-61') as HTMLInputElement).checked).toBe(true);
     expect(screen.getByTestId('piano-range').textContent).toContain('5 octavas');
     fireEvent.click(screen.getByTestId('piano-keys-88'));
@@ -538,12 +534,20 @@ describe('la dirección dice el instrumento', () => {
     expect(screen.getByTestId('mipiano-activate')).toBeTruthy();
   });
 
-  it('con guitarra no aparece «Mi piano» en la navegación', () => {
-    setup({ stored: GUITAR });
-    const hrefs = [
-      ...screen.getByRole('navigation', { name: 'Principal' }).querySelectorAll('a'),
-    ].map((a) => a.getAttribute('href'));
-    expect(hrefs).not.toContain('#/mi-piano');
+  it('los ajustes son los del instrumento con el que se está, y las pestañas cambian de uno a otro', () => {
+    const { go } = setup({ stored: GUITAR });
+    const gear = () => screen.getAllByTestId('settings-button')[0] as HTMLElement;
+    go('#/guitarra');
+    expect(gear().getAttribute('href')).toBe('#/guitarra/ajustes');
+    go('#/ajustes');
+    expect(screen.getByTestId('settings-panel').getAttribute('data-instrument')).toBe('guitarra');
+    expect(screen.getByTestId('tuner-ref-value')).toBeTruthy();
+    expect(screen.queryByTestId('piano-keyboard-settings')).toBeNull();
+    go('#/piano/ajustes');
+    expect(screen.getByTestId('piano-keyboard-settings')).toBeTruthy();
+    expect(screen.getByTestId('settings-tab-piano').getAttribute('aria-current')).toBe('page');
+    go('#/afinador');
+    expect(gear().getAttribute('href')).toBe('#/guitarra/ajustes');
   });
 
   it('con piano también hay canciones: Golden Brown, con las notas cayendo sobre el teclado', () => {

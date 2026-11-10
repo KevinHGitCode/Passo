@@ -18,7 +18,6 @@ import { LessonScreen } from '../screens/LessonScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { findPianoSong } from '@/core/domain/piano-songs';
 import { ChordsScreen } from '../screens/ChordsScreen';
-import { MiPianoScreen } from '../screens/MiPianoScreen';
 import { PianoSongScreen } from '../screens/PianoSongScreen';
 import { SongScreen } from '../screens/SongScreen';
 import { SongsScreen } from '../screens/SongsScreen';
@@ -27,7 +26,15 @@ import { usePlayContext } from '../screens/use-play-context';
 import { SettingsButton, SettingsScreen } from '../settings/SettingsScreen';
 import { useSettingsShortcut } from '../settings/use-settings-shortcut';
 import { useTheme } from '../theme/use-theme';
-import { AJUSTES, CAMINO, caminoOf, hrefOf, navigate, progresoOf } from '../router/routes';
+import {
+  AJUSTES,
+  CAMINO,
+  ajustesOf,
+  caminoOf,
+  hrefOf,
+  navigate,
+  progresoOf,
+} from '../router/routes';
 import type { Route } from '../router/routes';
 import { useCanonicalRoute, useInstrumentFromRoute } from '../router/use-instrument-route';
 import { useRoute, useRouteAnnouncer, useRouteLifecycle } from '../router/use-route';
@@ -112,20 +119,13 @@ function Screen({
     case 'ajustes':
       return (
         <SettingsScreen
+          instrument={instrument}
           preferences={shell.preferences}
+          pianoSetup={shell.pianoSetup}
+          micIsInput={play.sources.includes('microfono')}
           inputs={shell.inputs}
           inputManager={shell.inputManager}
           microphone={shell.microphone}
-        />
-      );
-    case 'mipiano':
-      return (
-        <MiPianoScreen
-          setup={shell.pianoSetup}
-          preferences={shell.preferences}
-          microphone={shell.microphone}
-          micIsInput={play.sources.includes('microfono')}
-          notation={notation}
         />
       );
     case 'acordes':
@@ -161,7 +161,7 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
   const { preferences, inputs, inputManager } = shell;
   const prefs = useSyncExternalStore(preferences.subscribe, preferences.getSnapshot);
   const instrument = activeInstrument(route, prefs.instrument);
-  useSettingsShortcut(route.name === 'ajustes');
+  useSettingsShortcut(route.name === 'ajustes', instrument);
   const narrow = useIsNarrow(NARROW_MAX_WIDTH);
   const play = usePlayContext(preferences, inputManager, inputs);
 
@@ -182,19 +182,19 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
       onChosen={(next) => {
         // La dirección sigue al instrumento; el afinador (de guitarra) vuelve al camino del elegido.
         if (route.name === 'progreso') navigate(progresoOf(next));
+        else if (route.name === 'ajustes') navigate(ajustesOf(next));
         else if (
           route.name === 'camino' ||
           route.name === 'afinador' ||
           route.name === 'canciones' ||
           route.name === 'acordes' ||
-          route.name === 'mipiano' ||
           route.name === 'cancion'
         )
           navigate(caminoOf(next));
       }}
     />
   );
-  const gear = <SettingsButton current={route.name === 'ajustes'} />;
+  const gear = <SettingsButton current={route.name === 'ajustes'} instrument={instrument} />;
   const screen = (
     <Screen route={route} shell={shell} play={play} gear={gear} openSettings={openSettings} />
   );

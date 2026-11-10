@@ -42,7 +42,7 @@ export function App({
   brandHref,
 }: AppProps) {
   useTheme(preferences);
-  useSettingsShortcut(false);
+  useSettingsShortcut(false, 'piano');
   const selected = useInputSelection(inputManager);
 
   // Con gestor, la pantalla solo muestra la entrada elegida; sin gestor, las que se pidieron en la dirección.
@@ -58,7 +58,7 @@ export function App({
       <PracticeScreen
         session={session}
         brandHref={brandHref}
-        headerActions={<SettingsButton />}
+        headerActions={<SettingsButton instrument="piano" />}
         statusZone={
           <StatusZone
             inputs={activeInputs}

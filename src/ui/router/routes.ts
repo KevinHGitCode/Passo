@@ -13,8 +13,8 @@ import type { Instrument } from '@/core/domain/instrument';
  * - `#/afinador`: el afinador de guitarra.
  * - `#/canciones`, `#/cancion/<id>`: las canciones de guitarra (la lista y una canción).
  * - `#/acordes`: reconocer el acorde que se toca (guitarra).
- * - `#/ajustes`: los ajustes (entrada, ejercicio y apariencia).
- * - `#/mi-piano`: los parámetros del piano (teclas, nombre del Do central, prueba del micrófono).
+ * - `#/ajustes`, `#/piano/ajustes`, `#/guitarra/ajustes`: los ajustes; cada instrumento tiene los suyos (el piano,
+ *   además, su teclado y la prueba del micrófono). Sin instrumento se ven los del elegido. `#/mi-piano` lleva a los del piano.
  */
 export type Route =
   | { readonly name: 'camino'; readonly instrument?: Instrument }
@@ -24,8 +24,7 @@ export type Route =
   | { readonly name: 'afinador' }
   | { readonly name: 'canciones' }
   | { readonly name: 'acordes' }
-  | { readonly name: 'mipiano' }
-  | { readonly name: 'ajustes' }
+  | { readonly name: 'ajustes'; readonly instrument?: Instrument }
   | { readonly name: 'cancion'; readonly songId: string };
 
 export type RouteName = Route['name'];
@@ -36,11 +35,12 @@ export const PRACTICA: Route = { name: 'practica' };
 export const AFINADOR: Route = { name: 'afinador' };
 export const CANCIONES: Route = { name: 'canciones' };
 export const ACORDES: Route = { name: 'acordes' };
-export const MI_PIANO: Route = { name: 'mipiano' };
 export const AJUSTES: Route = { name: 'ajustes' };
 
 export const songRoute = (songId: string): Route => ({ name: 'cancion', songId });
 
+/** Los ajustes de un instrumento (`#/guitarra/ajustes`). */
+export const ajustesOf = (instrument: Instrument): Route => ({ name: 'ajustes', instrument });
 /** El camino de un instrumento (`#/guitarra`). */
 export const caminoOf = (instrument: Instrument): Route => ({ name: 'camino', instrument });
 /** El progreso de un instrumento (`#/guitarra/progreso`). */
@@ -59,7 +59,8 @@ export function parseRoute(hash: string): Route {
   const path = hash.replace(/^#/, '').split('?')[0] ?? '';
   const [first, second] = path.split('/').filter(Boolean).map(decode);
   if (isInstrument(first)) {
-    return second === 'progreso' ? progresoOf(first) : caminoOf(first);
+    if (second === 'progreso') return progresoOf(first);
+    return second === 'ajustes' ? ajustesOf(first) : caminoOf(first);
   }
   if (first === 'leccion' && second) return { name: 'leccion', lessonId: second };
   if (first === 'progreso') return PROGRESO;
@@ -67,7 +68,7 @@ export function parseRoute(hash: string): Route {
   if (first === 'afinador') return AFINADOR;
   if (first === 'canciones') return CANCIONES;
   if (first === 'acordes') return ACORDES;
-  if (first === 'mi-piano') return MI_PIANO;
+  if (first === 'mi-piano') return ajustesOf('piano');
   if (first === 'ajustes') return AJUSTES;
   if (first === 'cancion' && second) return songRoute(second);
   return CAMINO;
@@ -94,10 +95,8 @@ export function hrefOf(route: Route): string {
       return '#/canciones';
     case 'acordes':
       return '#/acordes';
-    case 'mipiano':
-      return '#/mi-piano';
     case 'ajustes':
-      return '#/ajustes';
+      return route.instrument === undefined ? '#/ajustes' : `#/${route.instrument}/ajustes`;
     case 'cancion':
       return `#/cancion/${encodeURIComponent(route.songId)}`;
   }
@@ -118,7 +117,6 @@ const TITLES: Readonly<Record<RouteName, string>> = {
   afinador: 'Afinador',
   canciones: 'Canciones',
   acordes: 'Acordes',
-  mipiano: 'Mi piano',
   ajustes: 'Ajustes',
   cancion: 'Canción',
 };

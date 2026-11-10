@@ -18,9 +18,9 @@ export function activeInstrument(route: Route, preferred: Instrument): Instrumen
       );
     case 'camino':
     case 'progreso':
+    case 'ajustes':
       return route.instrument ?? preferred;
     case 'practica':
-    case 'mipiano':
       return 'piano';
     case 'afinador':
     case 'acordes':

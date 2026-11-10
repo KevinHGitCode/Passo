@@ -4,8 +4,10 @@ import { afterEach, beforeEach } from 'vitest';
 import { InputManager } from '@/core/application/input-manager';
 import { bindInputsToPreferences } from '@/core/application/input-sync';
 import { PracticeSession } from '@/core/application/practice-session';
+import { PianoSetupService } from '@/core/application/piano-setup-service';
 import { PreferencesService } from '@/core/application/preferences-service';
 import { bindSessionToPreferences } from '@/core/application/preferences-sync';
+import type { Instrument } from '@/core/domain/instrument';
 import { createSeededRng } from '@/core/domain/rng';
 import { SettingsScreen } from '@/ui/settings/SettingsScreen';
 import { useTheme } from '@/ui/theme/use-theme';
@@ -24,7 +26,7 @@ beforeEach(() => {
   delete window.matchMedia;
 });
 
-function setup(options: { stored?: unknown; dev?: boolean } = {}) {
+function setup(options: { stored?: unknown; dev?: boolean; instrument?: Instrument } = {}) {
   const mic = new FakeNoteInput('microfono');
   const midi = new FakeNoteInput('midi');
   const pc = new FakeNoteInput('teclado-pc');
@@ -46,7 +48,10 @@ function setup(options: { stored?: unknown; dev?: boolean } = {}) {
     useTheme(preferences);
     return (
       <SettingsScreen
+        instrument={options.instrument ?? 'piano'}
         preferences={preferences}
+        pianoSetup={new PianoSetupService({ input: mic })}
+        micIsInput={preferences.getSnapshot().input === 'microfono'}
         inputs={inputs}
         inputManager={manager}
         microphone={undefined}
@@ -227,5 +232,60 @@ describe('página de ajustes · apariencia', () => {
       theme: 'auto',
     });
     expect(session.getSnapshot()).toMatchObject({ notation: 'latina', help: true });
+  });
+});
+
+describe('página de ajustes · por instrumento', () => {
+  it('piano: teclado, prueba del micrófono, entrada, ejercicio y ayuda de la tecla', () => {
+    setup({ instrument: 'piano' });
+    expect(screen.getByTestId('piano-keyboard-settings')).toBeTruthy();
+    expect(screen.getByTestId('piano-keys-61')).toBeTruthy();
+    expect(screen.getByTestId('piano-mic-probe')).toBeTruthy();
+    expect(screen.getByTestId('input-midi')).toBeTruthy();
+    expect(screen.getByTestId('mode-notas')).toBeTruthy();
+    expect(screen.getByTestId('help-switch')).toBeTruthy();
+    expect(screen.queryByTestId('tuner-ref-value')).toBeNull();
+  });
+
+  it('guitarra: micrófono y afinador, sin lo propio del piano', () => {
+    setup({ instrument: 'guitarra' });
+    expect(screen.getByText(/La guitarra se oye siempre con el micrófono/)).toBeTruthy();
+    expect(screen.getByTestId('tuner-ref-value').textContent).toContain('440');
+    expect(screen.queryByTestId('piano-keyboard-settings')).toBeNull();
+    expect(screen.queryByTestId('piano-mic-probe')).toBeNull();
+    expect(screen.queryByTestId('input-midi')).toBeNull();
+    expect(screen.queryByTestId('mode-notas')).toBeNull();
+    expect(screen.queryByTestId('help-switch')).toBeNull();
+    // Lo común sí está.
+    expect(screen.getByTestId('theme-oscuro')).toBeTruthy();
+  });
+
+  it('las pestañas llevan a los ajustes de cada instrumento y marcan el actual', () => {
+    setup({ instrument: 'guitarra' });
+    const piano = screen.getByTestId('settings-tab-piano');
+    const guitar = screen.getByTestId('settings-tab-guitarra');
+    expect(piano.getAttribute('href')).toBe('#/piano/ajustes');
+    expect(guitar.getAttribute('href')).toBe('#/guitarra/ajustes');
+    expect(guitar.getAttribute('aria-current')).toBe('page');
+    expect(piano.getAttribute('aria-current')).toBeNull();
+  });
+
+  it('el La₄ del afinador se sube, se baja, se limita y se restablece', () => {
+    const { preferences } = setup({ instrument: 'guitarra' });
+    fireEvent.click(screen.getByTestId('tuner-ref-up'));
+    expect(preferences.getSnapshot().tunerReferenceHz).toBe(441);
+    fireEvent.click(screen.getByTestId('tuner-ref-reset'));
+    expect(preferences.getSnapshot().tunerReferenceHz).toBe(440);
+    act(() => preferences.update({ tunerReferenceHz: 450 }));
+    expect((screen.getByTestId('tuner-ref-up') as HTMLButtonElement).disabled).toBe(true);
+    act(() => preferences.update({ tunerReferenceHz: 430 }));
+    expect((screen.getByTestId('tuner-ref-down') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('las teclas y el nombre del Do central se eligen y se guardan', () => {
+    const { preferences } = setup({ instrument: 'piano' });
+    fireEvent.click(screen.getByTestId('piano-keys-88'));
+    fireEvent.click(screen.getByTestId('piano-naming-yamaha'));
+    expect(preferences.getSnapshot()).toMatchObject({ pianoKeys: 88, pianoNaming: 'yamaha' });
   });
 });

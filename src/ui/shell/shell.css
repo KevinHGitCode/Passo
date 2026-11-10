@@ -188,12 +188,18 @@
 /* ---------- La cabecera común de las pantallas ---------- */
 .page-head {
   display: flex;
+  /* En pantallas estrechas las acciones bajan a su propia línea (un título largo no desborda). */
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 8px 16px;
+}
+.page-head h1 {
+  overflow-wrap: anywhere;
 }
 .page-head__text {
   display: flex;
+  flex: 1 1 240px;
   flex-direction: column;
   gap: 6px;
   min-width: 0;

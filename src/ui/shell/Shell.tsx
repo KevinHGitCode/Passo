@@ -39,6 +39,7 @@ import {
 import type { Route } from '../router/routes';
 import { useCanonicalRoute, useInstrumentFromRoute } from '../router/use-instrument-route';
 import { useRoute, useRouteAnnouncer, useRouteLifecycle } from '../router/use-route';
+import { Toaster } from '../toast/Toaster';
 import { GameNav } from './GameNav';
 import '../game/game.css';
 import './shell.css';
@@ -267,25 +268,33 @@ export function Shell(props: ShellProps) {
 
   if (route.name === 'practica') {
     return (
-      <div className="route-enter route-enter--fade">
-        {prefs.instrument === 'guitarra' ? (
-          <p className="practice-notice" role="status" data-testid="practica-aviso">
-            La práctica libre es de piano. Tu camino de guitarra sigue en «Aprender».
-          </p>
-        ) : null}
-        <App
-          session={props.session}
-          preferences={props.preferences}
-          inputs={props.inputs}
-          inputManager={props.inputManager}
-          audio={props.audio}
-          microphone={props.microphone}
-          debug={props.debug ?? false}
-          devShowSound={props.devShowSound ?? false}
-          brandHref={hrefOf(CAMINO)}
-        />
-      </div>
+      <>
+        <div className="route-enter route-enter--fade">
+          {prefs.instrument === 'guitarra' ? (
+            <p className="practice-notice" role="status" data-testid="practica-aviso">
+              La práctica libre es de piano. Tu camino de guitarra sigue en «Aprender».
+            </p>
+          ) : null}
+          <App
+            session={props.session}
+            preferences={props.preferences}
+            inputs={props.inputs}
+            inputManager={props.inputManager}
+            audio={props.audio}
+            microphone={props.microphone}
+            debug={props.debug ?? false}
+            devShowSound={props.devShowSound ?? false}
+            brandHref={hrefOf(CAMINO)}
+          />
+        </div>
+        <Toaster />
+      </>
     );
   }
-  return <GameLayout route={route} shell={props} />;
+  return (
+    <>
+      <GameLayout route={route} shell={props} />
+      <Toaster />
+    </>
+  );
 }

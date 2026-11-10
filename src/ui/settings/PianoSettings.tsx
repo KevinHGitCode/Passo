@@ -21,6 +21,7 @@ import { PianoKeyboard } from '../keyboard/piano-keyboard';
 import type { KeyVisual } from '../keyboard/piano-keyboard';
 import { useInputStatus, useMonitor } from '../practice/hooks';
 import { SettingRow, SettingsCard } from './parts';
+import { showToast } from '../toast/toast';
 import './piano-settings.css';
 import { MicGate } from '../listen/MicGate';
 
@@ -325,7 +326,10 @@ function PianoMicProbe({
           <div className="mipiano__actions">
             {fixes.length > 0 ? (
               <GameButton
-                onClick={() => preferences.update({ micFixes: fixes })}
+                onClick={() => {
+                  preferences.update({ micFixes: fixes });
+                  showToast('Corrección del micrófono guardada');
+                }}
                 data-testid="mipiano-save"
               >
                 Corregir esas notas
@@ -348,7 +352,14 @@ function PianoMicProbe({
           <button
             type="button"
             className="link-button"
-            onClick={() => preferences.update({ micFixes: [] })}
+            onClick={() => {
+              const before = prefs.micFixes;
+              preferences.update({ micFixes: [] });
+              showToast('Corrección quitada', {
+                tone: 'info',
+                action: { label: 'Deshacer', run: () => preferences.update({ micFixes: before }) },
+              });
+            }}
             data-testid="mipiano-clear"
           >
             Quitar la corrección

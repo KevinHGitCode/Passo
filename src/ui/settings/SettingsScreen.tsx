@@ -20,6 +20,7 @@ import { Icon } from '../game/icons';
 import type { IconName } from '../game/icons';
 import { SettingRow, SettingsCard, SwitchRow } from './parts';
 import { PianoKeyboardSettings } from './PianoSettings';
+import { showToast } from '../toast/toast';
 import './settings.css';
 import { PageHeader } from '../shell/PageHeader';
 import { MicGate } from '../listen/MicGate';
@@ -542,7 +543,13 @@ export function SettingsScreen({
           <button
             type="button"
             className="button button--ghost settings-page__reset"
-            onClick={() => preferences.reset()}
+            onClick={() => {
+              const before = preferences.getSnapshot();
+              preferences.reset();
+              showToast('Ajustes restablecidos', {
+                action: { label: 'Deshacer', run: () => preferences.update({ ...before }) },
+              });
+            }}
             data-testid="settings-reset"
           >
             Restablecer

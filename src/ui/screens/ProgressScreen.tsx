@@ -16,6 +16,7 @@ import { AccuracyChart } from './AccuracyChart';
 import { KeyHeatmap } from './KeyHeatmap';
 import './progress.css';
 import { PageHeader } from '../shell/PageHeader';
+import { showToast } from '../toast/toast';
 
 const CHART_LESSONS = 12;
 
@@ -237,6 +238,7 @@ export function ProgressScreen({
                 variant="secondary"
                 onClick={() => {
                   progress.reset();
+                  showToast('Progreso borrado', { tone: 'info' });
                   setConfirming(false);
                   // El botón pulsado desaparece: el foco pasa al título (se anuncia dónde estás).
                   headingRef.current?.focus({ preventScroll: true });

@@ -11,11 +11,14 @@ import type { Instrument } from '@/core/domain/instrument';
 import { createSeededRng } from '@/core/domain/rng';
 import { SettingsScreen } from '@/ui/settings/SettingsScreen';
 import { useTheme } from '@/ui/theme/use-theme';
+import { Toaster } from '@/ui/toast/Toaster';
+import { dismissToast } from '@/ui/toast/toast';
 import { FakeClock } from '../fakes/fake-clock';
 import { FakeNoteInput } from '../fakes/fake-note-input';
 import { FakePreferencesStore } from '../fakes/fake-preferences-store';
 
 afterEach(() => {
+  act(() => dismissToast());
   cleanup();
   document.documentElement.removeAttribute('data-theme');
   // @ts-expect-error: se restaura el entorno de jsdom (sin matchMedia)
@@ -287,5 +290,20 @@ describe('página de ajustes · por instrumento', () => {
     fireEvent.click(screen.getByTestId('piano-keys-88'));
     fireEvent.click(screen.getByTestId('piano-naming-yamaha'));
     expect(preferences.getSnapshot()).toMatchObject({ pianoKeys: 88, pianoNaming: 'yamaha' });
+  });
+});
+
+describe('página de ajustes · restablecer', () => {
+  it('restablecer avisa y se puede deshacer', () => {
+    const { preferences } = setup({
+      stored: { version: 1, input: 'teclado-pc', notation: 'americana' },
+    });
+    render(<Toaster />);
+    fireEvent.click(screen.getByTestId('settings-reset'));
+    expect(preferences.getSnapshot().notation).toBe('latina');
+    expect(screen.getByTestId('toast').textContent).toContain('Ajustes restablecidos');
+    fireEvent.click(screen.getByTestId('toast-action'));
+    expect(preferences.getSnapshot()).toMatchObject({ notation: 'americana', input: 'teclado-pc' });
+    expect(screen.queryByTestId('toast')).toBeNull();
   });
 });

@@ -1,0 +1,31 @@
+/*
+ * Movimiento compartido. Las pantallas, las ventanas y los avisos entran siempre igual: con las duraciones
+ * y curvas de tokens.css. Quien pide menos movimiento no ve ninguna (base.css las deja en cero).
+ */
+
+/* Una pantalla nueva: aparece y sube un poco. La lección y la práctica solo aparecen (no se mueve el teclado). */
+@keyframes route-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.route-enter {
+  animation: route-in var(--dur-slow) var(--ease-out) backwards;
+}
+.route-enter--fade {
+  animation-name: fade-in;
+  animation-duration: var(--dur-base);
+}

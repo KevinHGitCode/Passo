@@ -6,6 +6,7 @@ import { initTheme } from '@/ui/theme/use-theme';
 import '@fontsource-variable/nunito';
 import '@/ui/styles/tokens.css';
 import '@/ui/styles/base.css';
+import '@/ui/styles/motion.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Falta el elemento #root');

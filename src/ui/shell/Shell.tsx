@@ -34,6 +34,7 @@ import {
   hrefOf,
   navigate,
   progresoOf,
+  routeKey,
 } from '../router/routes';
 import type { Route } from '../router/routes';
 import { useCanonicalRoute, useInstrumentFromRoute } from '../router/use-instrument-route';
@@ -194,6 +195,8 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
       }}
     />
   );
+  // Cada pantalla (y cada instrumento dentro de ella) entra con la misma transición.
+  const viewKey = `${routeKey(route)}:${instrument}`;
   const gear = <SettingsButton current={route.name === 'ajustes'} instrument={instrument} />;
   const screen = (
     <Screen route={route} shell={shell} play={play} gear={gear} openSettings={openSettings} />
@@ -203,7 +206,12 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
     return (
       <div className="game game-shell game-shell--focus" data-testid="game-shell">
         {skipToContent}
-        <main className="game-main game-main--lesson" id="contenido" tabIndex={-1}>
+        <main
+          key={viewKey}
+          className="game-main game-main--lesson route-enter route-enter--fade"
+          id="contenido"
+          tabIndex={-1}
+        >
           {screen}
         </main>
       </div>
@@ -234,7 +242,7 @@ function GameLayout({ route, shell }: { readonly route: Route; readonly shell: S
           <div className="game-side__foot">{gear}</div>
         </aside>
       )}
-      <main className="game-main" id="contenido" tabIndex={-1}>
+      <main key={viewKey} className="game-main route-enter" id="contenido" tabIndex={-1}>
         {screen}
       </main>
       {narrow ? <GameNav route={route} bottom instrument={instrument} /> : null}
@@ -259,7 +267,7 @@ export function Shell(props: ShellProps) {
 
   if (route.name === 'practica') {
     return (
-      <>
+      <div className="route-enter route-enter--fade">
         {prefs.instrument === 'guitarra' ? (
           <p className="practice-notice" role="status" data-testid="practica-aviso">
             La práctica libre es de piano. Tu camino de guitarra sigue en «Aprender».
@@ -276,7 +284,7 @@ export function Shell(props: ShellProps) {
           devShowSound={props.devShowSound ?? false}
           brandHref={hrefOf(CAMINO)}
         />
-      </>
+      </div>
     );
   }
   return <GameLayout route={route} shell={props} />;

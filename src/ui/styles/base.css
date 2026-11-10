@@ -6,6 +6,25 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* El hueco de la barra de desplazamiento está siempre: al pasar de una pantalla corta a una larga nada salta. */
+  scrollbar-gutter: stable;
+  scrollbar-color: color-mix(in srgb, var(--text-muted) 55%, transparent) transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* Los títulos reparten sus líneas; los párrafos no dejan una palabra sola al final. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+p {
+  text-wrap: pretty;
 }
 
 body {
@@ -17,6 +36,10 @@ body {
   font-family: var(--font-display);
   font-size: 16px;
   line-height: 1.45;
+  /* Cambiar de tema o de instrumento no es un fogonazo. */
+  transition:
+    background-color var(--dur-base) ease,
+    color var(--dur-base) ease;
 }
 
 button,

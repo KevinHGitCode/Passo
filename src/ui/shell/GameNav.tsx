@@ -15,6 +15,8 @@ import type { Route, RouteName } from '../router/routes';
 interface Item {
   readonly route: Route;
   readonly label: string;
+  /** El nombre corto para la barra inferior del móvil (cinco elementos en 375 px). */
+  readonly short?: string;
   readonly icon: IconName;
   /** Rutas en las que este elemento figura como el actual (una lección cuenta como «Aprender»). */
   readonly active: readonly RouteName[];
@@ -44,7 +46,13 @@ const common = (instrument: Instrument): readonly Item[] => [
 
 /** Lo último de la navegación depende del instrumento: piano tiene práctica libre, guitarra el afinador. */
 const LAST: Readonly<Record<Instrument, Item>> = {
-  piano: { route: PRACTICA, label: 'Práctica libre', icon: 'keys', active: ['practica'] },
+  piano: {
+    route: PRACTICA,
+    label: 'Práctica libre',
+    short: 'Práctica',
+    icon: 'keys',
+    active: ['practica'],
+  },
   guitarra: { route: AFINADOR, label: 'Afinador', icon: 'tuner', active: ['afinador'] },
 };
 
@@ -75,7 +83,7 @@ export function GameNav({
             aria-current={current ? 'page' : undefined}
           >
             <Icon name={item.icon} size={bottom ? 24 : 26} />
-            <span>{item.label}</span>
+            <span>{bottom ? (item.short ?? item.label) : item.label}</span>
           </a>
         );
       })}

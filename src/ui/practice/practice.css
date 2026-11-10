@@ -34,7 +34,7 @@
 .brand__name {
   margin: 0;
   font-size: 26px;
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing: -0.02em;
 }
 .brand__link {
@@ -60,7 +60,7 @@
   display: inline-flex;
   margin: 0;
   padding: 3px;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 999px;
   background: var(--surface);
 }
@@ -79,7 +79,7 @@
   padding: 12px 18px;
   border-radius: 999px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 800;
   color: var(--text-muted);
   transition:
     background-color var(--dur-fast) ease,
@@ -133,10 +133,10 @@
 .button {
   padding: 9px 16px;
   min-height: 44px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  border-radius: 12px;
   background: var(--surface);
-  font-weight: 600;
+  font-weight: 800;
 }
 .button:hover {
   background: var(--surface-2);
@@ -146,18 +146,33 @@
   font-size: 14px;
   padding: 7px 14px;
 }
+/* El botón principal es el mismo botón con relieve del juego: se hunde al pulsarlo. */
 .button--primary {
+  border-color: transparent;
+  border-radius: 14px;
   background: var(--accent);
-  border-color: var(--accent);
   color: var(--on-accent);
+  box-shadow: 0 var(--btn-depth-size) 0 var(--accent-depth);
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease,
+    filter var(--dur-fast) ease;
 }
 .button--primary:hover {
-  background: var(--accent-strong);
+  background: var(--accent);
+  filter: brightness(1.07);
+}
+.button--primary:active {
+  transform: translateY(var(--btn-depth-size));
+  box-shadow: 0 0 0 var(--accent-depth);
 }
 .button--big {
   padding: 14px 34px;
-  font-size: 18px;
-  border-radius: var(--radius);
+  font-size: 16px;
+  border-radius: 14px;
 }
 
 /* ---------- Escenario ---------- */
@@ -183,6 +198,7 @@
 .welcome__title {
   margin: 0;
   font-size: clamp(24px, 5vw, 34px);
+  font-weight: 900;
   letter-spacing: -0.02em;
 }
 .welcome__text {

@@ -68,7 +68,7 @@ describe('página de ajustes · encabezado', () => {
   it('es una página con su título y un botón para volver', () => {
     setup();
     expect(screen.getByRole('heading', { level: 1, name: 'Ajustes' })).toBeTruthy();
-    expect(screen.getByTestId('settings-close').textContent).toBe('Volver');
+    expect(screen.getByTestId('settings-close').textContent).toContain('Volver');
     // No es una ventana emergente: ni diálogo ni fondo que tape lo demás.
     expect(screen.getByTestId('settings-panel').getAttribute('role')).toBeNull();
     expect(document.querySelector('.settings-backdrop')).toBeNull();

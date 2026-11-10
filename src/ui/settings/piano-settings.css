@@ -15,9 +15,6 @@
   align-items: flex-start;
   gap: 8px;
   width: 100%;
-  margin-top: 6px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--border);
 }
 .mipiano__options {
   display: flex;
@@ -94,6 +91,12 @@
 }
 .mipiano__table tr[data-kind='otra'] td:last-child {
   color: var(--err);
+}
+/* Dentro de la tarjeta conserva su marco (las demás filas solo llevan una línea arriba). */
+.set-card__body > .mipiano__board {
+  margin-bottom: 4px;
+  padding: 12px;
+  border: 2px solid var(--border);
 }
 /* El teclado se queda a la vista mientras se baja a la prueba: así siempre se ve qué tecla toca. */
 .mipiano__board {

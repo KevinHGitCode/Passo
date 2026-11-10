@@ -1,5 +1,4 @@
 import { useSyncExternalStore } from 'react';
-import type { ReactNode } from 'react';
 import type { InputManager } from '@/core/application/input-manager';
 import type { PianoSetupService } from '@/core/application/piano-setup-service';
 import type { PreferencesService } from '@/core/application/preferences-service';
@@ -17,7 +16,10 @@ import type { NoteInput } from '@/core/ports/note-input';
 import { useInputStatus, useMonitor } from '../practice/hooks';
 import { AJUSTES, CAMINO, ajustesOf, hrefOf, navigate } from '../router/routes';
 import { describeInputStatus } from '../status/describe-status';
-import { PianoKeyboardSettings, PianoMicProbe } from './PianoSettings';
+import { Icon } from '../game/icons';
+import type { IconName } from '../game/icons';
+import { SettingRow, SettingsCard, SwitchRow } from './parts';
+import { PianoKeyboardSettings } from './PianoSettings';
 import './settings.css';
 import { PageHeader } from '../shell/PageHeader';
 import { MicGate } from '../listen/MicGate';
@@ -154,106 +156,67 @@ function InputChoice({
 
 type Prefs = ReturnType<PreferencesService['getSnapshot']>;
 
-function Switch({
-  checked,
-  onToggle,
-  testId,
-  describedBy,
-  children,
-}: {
-  readonly checked: boolean;
-  readonly onToggle: () => void;
-  readonly testId: string;
-  readonly describedBy?: string;
-  readonly children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-describedby={describedBy}
-      className="switch"
-      onClick={onToggle}
-      data-testid={testId}
-    >
-      <span className="switch__track" aria-hidden="true">
-        <span className="switch__thumb" />
-      </span>
-      <span>{children}</span>
-    </button>
-  );
-}
+const INSTRUMENT_ICON: Readonly<Record<Instrument, IconName>> = {
+  piano: 'piano',
+  guitarra: 'guitar',
+};
 
-/** Piano · «Cómo toco»: la entrada, las varias notas (beta) y la prueba del micrófono con su teclado. */
-function PianoInputGroup({
+/** Piano · «Cómo toco»: la entrada y, con el micrófono, las varias notas (beta). */
+function PianoInputCard({
   prefs,
   preferences,
   inputs,
   inputManager,
   microphone,
-  pianoSetup,
-  micIsInput,
 }: {
   readonly prefs: Prefs;
   readonly preferences: PreferencesService;
   readonly inputs: readonly NoteInput[];
   readonly inputManager: InputManager | undefined;
   readonly microphone: (NoteInput & InputMonitor) | undefined;
-  readonly pianoSetup: PianoSetupService;
-  readonly micIsInput: boolean;
 }) {
   const available = INPUT_CHOICES.map((source) => inputs.find((input) => input.source === source));
   return (
-    <fieldset className="settings-group">
-      <legend>Cómo toco</legend>
+    <SettingsCard icon="mic" title="Cómo toco" hint="Con qué le dices a Passo las notas que tocas.">
       {inputManager === undefined && (
         <p className="settings-group__note" data-testid="input-dev-note">
           Modo de desarrollo: las entradas vienen de la dirección (<code>?pc</code>,{' '}
           <code>?midi</code>).
         </p>
       )}
-      {available.map((input) =>
-        input ? (
-          <InputChoice
-            key={input.source}
-            input={input}
-            checked={prefs.input === input.source}
-            disabled={inputManager === undefined}
-            onSelect={() => preferences.update({ input: input.source })}
-            monitor={microphone}
-          />
-        ) : null,
-      )}
+      <div className="set-choices" role="radiogroup" aria-label="Entrada">
+        {available.map((input) =>
+          input ? (
+            <InputChoice
+              key={input.source}
+              input={input}
+              checked={prefs.input === input.source}
+              disabled={inputManager === undefined}
+              onSelect={() => preferences.update({ input: input.source })}
+              monitor={microphone}
+            />
+          ) : null,
+        )}
+      </div>
       {prefs.input === 'microfono' && (
-        <>
-          <Switch
-            checked={prefs.polyphonicMic}
-            onToggle={() => preferences.update({ polyphonicMic: !prefs.polyphonicMic })}
-            testId="polyphonic-switch"
-            describedBy="polyphonic-note"
-          >
-            Oír varias notas a la vez <span className="beta">BETA</span>
-          </Switch>
-          <p id="polyphonic-note" className="settings-group__note">
-            Para terceras y acordes con el micrófono. Pon el piano cerca; en la mano izquierda solo
-            comprueba que las notas suenan.
-          </p>
-        </>
+        <SwitchRow
+          checked={prefs.polyphonicMic}
+          onToggle={() => preferences.update({ polyphonicMic: !prefs.polyphonicMic })}
+          testId="polyphonic-switch"
+          label={
+            <>
+              Oír varias notas a la vez <span className="beta">BETA</span>
+            </>
+          }
+          hint="Para terceras y acordes con el micrófono. Pon el piano cerca; en la mano izquierda solo comprueba que las notas suenan."
+        />
       )}
-      <PianoMicProbe
-        setup={pianoSetup}
-        preferences={preferences}
-        microphone={microphone}
-        micIsInput={micIsInput}
-        notation={prefs.notation}
-      />
-    </fieldset>
+    </SettingsCard>
   );
 }
 
 /** Piano · «Qué practico»: el ejercicio y su nivel (lo de la práctica libre y los repasos). */
-function PianoPracticeGroup({
+function PianoPracticeCard({
   prefs,
   preferences,
 }: {
@@ -263,62 +226,74 @@ function PianoPracticeGroup({
   const groupsBlocked = prefs.input === 'microfono' && !prefs.polyphonicMic;
   const levels = levelsOf(prefs.mode);
   return (
-    <fieldset className="settings-group">
-      <legend>Qué practico</legend>
-      <div className="segmented segmented--wrap" role="radiogroup" aria-label="Ejercicio">
-        {EXERCISE_MODES.map((mode) => {
-          const blocked = groupsBlocked && mode !== 'notas';
-          return (
-            <label key={mode} className="segmented__option">
+    <SettingsCard
+      icon="target"
+      title="Qué practico"
+      hint="El ejercicio y el nivel de la práctica libre."
+    >
+      <SettingRow
+        stacked
+        label="Ejercicio"
+        hint={
+          groupsBlocked ? (
+            <span id="mode-blocked" data-testid="mode-blocked">
+              Terceras y acordes necesitan el teclado del PC o un piano MIDI. Con el micrófono,
+              activa «Oír varias notas a la vez» (beta).
+            </span>
+          ) : undefined
+        }
+      >
+        <div className="segmented segmented--wrap" role="radiogroup" aria-label="Ejercicio">
+          {EXERCISE_MODES.map((mode) => {
+            const blocked = groupsBlocked && mode !== 'notas';
+            return (
+              <label key={mode} className="segmented__option">
+                <input
+                  type="radio"
+                  name="mode"
+                  value={mode}
+                  checked={prefs.mode === mode}
+                  disabled={blocked}
+                  aria-describedby={blocked ? 'mode-blocked' : undefined}
+                  onChange={() => preferences.update({ mode })}
+                  data-testid={`mode-${mode}`}
+                />
+                <span>{MODE_TEXT[mode]}</span>
+              </label>
+            );
+          })}
+        </div>
+      </SettingRow>
+      <SettingRow label="Nivel" stacked>
+        <div className="levels" role="radiogroup" aria-label="Nivel">
+          {levels.map((def) => (
+            <label
+              key={def.level}
+              className="choice choice--compact"
+              data-checked={prefs.levels[prefs.mode] === def.level}
+            >
               <input
                 type="radio"
-                name="mode"
-                value={mode}
-                checked={prefs.mode === mode}
-                disabled={blocked}
-                aria-describedby={blocked ? 'mode-blocked' : undefined}
-                onChange={() => preferences.update({ mode })}
-                data-testid={`mode-${mode}`}
+                name="level"
+                value={def.level}
+                checked={prefs.levels[prefs.mode] === def.level}
+                onChange={() => preferences.update({ levels: { [prefs.mode]: def.level } })}
+                data-testid={`level-${def.level}`}
               />
-              <span>{MODE_TEXT[mode]}</span>
+              <span className="choice__body">
+                <span className="choice__title">Nivel {def.level}</span>
+                <span className="choice__hint">{def.title}</span>
+              </span>
             </label>
-          );
-        })}
-      </div>
-      {groupsBlocked && (
-        <p id="mode-blocked" className="settings-group__note" data-testid="mode-blocked">
-          Terceras y acordes necesitan el teclado del PC o un piano MIDI. Con el micrófono, activa
-          «Oír varias notas a la vez» (beta).
-        </p>
-      )}
-      <div className="levels" role="radiogroup" aria-label="Nivel">
-        {levels.map((def) => (
-          <label
-            key={def.level}
-            className="choice choice--compact"
-            data-checked={prefs.levels[prefs.mode] === def.level}
-          >
-            <input
-              type="radio"
-              name="level"
-              value={def.level}
-              checked={prefs.levels[prefs.mode] === def.level}
-              onChange={() => preferences.update({ levels: { [prefs.mode]: def.level } })}
-              data-testid={`level-${def.level}`}
-            />
-            <span className="choice__body">
-              <span className="choice__title">Nivel {def.level}</span>
-              <span className="choice__hint">{def.title}</span>
-            </span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
+          ))}
+        </div>
+      </SettingRow>
+    </SettingsCard>
   );
 }
 
 /** Guitarra · «Cómo toco»: la guitarra solo se oye con el micrófono; aquí se ve su estado y se activa. */
-function GuitarInputGroup({
+function GuitarInputCard({
   microphone,
 }: {
   readonly microphone: (NoteInput & InputMonitor) | undefined;
@@ -330,43 +305,31 @@ function GuitarInputGroup({
     : null;
   const on = status?.kind === 'conectado';
   return (
-    <fieldset className="settings-group">
-      <legend>Cómo toco</legend>
+    <SettingsCard icon="mic" title="Cómo toco" hint="La guitarra se oye siempre con el micrófono.">
       {microphone && !on ? (
         <MicGate
           compact
           status={status}
           onActivate={() => void microphone.start()}
-          purpose="La guitarra se oye siempre con el micrófono."
+          purpose="Actívalo aquí o al entrar a una lección, al afinador o a una canción."
           testId="guitar-mic"
           buttonTestId="guitar-mic-activate"
         />
       ) : (
-        <div className="choice" data-checked="true">
-          <span className="choice__body">
-            <span className="choice__title">Micrófono</span>
-            <span className="choice__hint">La guitarra se oye siempre con el micrófono</span>
-            {view && (
-              <span
-                className="choice__status"
-                data-tone={view.tone}
-                data-testid="guitar-mic-status"
-              >
-                {view.short === 'Micrófono' ? 'Activo' : view.short}
-              </span>
-            )}
-          </span>
-        </div>
+        <SettingRow label="Micrófono" hint="Toca cerca de él y en una sala tranquila.">
+          {view && (
+            <span className="set-status" data-tone={view.tone} data-testid="guitar-mic-status">
+              {view.short === 'Micrófono' ? 'Activo' : view.short}
+            </span>
+          )}
+        </SettingRow>
       )}
-      <p className="settings-group__note">
-        Toca cerca del micrófono y en una sala tranquila. Para afinar, usa el afinador de la barra.
-      </p>
-    </fieldset>
+    </SettingsCard>
   );
 }
 
 /** Guitarra · «Afinador»: el La₄ con el que mide (440 Hz por omisión, de 430 a 450). */
-function GuitarTunerGroup({
+function GuitarTunerCard({
   prefs,
   preferences,
 }: {
@@ -376,53 +339,53 @@ function GuitarTunerGroup({
   const hz = prefs.tunerReferenceHz;
   const set = (next: number) => preferences.update({ tunerReferenceHz: next });
   return (
-    <fieldset className="settings-group">
-      <legend>Afinador</legend>
-      <div className="stepper" role="group" aria-label="La₄ de referencia">
-        <button
-          type="button"
-          className="button button--ghost"
-          aria-label="Bajar un hercio"
-          disabled={hz <= MIN_REFERENCE_HZ}
-          onClick={() => set(hz - 1)}
-          data-testid="tuner-ref-down"
-        >
-          −
-        </button>
-        <span className="stepper__value" data-testid="tuner-ref-value">
-          La₄ = {hz} Hz
-        </span>
-        <button
-          type="button"
-          className="button button--ghost"
-          aria-label="Subir un hercio"
-          disabled={hz >= MAX_REFERENCE_HZ}
-          onClick={() => set(hz + 1)}
-          data-testid="tuner-ref-up"
-        >
-          +
-        </button>
+    <SettingsCard icon="tuner" title="Afinador" hint="Con qué referencia mide las cuerdas.">
+      <SettingRow
+        label="La₄ de referencia"
+        hint="Casi todo el mundo afina a 440 Hz. Cámbialo solo si tocas con un instrumento que ya está afinado distinto."
+      >
+        <div className="stepper" role="group" aria-label="La₄ de referencia">
+          <button
+            type="button"
+            className="stepper__button"
+            aria-label="Bajar un hercio"
+            disabled={hz <= MIN_REFERENCE_HZ}
+            onClick={() => set(hz - 1)}
+            data-testid="tuner-ref-down"
+          >
+            −
+          </button>
+          <span className="stepper__value" data-testid="tuner-ref-value">
+            {hz} Hz
+          </span>
+          <button
+            type="button"
+            className="stepper__button"
+            aria-label="Subir un hercio"
+            disabled={hz >= MAX_REFERENCE_HZ}
+            onClick={() => set(hz + 1)}
+            data-testid="tuner-ref-up"
+          >
+            +
+          </button>
+        </div>
         {hz !== REFERENCE_A4_HZ && (
           <button
             type="button"
-            className="button button--ghost"
+            className="link-button"
             onClick={() => set(REFERENCE_A4_HZ)}
             data-testid="tuner-ref-reset"
           >
             Volver a {REFERENCE_A4_HZ}
           </button>
         )}
-      </div>
-      <p className="settings-group__note">
-        Casi todo el mundo afina a 440 Hz. Cámbialo solo si tocas con un instrumento que ya está
-        afinado distinto.
-      </p>
-    </fieldset>
+      </SettingRow>
+    </SettingsCard>
   );
 }
 
-/** «Cómo lo veo»: lo común a los dos instrumentos (notación y tema) y, en piano, la ayuda de la tecla. */
-function ViewGroup({
+/** «Apariencia»: lo común a los dos instrumentos (notación y tema) y, en piano, la ayuda de la tecla. */
+function ViewCard({
   prefs,
   preferences,
   instrument,
@@ -432,58 +395,65 @@ function ViewGroup({
   readonly instrument: Instrument;
 }) {
   return (
-    <fieldset className="settings-group">
-      <legend>Cómo lo veo (en toda la app)</legend>
-      <div className="segmented" role="radiogroup" aria-label="Notación de las notas">
-        {(
-          [
-            ['latina', 'Do Re Mi'],
-            ['americana', 'C D E'],
-          ] as const
-        ).map(([value, label]) => (
-          <label key={value} className="segmented__option">
-            <input
-              type="radio"
-              name="notation"
-              value={value}
-              checked={prefs.notation === value}
-              onChange={() => preferences.update({ notation: value })}
-            />
-            <span>{label}</span>
-          </label>
-        ))}
-      </div>
+    <SettingsCard
+      icon="gear"
+      title="Apariencia"
+      hint="Vale para toda la app, con cualquier instrumento."
+    >
+      <SettingRow label="Nombres de las notas">
+        <div className="segmented" role="radiogroup" aria-label="Notación de las notas">
+          {(
+            [
+              ['latina', 'Do Re Mi'],
+              ['americana', 'C D E'],
+            ] as const
+          ).map(([value, label]) => (
+            <label key={value} className="segmented__option">
+              <input
+                type="radio"
+                name="notation"
+                value={value}
+                checked={prefs.notation === value}
+                onChange={() => preferences.update({ notation: value })}
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
+      </SettingRow>
+      <SettingRow label="Tema">
+        <div className="segmented segmented--wrap" role="radiogroup" aria-label="Tema">
+          {THEME_CHOICES.map((value) => (
+            <label key={value} className="segmented__option">
+              <input
+                type="radio"
+                name="theme"
+                value={value}
+                checked={prefs.theme === value}
+                onChange={() => preferences.update({ theme: value })}
+                data-testid={`theme-${value}`}
+              />
+              <span>{THEME_TEXT[value]}</span>
+            </label>
+          ))}
+        </div>
+      </SettingRow>
       {instrument === 'piano' && (
-        <Switch
+        <SwitchRow
           checked={prefs.help}
           onToggle={() => preferences.update({ help: !prefs.help })}
           testId="help-switch"
-        >
-          Ayuda: mostrar la tecla
-        </Switch>
+          label="Ayuda: mostrar la tecla"
+          hint="Ilumina en el teclado la tecla que toca."
+        />
       )}
-      <div className="segmented segmented--wrap" role="radiogroup" aria-label="Tema">
-        {THEME_CHOICES.map((value) => (
-          <label key={value} className="segmented__option">
-            <input
-              type="radio"
-              name="theme"
-              value={value}
-              checked={prefs.theme === value}
-              onChange={() => preferences.update({ theme: value })}
-              data-testid={`theme-${value}`}
-            />
-            <span>{THEME_TEXT[value]}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
+    </SettingsCard>
   );
 }
 
 /**
  * La página de ajustes. Cada instrumento tiene los suyos (las pestañas cambian de uno a otro); lo que cambia
- * se guarda en las preferencias.
+ * se guarda al momento en las preferencias.
  */
 export function SettingsScreen({
   instrument,
@@ -501,6 +471,7 @@ export function SettingsScreen({
       <PageHeader
         id="ajustes-titulo"
         title="Ajustes"
+        lead="Lo que cambies se guarda solo."
         actions={
           <button
             type="button"
@@ -508,7 +479,7 @@ export function SettingsScreen({
             onClick={leaveSettings}
             data-testid="settings-close"
           >
-            Volver
+            ← Volver
           </button>
         }
       />
@@ -521,6 +492,7 @@ export function SettingsScreen({
             aria-current={id === instrument ? 'page' : undefined}
             data-testid={`settings-tab-${id}`}
           >
+            <Icon name={INSTRUMENT_ICON[id]} size={20} />
             {INSTRUMENT_LABELS[id]}
           </a>
         ))}
@@ -532,34 +504,50 @@ export function SettingsScreen({
               setup={pianoSetup}
               preferences={preferences}
               notation={prefs.notation}
-            />
-            <PianoInputGroup
-              prefs={prefs}
-              preferences={preferences}
-              inputs={inputs}
-              inputManager={inputManager}
               microphone={microphone}
-              pianoSetup={pianoSetup}
               micIsInput={micIsInput}
             />
-            <PianoPracticeGroup prefs={prefs} preferences={preferences} />
+            <div className="settings-col">
+              <PianoInputCard
+                prefs={prefs}
+                preferences={preferences}
+                inputs={inputs}
+                inputManager={inputManager}
+                microphone={microphone}
+              />
+              <ViewCard prefs={prefs} preferences={preferences} instrument={instrument} />
+            </div>
+            <div className="settings-col">
+              <PianoPracticeCard prefs={prefs} preferences={preferences} />
+            </div>
           </>
         ) : (
           <>
-            <GuitarInputGroup microphone={microphone} />
-            <GuitarTunerGroup prefs={prefs} preferences={preferences} />
+            <div className="settings-col">
+              <GuitarInputCard microphone={microphone} />
+              <GuitarTunerCard prefs={prefs} preferences={preferences} />
+            </div>
+            <div className="settings-col">
+              <ViewCard prefs={prefs} preferences={preferences} instrument={instrument} />
+            </div>
           </>
         )}
-        <ViewGroup prefs={prefs} preferences={preferences} instrument={instrument} />
-
-        <button
-          type="button"
-          className="button button--ghost settings-page__reset"
-          onClick={() => preferences.reset()}
-          data-testid="settings-reset"
-        >
-          Restablecer ajustes
-        </button>
+        <div className="settings-reset">
+          <div className="set-row__text">
+            <span className="set-row__label">Restablecer ajustes</span>
+            <span className="set-row__hint">
+              Vuelve todo a como venía. Tu progreso no se borra.
+            </span>
+          </div>
+          <button
+            type="button"
+            className="button button--ghost settings-page__reset"
+            onClick={() => preferences.reset()}
+            data-testid="settings-reset"
+          >
+            Restablecer
+          </button>
+        </div>
       </div>
     </div>
   );

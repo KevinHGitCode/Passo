@@ -185,7 +185,7 @@ describe('ajustes como página', () => {
     // Es una página dentro del marco: la navegación sigue ahí y no hay diálogo.
     expect(screen.getByTestId('game-nav')).toBeTruthy();
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(screen.getByTestId('settings-close').textContent).toBe('Volver');
+    expect(screen.getByTestId('settings-close').textContent).toContain('Volver');
   });
 
   it('Ctrl+, lleva a los ajustes', () => {

@@ -20,6 +20,7 @@ import { GameButton } from '../game/GameButton';
 import { PianoKeyboard } from '../keyboard/piano-keyboard';
 import type { KeyVisual } from '../keyboard/piano-keyboard';
 import { useInputStatus, useMonitor } from '../practice/hooks';
+import { SettingRow, SettingsCard } from './parts';
 import './piano-settings.css';
 import { MicGate } from '../listen/MicGate';
 
@@ -44,11 +45,23 @@ interface PianoSettingsProps {
   readonly notation: NotationMode;
 }
 
+interface MicProps {
+  readonly microphone: (NoteInput & InputMonitor) | undefined;
+  /** El micrófono es una de las entradas con las que se toca: solo entonces tiene sentido probarlo. */
+  readonly micIsInput: boolean;
+}
+
 /**
  * «Mi teclado»: cuántas teclas tiene el piano y cómo llama al Do central. El teclado dibujado sigue lo elegido y,
  * durante la prueba del micrófono, marca la tecla que toca.
  */
-export function PianoKeyboardSettings({ setup, preferences, notation }: PianoSettingsProps) {
+export function PianoKeyboardSettings({
+  setup,
+  preferences,
+  notation,
+  microphone,
+  micIsInput,
+}: PianoSettingsProps & MicProps) {
   const prefs = useSyncExternalStore(preferences.subscribe, preferences.getSnapshot);
   const probe = useSyncExternalStore(setup.subscribe, setup.getSnapshot);
 
@@ -79,8 +92,13 @@ export function PianoKeyboardSettings({ setup, preferences, notation }: PianoSet
   };
 
   return (
-    <fieldset className="settings-group" data-testid="piano-keyboard-settings">
-      <legend>Mi teclado</legend>
+    <SettingsCard
+      wide
+      icon="piano"
+      title="Mi teclado"
+      hint="Cómo es tu piano: así la app lo dibuja y lo nombra igual que tú."
+      testId="piano-keyboard-settings"
+    >
       <div className="mipiano__board" data-testid="mipiano-board">
         <PianoKeyboard
           from={whiteBelow(range.low)}
@@ -96,76 +114,86 @@ export function PianoKeyboardSettings({ setup, preferences, notation }: PianoSet
         </p>
       </div>
 
-      <h2 className="mipiano__title">Cuántas teclas tiene</h2>
-      <div className="mipiano__options" role="radiogroup" aria-label="Número de teclas">
-        {KEYBOARD_SIZES.map((keys) => (
-          <label key={keys} className="mipiano__option">
-            <input
-              type="radio"
-              name="teclas"
-              value={keys}
-              checked={prefs.pianoKeys === keys}
-              onChange={() => preferences.update({ pianoKeys: keys })}
-              data-testid={`piano-keys-${keys}`}
-            />
-            <span>
-              {keys} teclas <small>({octaveCount(keys)} octavas)</small>
-            </span>
-          </label>
-        ))}
-      </div>
-      <p className="mipiano__muted" data-testid="piano-range">
-        Tu piano va de <b>{name(range.low)}</b> a <b>{name(range.high)}</b> ({prefs.pianoKeys}{' '}
-        teclas, {octaveCount(prefs.pianoKeys)} octavas).
-      </p>
+      <SettingRow
+        stacked
+        label="Cuántas teclas tiene"
+        hint={
+          <span data-testid="piano-range">
+            Tu piano va de <b>{name(range.low)}</b> a <b>{name(range.high)}</b> ({prefs.pianoKeys}{' '}
+            teclas, {octaveCount(prefs.pianoKeys)} octavas).
+          </span>
+        }
+      >
+        <div className="mipiano__options" role="radiogroup" aria-label="Número de teclas">
+          {KEYBOARD_SIZES.map((keys) => (
+            <label key={keys} className="mipiano__option">
+              <input
+                type="radio"
+                name="teclas"
+                value={keys}
+                checked={prefs.pianoKeys === keys}
+                onChange={() => preferences.update({ pianoKeys: keys })}
+                data-testid={`piano-keys-${keys}`}
+              />
+              <span>
+                {keys} teclas <small>({octaveCount(keys)} octavas)</small>
+              </span>
+            </label>
+          ))}
+        </div>
+      </SettingRow>
 
-      <h2 className="mipiano__title">Cómo llama tu piano al Do central</h2>
-      <p className="mipiano__muted">
-        El Do central es el que queda en medio del teclado (en uno de 61 teclas, el tercer Do
-        contando desde la izquierda). Unos pianos lo llaman Do4 y otros Do3: solo cambia el número
-        que se escribe junto al nombre, el sonido es el mismo.
-      </p>
-      <div className="mipiano__options" role="radiogroup" aria-label="Nombre del Do central">
-        {(
-          [
-            ['estandar', 'Do4', 'Estándar (la mayoría de pianos y de apps)'],
-            ['yamaha', 'Do3', 'Yamaha, Casio y otros'],
-          ] as const satisfies readonly (readonly [OctaveNaming, string, string])[]
-        ).map(([id, label, help]) => (
-          <label key={id} className="mipiano__option">
-            <input
-              type="radio"
-              name="nombre-do"
-              value={id}
-              checked={prefs.pianoNaming === id}
-              onChange={() => preferences.update({ pianoNaming: id })}
-              data-testid={`piano-naming-${id}`}
-            />
-            <span>
-              <b>{label}</b> <small>{help}</small>
-            </span>
-          </label>
-        ))}
-      </div>
-      <p className="mipiano__muted" data-testid="piano-naming-example">
-        Así que tu Do central se verá como <b>{name(60)}</b> en la app.
-      </p>
-    </fieldset>
+      <SettingRow
+        stacked
+        label="Cómo llama tu piano al Do central"
+        hint="Es el Do del medio del teclado (en uno de 61 teclas, el tercero desde la izquierda). Unos pianos lo llaman Do4 y otros Do3: solo cambia el número, el sonido es el mismo."
+      >
+        <div className="mipiano__options" role="radiogroup" aria-label="Nombre del Do central">
+          {(
+            [
+              ['estandar', 'Do4', 'Estándar (la mayoría de pianos y de apps)'],
+              ['yamaha', 'Do3', 'Yamaha, Casio y otros'],
+            ] as const satisfies readonly (readonly [OctaveNaming, string, string])[]
+          ).map(([id, label, help]) => (
+            <label key={id} className="mipiano__option">
+              <input
+                type="radio"
+                name="nombre-do"
+                value={id}
+                checked={prefs.pianoNaming === id}
+                onChange={() => preferences.update({ pianoNaming: id })}
+                data-testid={`piano-naming-${id}`}
+              />
+              <span>
+                <b>{label}</b> <small>{help}</small>
+              </span>
+            </label>
+          ))}
+        </div>
+        <p className="mipiano__muted" data-testid="piano-naming-example">
+          Así que tu Do central se verá como <b>{name(60)}</b> en la app.
+        </p>
+      </SettingRow>
+
+      <PianoMicProbe
+        setup={setup}
+        preferences={preferences}
+        notation={notation}
+        microphone={microphone}
+        micIsInput={micIsInput}
+      />
+    </SettingsCard>
   );
 }
 
 /** La prueba del micrófono con el piano: pide teclas, compara lo que oye y propone corregir las octavas. */
-export function PianoMicProbe({
+function PianoMicProbe({
   setup,
   preferences,
   microphone,
   micIsInput,
   notation,
-}: PianoSettingsProps & {
-  readonly microphone: (NoteInput & InputMonitor) | undefined;
-  /** El micrófono es una de las entradas con las que se toca: solo entonces tiene sentido probarlo. */
-  readonly micIsInput: boolean;
-}) {
+}: PianoSettingsProps & MicProps) {
   const prefs = useSyncExternalStore(preferences.subscribe, preferences.getSnapshot);
   const probe = useSyncExternalStore(setup.subscribe, setup.getSnapshot);
   const status = useInputStatus(microphone);

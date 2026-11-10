@@ -578,10 +578,6 @@
   cursor: default;
 }
 /* Antes de activar el micrófono: una sola tarjeta con una sola acción. */
-.tuner__start {
-  max-width: 520px;
-  text-align: center;
-}
 .tuner__guide-actions {
   display: flex;
   flex-wrap: wrap;

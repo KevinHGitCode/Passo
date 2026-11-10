@@ -14,13 +14,13 @@ import type { ThemeChoice } from '@/core/domain/preferences';
 import { MAX_REFERENCE_HZ, MIN_REFERENCE_HZ } from '@/core/domain/tuner';
 import type { InputMonitor } from '@/core/ports/input-monitor';
 import type { NoteInput } from '@/core/ports/note-input';
-import { GameButton } from '../game/GameButton';
 import { useInputStatus, useMonitor } from '../practice/hooks';
 import { AJUSTES, CAMINO, ajustesOf, hrefOf, navigate } from '../router/routes';
 import { describeInputStatus } from '../status/describe-status';
 import { PianoKeyboardSettings, PianoMicProbe } from './PianoSettings';
 import './settings.css';
 import { PageHeader } from '../shell/PageHeader';
+import { MicGate } from '../listen/MicGate';
 
 const INPUT_TEXT: Readonly<Record<InputSource, { title: string; hint: string }>> = {
   microfono: { title: 'Micrófono', hint: 'Oye tu piano o teclado' },
@@ -332,21 +332,31 @@ function GuitarInputGroup({
   return (
     <fieldset className="settings-group">
       <legend>Cómo toco</legend>
-      <div className="choice" data-checked="true">
-        <span className="choice__body">
-          <span className="choice__title">Micrófono</span>
-          <span className="choice__hint">La guitarra se oye siempre con el micrófono</span>
-          {view && (
-            <span className="choice__status" data-tone={view.tone} data-testid="guitar-mic-status">
-              {view.short === 'Micrófono' ? 'Activo' : view.short}
-            </span>
-          )}
-        </span>
-      </div>
-      {microphone && !on && (
-        <GameButton onClick={() => void microphone.start()} data-testid="guitar-mic-activate">
-          Activar micrófono
-        </GameButton>
+      {microphone && !on ? (
+        <MicGate
+          compact
+          status={status}
+          onActivate={() => void microphone.start()}
+          purpose="La guitarra se oye siempre con el micrófono."
+          testId="guitar-mic"
+          buttonTestId="guitar-mic-activate"
+        />
+      ) : (
+        <div className="choice" data-checked="true">
+          <span className="choice__body">
+            <span className="choice__title">Micrófono</span>
+            <span className="choice__hint">La guitarra se oye siempre con el micrófono</span>
+            {view && (
+              <span
+                className="choice__status"
+                data-tone={view.tone}
+                data-testid="guitar-mic-status"
+              >
+                {view.short === 'Micrófono' ? 'Activo' : view.short}
+              </span>
+            )}
+          </span>
+        </div>
       )}
       <p className="settings-group__note">
         Toca cerca del micrófono y en una sala tranquila. Para afinar, usa el afinador de la barra.

@@ -21,6 +21,7 @@ import { hrefOf, CANCIONES } from '../router/routes';
 import { Score } from './Score';
 import './songs.css';
 import { PageHeader } from '../shell/PageHeader';
+import { MicGate } from '../listen/MicGate';
 
 type View = 'sencilla' | 'partitura';
 
@@ -303,23 +304,20 @@ export function SongScreen({
 
   // El micrófono nunca arranca solo: sin él no hay nada que seguir, así que solo se ofrece activarlo.
   if (microphone !== undefined && (status === null || status.kind !== 'conectado')) {
-    const denied = status?.kind === 'permiso-denegado';
     return (
       <div className="songs song" data-testid="song">
         {heading}
-        <section className="songs__card song__mic" data-testid="song-mic" role="status">
-          <p>
-            {denied
-              ? 'El navegador bloqueó el micrófono.'
-              : status?.kind === 'iniciando'
-                ? 'Esperando tu permiso…'
-                : 'Activa el micrófono para que te oiga tocar.'}
-          </p>
-          <GameButton onClick={() => void microphone.start()} data-testid="song-activate">
-            Activar micrófono
-          </GameButton>
-        </section>
-        <section className="songs__card song__mic" aria-label="Escuchar la canción">
+        <MicGate
+          status={status}
+          onActivate={() => void microphone.start()}
+          purpose="Así oigo las notas y los acordes que tocas."
+          testId="song-mic"
+          buttonTestId="song-activate"
+        />
+        <section
+          className="songs__card song__mic song__preview-card"
+          aria-label="Escuchar la canción"
+        >
           <p>¿Quieres oír cómo suena antes de tocarla?</p>
           <PreviewButton songs={songs} snapshot={snapshot} />
           {snapshot.previewing ? (

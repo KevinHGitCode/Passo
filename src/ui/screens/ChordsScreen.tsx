@@ -14,6 +14,7 @@ import { GameButton } from '../game/GameButton';
 import { useInputStatus, useMonitor } from '../practice/hooks';
 import './chords.css';
 import { PageHeader } from '../shell/PageHeader';
+import { MicGate } from '../listen/MicGate';
 
 const classNames = (classes: readonly number[]): string =>
   classes.map((pc) => pitchClassName(pc)).join(', ');
@@ -167,18 +168,13 @@ export function ChordsScreen({
     return (
       <div className="chords" data-testid="chords">
         {heading}
-        <section className="chords__card chords__mic" data-testid="chords-mic" role="status">
-          <p>
-            {status?.kind === 'permiso-denegado'
-              ? 'El navegador bloqueó el micrófono.'
-              : status?.kind === 'iniciando'
-                ? 'Esperando tu permiso…'
-                : 'Activa el micrófono para que te oiga tocar.'}
-          </p>
-          <GameButton onClick={() => void microphone.start()} data-testid="chords-activate">
-            Activar micrófono
-          </GameButton>
-        </section>
+        <MicGate
+          status={status}
+          onActivate={() => void microphone.start()}
+          purpose="Así oigo el acorde que tocas y te digo cuál es."
+          testId="chords-mic"
+          buttonTestId="chords-activate"
+        />
       </div>
     );
   }

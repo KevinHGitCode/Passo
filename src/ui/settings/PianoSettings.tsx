@@ -21,6 +21,7 @@ import { PianoKeyboard } from '../keyboard/piano-keyboard';
 import type { KeyVisual } from '../keyboard/piano-keyboard';
 import { useInputStatus, useMonitor } from '../practice/hooks';
 import './piano-settings.css';
+import { MicGate } from '../listen/MicGate';
 
 const KIND_TEXT: Readonly<Record<ProbeKind, string>> = {
   bien: '✓ bien',
@@ -200,21 +201,19 @@ export function PianoMicProbe({
           Estás tocando con MIDI o con el teclado del PC: no hace falta, esas entradas dan la nota
           exacta.
         </p>
+      ) : microphone !== undefined && status?.kind !== 'conectado' ? (
+        <MicGate
+          compact
+          status={status}
+          onActivate={() => void microphone.start()}
+          purpose="Así compruebo si el micrófono lee bien las notas de tu piano."
+          testId="mipiano-mic"
+          buttonTestId="mipiano-activate"
+        />
       ) : microphone !== undefined && !connected ? (
-        <div className="mipiano__mic" data-testid="mipiano-mic" role="status">
-          <p>
-            {status?.kind === 'permiso-denegado'
-              ? 'El navegador bloqueó el micrófono.'
-              : status?.kind === 'conectado'
-                ? 'Guarda silencio un momento: el micrófono mide el ruido de la sala…'
-                : 'Activa el micrófono para probar tu piano.'}
-          </p>
-          {status?.kind === 'conectado' ? null : (
-            <GameButton onClick={() => void microphone.start()} data-testid="mipiano-activate">
-              Activar micrófono
-            </GameButton>
-          )}
-        </div>
+        <p className="mipiano__muted" data-testid="mipiano-mic" role="status">
+          Guarda silencio un momento: el micrófono mide el ruido de la sala…
+        </p>
       ) : probe.phase === 'inactiva' ? (
         <>
           <p className="mipiano__muted">

@@ -22,13 +22,6 @@
   border-radius: var(--radius-card);
   background: var(--surface);
 }
-.chords__mic {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  text-align: center;
-}
 .chords__modes {
   display: grid;
   gap: 8px;

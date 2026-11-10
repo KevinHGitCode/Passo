@@ -14,6 +14,7 @@ import { useInputStatus, useMonitor } from '../practice/hooks';
 import { CANCIONES, hrefOf } from '../router/routes';
 import './songs.css';
 import { PageHeader } from '../shell/PageHeader';
+import { MicGate } from '../listen/MicGate';
 
 /** La tecla blanca más cercana (hacia abajo o hacia arriba) para que el teclado empiece y acabe en una. */
 const whiteBelow = (midi: Midi): Midi => (isBlackKey(midi) ? midi - 1 : midi);
@@ -88,18 +89,13 @@ export function PianoSongScreen({
     return (
       <div className="songs song" data-testid="song">
         {heading}
-        <section className="songs__card song__mic" data-testid="song-mic" role="status">
-          <p>
-            {status?.kind === 'permiso-denegado'
-              ? 'El navegador bloqueó el micrófono.'
-              : status?.kind === 'iniciando'
-                ? 'Esperando tu permiso…'
-                : 'Activa el micrófono para que te oiga tocar.'}
-          </p>
-          <GameButton onClick={() => void microphone.start()} data-testid="song-activate">
-            Activar micrófono
-          </GameButton>
-        </section>
+        <MicGate
+          status={status}
+          onActivate={() => void microphone.start()}
+          purpose="Así oigo las notas que tocas en tu piano."
+          testId="song-mic"
+          buttonTestId="song-activate"
+        />
       </div>
     );
   }

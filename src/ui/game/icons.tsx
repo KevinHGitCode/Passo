@@ -19,6 +19,7 @@ export type IconName =
   | 'piano'
   | 'tuner'
   | 'music'
+  | 'mic'
   | 'chevron';
 
 interface Shape {
@@ -105,6 +106,14 @@ const SHAPES: Readonly<Record<IconName, Shape>> = {
     strokeWidth: 2.4,
   },
   chevron: { paths: ['M6 9l6 6 6-6'], strokeWidth: 3 },
+  mic: {
+    paths: [
+      'M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z',
+      'M5.5 11a6.5 6.5 0 0 0 13 0',
+      'M12 17.5V21',
+    ],
+    strokeWidth: 2.2,
+  },
 };
 
 export function Icon({

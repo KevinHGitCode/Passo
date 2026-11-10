@@ -76,6 +76,12 @@
   align-items: center;
   text-align: center;
 }
+/* «Escuchar la canción» antes de activar el micrófono: del mismo ancho que la tarjeta de arriba. */
+.song__preview-card {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+}
 
 /* Lo que toca ahora. */
 .song__now {

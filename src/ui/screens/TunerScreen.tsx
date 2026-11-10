@@ -34,6 +34,7 @@ import {
 import type { HintIcon } from './tuner-messages';
 import './tuner.css';
 import { PageHeader } from '../shell/PageHeader';
+import { MicGate } from '../listen/MicGate';
 
 export { tunerStatusText } from './tuner-messages';
 
@@ -266,14 +267,13 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
           title="Afinador"
           lead="Afinación estándar: Mi · La · Re · Sol · Si · Mi."
         />
-        <section className="tuner__card tuner__start stage-dark" aria-label="Activar el micrófono">
-          <div className="tuner__mic" role="status" data-testid="tuner-mic">
-            <p>{message}</p>
-            <GameButton onClick={() => void microphone.start()} data-testid="tuner-activate">
-              Activar micrófono
-            </GameButton>
-          </div>
-        </section>
+        <MicGate
+          status={status}
+          onActivate={() => void microphone.start()}
+          purpose="Así oigo la cuerda y te digo si hay que apretarla o aflojarla."
+          testId="tuner-mic"
+          buttonTestId="tuner-activate"
+        />
       </div>
     );
   }

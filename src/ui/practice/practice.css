@@ -81,7 +81,9 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text-muted);
-  transition: background 120ms ease;
+  transition:
+    background-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
 }
 .segmented__option input:checked + span {
   background: var(--accent);
@@ -109,7 +111,7 @@
   border-radius: 999px;
   background: var(--text-muted);
   padding: 3px;
-  transition: background 120ms ease;
+  transition: background-color var(--dur-base) ease;
 }
 .switch__thumb {
   display: block;
@@ -118,7 +120,7 @@
   border-radius: 50%;
   background: var(--surface);
   box-shadow: 0 1px 3px var(--shadow);
-  transition: transform 120ms ease;
+  transition: transform var(--dur-base) var(--ease-spring);
 }
 .switch[aria-checked='true'] .switch__track {
   background: var(--accent);
@@ -234,7 +236,7 @@
   height: 100%;
   border-radius: 999px;
   background: var(--accent);
-  transition: width 200ms ease;
+  transition: width var(--dur-slow) var(--ease-out);
 }
 .target__count {
   font-size: 13px;

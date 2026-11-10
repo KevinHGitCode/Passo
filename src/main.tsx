@@ -7,6 +7,7 @@ import '@fontsource-variable/nunito';
 import '@/ui/styles/tokens.css';
 import '@/ui/styles/base.css';
 import '@/ui/styles/motion.css';
+import '@/ui/styles/interaction.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Falta el elemento #root');

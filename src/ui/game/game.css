@@ -30,7 +30,8 @@
   cursor: pointer;
   transition:
     transform 80ms ease,
-    box-shadow 80ms ease;
+    box-shadow 80ms ease,
+    filter var(--dur-fast) ease;
 }
 .game-btn:active:not([aria-disabled='true'], :disabled) {
   transform: translateY(var(--btn-depth-size));
@@ -203,7 +204,8 @@
   box-shadow: 0 6px 0 var(--node-depth);
   transition:
     transform 80ms ease,
-    box-shadow 80ms ease;
+    box-shadow 80ms ease,
+    filter var(--dur-fast) ease;
 }
 .game-node__target:active .game-node__circle {
   transform: translateY(6px);
@@ -315,7 +317,7 @@
   height: 100%;
   border-radius: 999px;
   background: var(--ok);
-  transition: width 240ms ease;
+  transition: width var(--dur-slow) var(--ease-out);
 }
 
 .bar__fill--xp {

@@ -1,0 +1,72 @@
+/*
+ * Todo lo que se puede pulsar responde igual: cambia con suavidad al pasar el ratón y se hunde un poco al
+ * pulsar. Las reglas van con `:where()` (sin peso): un componente que necesite otra cosa la pone y gana.
+ */
+:where(
+  .game-link,
+  .gear,
+  .settings-tab,
+  .button,
+  .link-button,
+  .choice,
+  .mipiano__option,
+  .chords__mode,
+  .song__speed-option,
+  .inst__button,
+  .inst__option,
+  .lesson__exit,
+  .chip__action,
+  .peg,
+  .songs__card,
+  .songs__play,
+  .brand__link,
+  .game-brand,
+  .segmented__option span
+) {
+  transition:
+    background-color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease,
+    opacity var(--dur-fast) ease,
+    filter var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  /* Botones del juego: se aclaran al pasar (ya se hunden al pulsar). */
+  .game-btn:hover:not([aria-disabled='true'], :disabled),
+  .songs__play:hover {
+    filter: brightness(1.07);
+  }
+  .game-node__target:hover .game-node__circle {
+    filter: brightness(1.08);
+  }
+  /* Opciones en tarjeta (entrada, nivel, teclas, modo de los acordes): el borde anuncia que se puede elegir. */
+  :where(.choice, .mipiano__option, .chords__mode, .song__speed-option):hover:has(
+      input:not(:checked, :disabled)
+    ) {
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  }
+  .segmented__option input:not(:checked, :disabled) + span:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  /* Las tarjetas de canción (toda la tarjeta lleva a la canción) se levantan un poco: invitan a entrar. */
+  .songs__card:hover {
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+    transform: translateY(-2px);
+    box-shadow: var(--elev-2);
+  }
+  .game-brand:hover {
+    opacity: 0.85;
+  }
+}
+
+/* Al pulsar: lo plano se encoge un pelo (los botones 3D ya bajan su relieve). */
+:where(.game-link, .gear, .settings-tab, .button, .lesson__exit, .chip__action):active {
+  transform: scale(0.97);
+}
+:where(.choice, .mipiano__option, .chords__mode):active:not(:has(input:disabled)) {
+  transform: scale(0.99);
+}

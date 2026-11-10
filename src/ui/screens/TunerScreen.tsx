@@ -5,14 +5,7 @@ import { openStringName } from '@/core/domain/instrument';
 import type { GuitarString } from '@/core/domain/instrument';
 import type { NotationMode } from '@/core/domain/note';
 import { REFERENCE_A4_HZ } from '@/core/domain/pitch';
-import {
-  FAR_CENTS,
-  IN_TUNE_CENTS,
-  MAX_REFERENCE_HZ,
-  MIN_REFERENCE_HZ,
-  NEAR_CENTS,
-  stringFrequency,
-} from '@/core/domain/tuner';
+import { MAX_REFERENCE_HZ, MIN_REFERENCE_HZ, stringFrequency } from '@/core/domain/tuner';
 import { SILENT_MONITOR } from '@/core/ports/input-monitor';
 import type { InputMonitor, MonitorSnapshot } from '@/core/ports/input-monitor';
 import type { InputStatus, NoteInput } from '@/core/ports/note-input';
@@ -34,6 +27,7 @@ import {
 import type { HintIcon } from './tuner-messages';
 import './tuner.css';
 import { PageHeader } from '../shell/PageHeader';
+import { TunerDial } from './TunerDial';
 import { MicGate } from '../listen/MicGate';
 
 export { tunerStatusText } from './tuner-messages';
@@ -52,44 +46,6 @@ function micMessage(status: InputStatus | null, calibrating: boolean): string | 
   if (status.kind === 'desconectado') return 'Se perdió el micrófono.';
   if (status.kind !== 'conectado') return 'El micrófono no está disponible.';
   return calibrating ? 'Guarda silencio un momento…' : null;
-}
-
-const SPAN = FAR_CENTS * 2;
-/** Un valor en cents como porcentaje del ancho de la regla (que va de −50 a +50). */
-const percent = (cents: number): string => `${(cents * 100) / SPAN}%`;
-
-/** La regla: de −50 a +50 cents, con la zona verde de ±5 y la ámbar («casi») de ±5 a ±15. */
-function Ruler({ cents, stale }: { readonly cents: number | null; readonly stale: boolean }) {
-  const clamped = cents === null ? 0 : Math.max(-FAR_CENTS, Math.min(FAR_CENTS, cents));
-  const position = 50 + (clamped / FAR_CENTS) * 50;
-  const near = percent(NEAR_CENTS - IN_TUNE_CENTS);
-  return (
-    <div className="tuner__ruler" aria-hidden="true" data-testid="tuner-needle">
-      <span className="tuner__near" style={{ left: percent(SPAN / 2 - NEAR_CENTS), width: near }} />
-      <span
-        className="tuner__near"
-        style={{ left: percent(SPAN / 2 + IN_TUNE_CENTS), width: near }}
-      />
-      <span
-        className="tuner__zone"
-        style={{ left: percent(SPAN / 2 - IN_TUNE_CENTS), width: percent(IN_TUNE_CENTS * 2) }}
-      />
-      <span className="tuner__ticks" />
-      <span className="tuner__major" />
-      <span className="tuner__mid" />
-      <span
-        className="tuner__needle"
-        style={{ left: `${position}%` }}
-        data-idle={cents === null}
-        data-stale={stale}
-      />
-      {[-50, -25, 0, 25, 50].map((value) => (
-        <span key={value} className="tuner__label" style={{ left: `${50 + value}%` }}>
-          {formatCents(value)}
-        </span>
-      ))}
-    </div>
-  );
 }
 
 function HintGlyph({ icon }: { readonly icon: HintIcon }) {
@@ -399,13 +355,24 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
             />
           ) : (
             <>
-              <p className="tuner__target" data-testid="tuner-target">
-                <span className="tuner__kicker">
-                  Cuerda {snapshot.string}
-                  {role ? ` · ${role}` : ''}
-                </span>
-                <span className="tuner__name">{name}</span>
-              </p>
+              <div className="tuner__gauge" data-dial={message === null}>
+                <p className="tuner__target" data-testid="tuner-target">
+                  <span className="tuner__kicker">
+                    Cuerda {snapshot.string}
+                    {role ? ` · ${role}` : ''}
+                  </span>
+                  <span className="tuner__name">{name}</span>
+                </p>
+                {message === null ? (
+                  <>
+                    <TunerDial cents={snapshot.cents} stale={snapshot.stale} />
+                    <p className="tuner__ends" aria-hidden="true">
+                      <span>♭ Grave</span>
+                      <span>Aguda ♯</span>
+                    </p>
+                  </>
+                ) : null}
+              </div>
               {message !== null ? (
                 <div className="tuner__mic" role="status" data-testid="tuner-mic">
                   <p>{message}</p>
@@ -420,18 +387,6 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
                 </div>
               ) : (
                 <>
-                  <p className="tuner__hz" aria-hidden="true">
-                    Meta {formatHz(target)} Hz
-                    {heard === null ? '' : ` · oigo ${formatHz(heard)} Hz`}
-                    {snapshot.referenceHz === REFERENCE_A4_HZ
-                      ? ''
-                      : ` · La₄ ${snapshot.referenceHz}`}
-                  </p>
-                  <Ruler cents={snapshot.cents} stale={snapshot.stale} />
-                  <p className="tuner__ends" aria-hidden="true">
-                    <span>♭ Grave</span>
-                    <span>Aguda ♯</span>
-                  </p>
                   <p className="tuner__read" aria-hidden="true">
                     <b
                       data-testid="tuner-cents"
@@ -446,6 +401,13 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
                         {chip}
                       </em>
                     ) : null}
+                  </p>
+                  <p className="tuner__hz" aria-hidden="true">
+                    Meta {formatHz(target)} Hz
+                    {heard === null ? '' : ` · oigo ${formatHz(heard)} Hz`}
+                    {snapshot.referenceHz === REFERENCE_A4_HZ
+                      ? ''
+                      : ` · La₄ ${snapshot.referenceHz}`}
                   </p>
                   <p className="tuner__hint" data-tone={tone} data-testid="tuner-hint">
                     {hint.icon ? <HintGlyph icon={hint.icon} /> : null}

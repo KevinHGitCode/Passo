@@ -293,6 +293,7 @@
 }
 .tuner__hz {
   margin: 0;
+  text-align: center;
   color: var(--text-muted);
   font-size: 15px;
   font-weight: 800;
@@ -310,143 +311,165 @@
 .tuner__mic p {
   margin: 0;
 }
-.tuner__ruler {
+/* El dial: un arco de −50 a +50 cents con la nota en su hueco. */
+.tuner__gauge {
   position: relative;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  height: 100px;
 }
-.tuner__zone {
-  position: absolute;
-  top: 8px;
-  left: 45%;
-  height: 64px;
-  border: 2px solid var(--ok);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--ok) 16%, transparent);
+.tuner__gauge[data-dial='true'] {
+  max-width: 520px;
+  margin: 0 auto;
 }
-.tuner__panel[data-status='afinada'] .tuner__zone {
-  background: color-mix(in srgb, var(--ok) 32%, transparent);
+.tuner__dial {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
 }
-.tuner__near {
-  position: absolute;
-  top: 18px;
-  height: 44px;
-  border: 2px dashed color-mix(in srgb, var(--warn) 60%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--warn) 10%, transparent);
+.tuner__arc {
+  fill: none;
+  stroke-width: 12;
 }
-.tuner__ticks,
-.tuner__major {
-  position: absolute;
-  right: 0;
-  left: 0;
+.tuner__arc--off {
+  stroke: color-mix(in srgb, var(--err) 34%, var(--surface-2));
+  stroke-linecap: round;
 }
-.tuner__ticks {
-  top: 44px;
-  height: 14px;
-  background: repeating-linear-gradient(90deg, var(--border) 0 2px, transparent 2px 5%);
+.tuner__arc--near {
+  stroke: color-mix(in srgb, var(--warn) 62%, var(--surface-2));
 }
-.tuner__major {
-  top: 36px;
-  height: 30px;
-  background: repeating-linear-gradient(90deg, var(--text-muted) 0 3px, transparent 3px 25%);
+.tuner__arc--ok {
+  stroke: var(--ok);
+  stroke-width: 16;
+  stroke-linecap: round;
+  transition:
+    stroke-width var(--dur-base) var(--ease-spring),
+    filter var(--dur-base) ease;
 }
-.tuner__mid {
-  position: absolute;
-  top: 26px;
-  left: 50%;
-  width: 4px;
-  height: 50px;
-  margin-left: -2px;
-  border-radius: 2px;
-  background: var(--ok);
+/* Afinada: la zona verde se enciende. */
+.tuner__panel[data-tone='ok'] .tuner__arc--ok {
+  stroke-width: 20;
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--ok) 75%, transparent));
 }
+.tuner__tick {
+  stroke: var(--border);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.tuner__tick--major {
+  stroke: var(--text-muted);
+  stroke-width: 3;
+}
+.tuner__label {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-anchor: middle;
+  font-variant-numeric: tabular-nums;
+}
+/* El puntero gira alrededor del centro del arco (el punto 160,190 del dibujo). */
 .tuner__needle {
-  position: absolute;
-  top: 14px;
-  width: 12px;
-  height: 60px;
-  border-radius: 6px;
-  background: var(--tone);
-  box-shadow: 0 0 0 2px var(--bg);
-  transform: translateX(-50%);
-  transition: left 0.12s ease-out;
+  transform-box: view-box;
+  transform-origin: 160px 190px;
+  transition:
+    transform 140ms var(--ease-out),
+    opacity var(--dur-base) ease;
 }
-.tuner__needle::before {
-  content: '';
-  position: absolute;
-  top: -11px;
-  left: -3px;
-  width: 0;
-  height: 0;
-  border: 9px solid transparent;
-  border-top: 0;
-  border-bottom: 10px solid var(--tone);
+.tuner__needle line {
+  stroke: var(--tone);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+.tuner__needle circle {
+  fill: var(--tone);
+  stroke: var(--surface);
+  stroke-width: 3;
 }
 .tuner__needle[data-idle='true'] {
-  visibility: hidden;
+  opacity: 0;
 }
-.tuner__panel[data-status='afinada'] .tuner__needle {
-  animation: tuner-lock 0.4s ease-out 1;
+.tuner__panel[data-status='afinada'] .tuner__needle circle {
+  animation: tuner-lock 0.5s var(--ease-out) 1;
 }
 @keyframes tuner-lock {
   from {
-    box-shadow:
-      0 0 0 2px var(--bg),
-      0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent);
+    stroke: color-mix(in srgb, var(--ok) 70%, transparent);
+    stroke-width: 3;
+  }
+  60% {
+    stroke: color-mix(in srgb, var(--ok) 0%, transparent);
+    stroke-width: 26;
   }
   to {
-    box-shadow:
-      0 0 0 2px var(--bg),
-      0 0 0 14px transparent;
+    stroke: var(--surface);
+    stroke-width: 3;
   }
 }
-.tuner__label {
+/* La nota, grande, en el hueco del arco; toma el color del estado cuando suena. */
+.tuner__gauge[data-dial='true'] .tuner__name {
   position: absolute;
-  top: 78px;
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 800;
+  bottom: 0;
+  left: 50%;
+  color: var(--text);
+  font-size: clamp(3.4rem, 15cqi, 5.6rem);
+  line-height: 1;
   transform: translateX(-50%);
+  transition:
+    color var(--dur-base) ease,
+    transform var(--dur-base) var(--ease-spring);
+}
+.tuner__panel:not([data-tone='none']) .tuner__gauge[data-dial='true'] .tuner__name {
+  color: var(--tone);
+}
+.tuner__panel[data-status='afinada'] .tuner__gauge[data-dial='true'] .tuner__name {
+  transform: translateX(-50%) scale(1.08);
 }
 .tuner__ends {
+  position: absolute;
+  right: 0;
+  bottom: 6px;
+  left: 0;
   display: flex;
   justify-content: space-between;
   margin: 0;
   color: var(--text-muted);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 900;
+  pointer-events: none;
 }
 .tuner__read {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 12px;
-  margin: 4px 0 0;
+  justify-content: center;
+  gap: 4px 10px;
+  margin: 0;
   font-variant-numeric: tabular-nums;
 }
 .tuner__read b {
-  min-width: 2.4em;
   color: var(--tone);
-  font-size: 3.5rem;
+  font-size: 2.4rem;
   font-weight: 900;
   line-height: 1;
 }
 .tuner__read b[data-idle='true'] {
-  min-width: 0;
   color: var(--text-muted);
 }
 .tuner__read span {
   color: var(--text-muted);
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   font-weight: 800;
 }
 .tuner__read em {
+  margin-left: 6px;
   padding: 2px 14px;
   border: 2px solid var(--tone);
   border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 14%, transparent);
   color: var(--tone);
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-style: normal;
   font-weight: 900;
 }
@@ -550,7 +573,7 @@
 .tuner__steps-bar li[data-state='actual'] {
   background: var(--accent);
 }
-.tuner__needle[data-stale='true'] {
+.tuner__needle[data-stale='true']:not([data-idle='true']) {
   opacity: 0.45;
 }
 .tuner__read b[data-stale='true'] {

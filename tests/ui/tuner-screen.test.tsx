@@ -193,13 +193,14 @@ describe('el medidor', () => {
     expect(screen.getByTestId('tuner-hint').textContent).toContain('Lista');
   });
 
-  it('la regla coloca la aguja según los cents (−50…+50) y la esconde sin sonido', () => {
+  it('el dial gira el puntero según los cents (−50…+50 en ±60°) y lo esconde sin sonido', () => {
     const { play } = setup();
-    const needle = () => document.querySelector<HTMLElement>('.tuner__needle');
+    const needle = () => document.querySelector<SVGGElement>('.tuner__needle');
     expect(needle()?.getAttribute('data-idle')).toBe('true');
     play(1, -20, 600);
     expect(needle()?.getAttribute('data-idle')).toBe('false');
-    expect(needle()?.style.left).toBe('30%');
+    // −20 cents de 50 son −24° de 60.
+    expect(needle()?.getAttribute('data-angle')).toBe('-24');
   });
 
   it('trae el plegable «Cómo afinar bien» con consejos', () => {

@@ -33,6 +33,7 @@ import {
 } from './tuner-messages';
 import type { HintIcon } from './tuner-messages';
 import './tuner.css';
+import { PageHeader } from '../shell/PageHeader';
 
 export { tunerStatusText } from './tuner-messages';
 
@@ -260,9 +261,11 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
   if (microphone !== undefined && (status === null || status.kind !== 'conectado')) {
     return (
       <div className="tuner" data-testid="tuner">
-        <h1 id="afinador-titulo" tabIndex={-1} data-route-heading>
-          Afinador
-        </h1>
+        <PageHeader
+          id="afinador-titulo"
+          title="Afinador"
+          lead="Afinación estándar: Mi · La · Re · Sol · Si · Mi."
+        />
         <section className="tuner__card tuner__start stage-dark" aria-label="Activar el micrófono">
           <div className="tuner__mic" role="status" data-testid="tuner-mic">
             <p>{message}</p>
@@ -277,13 +280,11 @@ export function TunerScreen({ tuner, microphone, notation }: TunerScreenProps) {
 
   return (
     <div className="tuner" data-testid="tuner" onKeyDown={onKeyDown}>
-      <h1 id="afinador-titulo" tabIndex={-1} data-route-heading>
-        Afinador
-      </h1>
-      <p className="tuner__lead">
-        Afinación estándar: Mi · La · Re · Sol · Si · Mi. Toca cualquier cuerda al aire y te digo si
-        hay que apretarla o aflojarla.
-      </p>
+      <PageHeader
+        id="afinador-titulo"
+        title="Afinador"
+        lead="Afinación estándar: Mi · La · Re · Sol · Si · Mi. Toca cualquier cuerda al aire y te digo si hay que apretarla o aflojarla."
+      />
 
       <div className="tuner__ref" role="group" aria-label="La₄ de referencia">
         <span className="tuner__ref-label">La₄ =</span>

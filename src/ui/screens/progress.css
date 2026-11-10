@@ -3,16 +3,9 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 1040px;
+  width: 100%;
+  max-width: var(--page-max);
   margin: 0 auto;
-}
-.progreso__head h1 {
-  margin: 0;
-}
-.progreso__sub {
-  margin: 4px 0 0;
-  color: var(--text-muted);
-  font-weight: 700;
 }
 .progreso__warn {
   margin: 0;

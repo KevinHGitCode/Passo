@@ -20,6 +20,7 @@ import { AJUSTES, CAMINO, ajustesOf, hrefOf, navigate } from '../router/routes';
 import { describeInputStatus } from '../status/describe-status';
 import { PianoKeyboardSettings, PianoMicProbe } from './PianoSettings';
 import './settings.css';
+import { PageHeader } from '../shell/PageHeader';
 
 const INPUT_TEXT: Readonly<Record<InputSource, { title: string; hint: string }>> = {
   microfono: { title: 'Micrófono', hint: 'Oye tu piano o teclado' },
@@ -487,19 +488,20 @@ export function SettingsScreen({
 
   return (
     <div className="settings-page" data-testid="settings-panel" data-instrument={instrument}>
-      <header className="settings-page__head">
-        <h1 id="ajustes-titulo" tabIndex={-1} data-route-heading>
-          Ajustes
-        </h1>
-        <button
-          type="button"
-          className="button button--ghost"
-          onClick={leaveSettings}
-          data-testid="settings-close"
-        >
-          Volver
-        </button>
-      </header>
+      <PageHeader
+        id="ajustes-titulo"
+        title="Ajustes"
+        actions={
+          <button
+            type="button"
+            className="button button--ghost"
+            onClick={leaveSettings}
+            data-testid="settings-close"
+          >
+            Volver
+          </button>
+        }
+      />
       <nav className="settings-tabs" aria-label="Ajustes de">
         {INSTRUMENTS.map((id) => (
           <a

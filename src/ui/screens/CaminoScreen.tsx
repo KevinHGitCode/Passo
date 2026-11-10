@@ -32,6 +32,7 @@ import { AFINADOR, hrefOf, lessonRoute } from '../router/routes';
 import { LessonStartDialog } from './LessonStartDialog';
 import { inputName } from './lesson-live';
 import './camino.css';
+import { PageHeader } from '../shell/PageHeader';
 
 /** Cuánto se desvía cada nodo a un lado (en píxeles): una ola suave. */
 const SHIFTS = [0, 52, 78, 52, 0, -52, -78, -52] as const;
@@ -415,15 +416,19 @@ export function CaminoScreen({
   return (
     <div className="camino" data-testid="camino">
       <div className="camino__main" inert={starting !== null}>
-        <h1 id="camino-titulo" tabIndex={-1} data-route-heading>
-          Aprender
-        </h1>
-        <p className="camino__input" data-testid="camino-entrada">
-          Tocas con: <strong>{inputName(source)}</strong>{' '}
-          <button type="button" className="link-button" onClick={onOpenSettings}>
-            Cambiar
-          </button>
-        </p>
+        <PageHeader
+          id="camino-titulo"
+          title="Aprender"
+          leadTestId="camino-entrada"
+          lead={
+            <>
+              Tocas con: <strong>{inputName(source)}</strong>{' '}
+              <button type="button" className="link-button" onClick={onOpenSettings}>
+                Cambiar
+              </button>
+            </>
+          }
+        />
         <div className="camino__chips">
           <Chips
             streak={streak}

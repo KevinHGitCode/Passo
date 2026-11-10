@@ -15,6 +15,7 @@ import { CAMINO, hrefOf, lessonRoute } from '../router/routes';
 import { AccuracyChart } from './AccuracyChart';
 import { KeyHeatmap } from './KeyHeatmap';
 import './progress.css';
+import { PageHeader } from '../shell/PageHeader';
 
 const CHART_LESSONS = 12;
 
@@ -90,16 +91,18 @@ export function ProgressScreen({
 
   return (
     <div className="progreso" data-testid="progreso">
-      <header className="progreso__head">
-        <h1 id="progreso-titulo" tabIndex={-1} data-route-heading ref={headingRef}>
-          Progreso
-        </h1>
-        <p className="progreso__sub">
-          {instrument === 'guitarra' ? `${INSTRUMENT_LABELS[instrument]}: ` : ''}
-          {done} de {lessons.length} lecciones hechas
-          {streak > 0 ? ` · racha de ${streak} ${streak === 1 ? 'día' : 'días'}` : ''}
-        </p>
-      </header>
+      <PageHeader
+        id="progreso-titulo"
+        title="Progreso"
+        headingRef={headingRef}
+        lead={
+          <>
+            {instrument === 'guitarra' ? `${INSTRUMENT_LABELS[instrument]}: ` : ''}
+            {done} de {lessons.length} lecciones hechas
+            {streak > 0 ? ` · racha de ${streak} ${streak === 1 ? 'día' : 'días'}` : ''}
+          </>
+        }
+      />
 
       {!saved ? (
         <p className="progreso__warn" role="status" data-testid="no-guarda">

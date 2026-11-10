@@ -20,6 +20,7 @@ import { useInputStatus, useMonitor } from '../practice/hooks';
 import { hrefOf, CANCIONES } from '../router/routes';
 import { Score } from './Score';
 import './songs.css';
+import { PageHeader } from '../shell/PageHeader';
 
 type View = 'sencilla' | 'partitura';
 
@@ -289,9 +290,15 @@ export function SongScreen({
   }
 
   const heading = (
-    <h1 id="cancion-titulo" tabIndex={-1} data-route-heading>
-      {song.title}
-    </h1>
+    <PageHeader
+      id="cancion-titulo"
+      title={song.title}
+      actions={
+        <a className="button button--ghost page-head__back" href={hrefOf(CANCIONES)}>
+          ← Canciones
+        </a>
+      }
+    />
   );
 
   // El micrófono nunca arranca solo: sin él no hay nada que seguir, así que solo se ofrece activarlo.

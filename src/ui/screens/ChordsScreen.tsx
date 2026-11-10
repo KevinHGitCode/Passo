@@ -13,6 +13,7 @@ import type { NoteInput } from '@/core/ports/note-input';
 import { GameButton } from '../game/GameButton';
 import { useInputStatus, useMonitor } from '../practice/hooks';
 import './chords.css';
+import { PageHeader } from '../shell/PageHeader';
 
 const classNames = (classes: readonly number[]): string =>
   classes.map((pc) => pitchClassName(pc)).join(', ');
@@ -154,9 +155,11 @@ export function ChordsScreen({
   }, [chords]);
 
   const heading = (
-    <h1 id="acordes-titulo" tabIndex={-1} data-route-heading>
-      Acordes
-    </h1>
+    <PageHeader
+      id="acordes-titulo"
+      title="Acordes"
+      lead="Toca un acorde y te digo cuál es. Elige cómo lo vas a tocar:"
+    />
   );
 
   // El micrófono nunca arranca solo: sin él no hay nada que oír, así que solo se ofrece activarlo.
@@ -189,7 +192,6 @@ export function ChordsScreen({
   return (
     <div className="chords" data-testid="chords" data-mode={snapshot.mode}>
       {heading}
-      <p className="chords__lead">Toca un acorde y te digo cuál es. Elige cómo lo vas a tocar:</p>
       <div className="chords__modes" role="radiogroup" aria-label="Cómo tocas el acorde">
         {(
           [

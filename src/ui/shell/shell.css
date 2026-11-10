@@ -130,6 +130,38 @@
   outline-offset: 4px;
 }
 
+/* ---------- La cabecera común de las pantallas ---------- */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.page-head__text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.page-head__lead {
+  max-width: var(--page-text);
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.page-head__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+.page-head__back {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--text);
+}
+
 /* La lección ocupa toda la pantalla: sin barra lateral ni inferior. */
 .game-shell--focus {
   grid-template-columns: minmax(0, 1fr);

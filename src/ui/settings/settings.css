@@ -27,20 +27,9 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-width: 640px;
+  width: 100%;
+  max-width: var(--page-max);
   margin: 0 auto;
-}
-.settings-page__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.settings-page__head h1 {
-  margin: 0;
-}
-.settings-page__head h1:focus {
-  outline: none;
 }
 .settings-tabs {
   display: flex;

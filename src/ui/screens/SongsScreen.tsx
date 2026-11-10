@@ -4,6 +4,7 @@ import { SONGS, STYLE_LABELS } from '@/core/domain/songs';
 import type { Song } from '@/core/domain/songs';
 import { hrefOf, songRoute } from '../router/routes';
 import './songs.css';
+import { PageHeader } from '../shell/PageHeader';
 
 /** Lo que dura la canción entera a velocidad normal, en minutos y segundos aproximados. */
 function durationText(song: Song): string {
@@ -16,13 +17,11 @@ function durationText(song: Song): string {
 function PianoSongsList() {
   return (
     <div className="songs" data-testid="songs">
-      <h1 id="canciones-titulo" tabIndex={-1} data-route-heading>
-        Canciones
-      </h1>
-      <p className="songs__lead">
-        Las notas caen sobre el teclado: tócalas esperando a que lleguen o a tempo, como en el
-        original.
-      </p>
+      <PageHeader
+        id="canciones-titulo"
+        title="Canciones"
+        lead="Las notas caen sobre el teclado: tócalas esperando a que lleguen o a tempo, como en el original."
+      />
       <ul className="songs__list">
         {PIANO_SONGS.map((song) => (
           <li key={song.id} className="songs__card" data-style="piano">
@@ -52,13 +51,11 @@ export function SongsScreen({ instrument = 'guitarra' }: { readonly instrument?:
   if (instrument === 'piano') return <PianoSongsList />;
   return (
     <div className="songs" data-testid="songs">
-      <h1 id="canciones-titulo" tabIndex={-1} data-route-heading>
-        Canciones
-      </h1>
-      <p className="songs__lead">
-        Toca la canción paso a paso: la app espera a cada nota o acorde y te dice si vas a tiempo,
-        lento o rápido.
-      </p>
+      <PageHeader
+        id="canciones-titulo"
+        title="Canciones"
+        lead="Toca la canción paso a paso: la app espera a cada nota o acorde y te dice si vas a tiempo, lento o rápido."
+      />
       <ul className="songs__list">
         {SONGS.map((song) => (
           <li key={song.id} className="songs__card" data-style={song.style}>

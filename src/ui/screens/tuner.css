@@ -4,14 +4,9 @@
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  max-width: 1040px;
+  max-width: var(--page-max);
   margin: 0 auto;
-  padding: 8px 0 32px;
-}
-.tuner h1 {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 900;
+  padding: 0 0 32px;
 }
 .tuner__lead {
   margin: 0;

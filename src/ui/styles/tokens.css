@@ -51,6 +51,10 @@
   --radius: 14px;
   --radius-sm: 9px;
   --space: 16px;
+  /* El ancho de todas las pantallas del marco: el título empieza siempre en el mismo sitio. */
+  --page-max: 1040px;
+  /* El ancho cómodo de un texto o de un formulario dentro de la pantalla. */
+  --page-text: 68ch;
 
   /*
    * Movimiento: tres duraciones y tres curvas para toda la app. Nada anima con valores sueltos: así

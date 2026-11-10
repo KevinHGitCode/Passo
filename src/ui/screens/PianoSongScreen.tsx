@@ -13,6 +13,7 @@ import type { KeyVisual } from '../keyboard/piano-keyboard';
 import { useInputStatus, useMonitor } from '../practice/hooks';
 import { CANCIONES, hrefOf } from '../router/routes';
 import './songs.css';
+import { PageHeader } from '../shell/PageHeader';
 
 /** La tecla blanca más cercana (hacia abajo o hacia arriba) para que el teclado empiece y acabe en una. */
 const whiteBelow = (midi: Midi): Midi => (isBlackKey(midi) ? midi - 1 : midi);
@@ -68,9 +69,15 @@ export function PianoSongScreen({
     );
   }
   const heading = (
-    <h1 id="cancion-titulo" tabIndex={-1} data-route-heading>
-      {song.title}
-    </h1>
+    <PageHeader
+      id="cancion-titulo"
+      title={song.title}
+      actions={
+        <a className="button button--ghost page-head__back" href={hrefOf(CANCIONES)}>
+          ← Canciones
+        </a>
+      }
+    />
   );
 
   if (

@@ -60,7 +60,7 @@
   display: grid;
   flex: none;
   color: var(--text-muted);
-  transition: transform 0.15s;
+  transition: transform var(--dur-base) var(--ease-out);
 }
 .inst[data-open='true'] .inst__chevron {
   transform: rotate(180deg);
@@ -69,12 +69,13 @@
 .inst__backdrop {
   position: fixed;
   inset: 0;
-  z-index: 40;
-  background: rgb(18 23 34 / 0.35);
+  z-index: var(--z-overlay);
+  background: var(--scrim-soft);
+  animation: fade-in var(--dur-base) ease-out backwards;
 }
 .inst__list {
   position: absolute;
-  z-index: 41;
+  z-index: calc(var(--z-overlay) + 1);
   top: calc(100% + 8px);
   left: 0;
   display: flex;
@@ -85,7 +86,10 @@
   border: 2px solid var(--border);
   border-radius: 18px;
   background: var(--surface);
-  box-shadow: 0 18px 40px rgb(18 23 34 / 0.25);
+  box-shadow: var(--elev-3);
+  /* Sale del chip, como el globo de una lección sale de su nodo. */
+  transform-origin: 24px -8px;
+  animation: overlay-pop var(--dur-base) var(--ease-spring) backwards;
 }
 .inst__title {
   margin: 4px 6px 2px;
@@ -183,6 +187,7 @@
     padding: 14px 16px 22px;
     border-radius: 26px 26px 0 0;
     border-width: 2px 0 0;
+    animation: sheet-up var(--dur-slow) var(--ease-out) backwards;
   }
   .inst__button {
     min-height: 48px;

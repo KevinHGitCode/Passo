@@ -67,6 +67,14 @@
   --elev-1: 0 1px 2px var(--shadow);
   --elev-2: 0 8px 24px -6px var(--shadow);
   --elev-3: 0 20px 48px -12px var(--shadow), 0 4px 12px -4px var(--shadow);
+  /* El velo que oscurece lo de atrás: el fuerte para las ventanas que piden una respuesta, el suave para globos y menús. */
+  --scrim: rgb(8 10 14 / 0.6);
+  --scrim-soft: rgb(8 10 14 / 0.34);
+  /* Capas: lo que se queda pegado al desplazar, la navegación, y lo que flota encima de todo. */
+  --z-sticky: 5;
+  --z-nav: 10;
+  --z-overlay: 20;
+  --z-toast: 50;
 
   /*
    * Tokens por rol del juego (camino, lecciones, estrellas). Los componentes del juego usan solo

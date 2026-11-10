@@ -22,6 +22,26 @@
     opacity: 1;
   }
 }
+/* Lo que flota (ventanas, globos, menús): el velo aparece y la ventana crece un poco desde su origen. */
+@keyframes overlay-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+}
+/* En el móvil los menús son hojas que suben desde abajo. */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+.overlay-scrim {
+  animation: fade-in var(--dur-base) ease-out backwards;
+}
+.overlay-pop {
+  animation: overlay-pop var(--dur-base) var(--ease-spring) backwards;
+}
+
 .route-enter {
   animation: route-in var(--dur-slow) var(--ease-out) backwards;
 }

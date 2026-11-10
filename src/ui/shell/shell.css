@@ -21,6 +21,8 @@
   padding: 22px 16px;
   border-right: 2px solid var(--border);
   background: var(--surface);
+  /* Por encima del contenido: el menú de instrumentos se abre sobre el camino. */
+  z-index: var(--z-nav);
 }
 .game-side__foot {
   margin-top: auto;
@@ -42,7 +44,8 @@
 .game-top {
   position: sticky;
   top: 0;
-  z-index: 5;
+  /* Un punto por encima de la barra inferior: la hoja de instrumentos (que nace aquí) la tapa. */
+  z-index: calc(var(--z-nav) + 1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -84,7 +87,7 @@
 .game-nav--bottom {
   position: sticky;
   bottom: 0;
-  z-index: 5;
+  z-index: var(--z-nav);
   flex-direction: row;
   gap: 4px;
   padding: 6px 8px 8px;

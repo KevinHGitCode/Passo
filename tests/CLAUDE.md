@@ -2,13 +2,13 @@
 
 Vitest para todo salvo `e2e/` (Playwright sobre **Edge**, sin descargar navegadores).
 
-| Carpeta | Qué prueba | Entorno |
-|---|---|---|
-| `core/` | dominio puro | node |
-| `integration/` | servicios de `application/` con fakes | node |
-| `adapters/` | micrófono, MIDI, almacenamiento con fakes de la API del navegador | node |
-| `ui/` | pantallas React con Testing Library | primera línea `// @vitest-environment jsdom` |
-| `e2e/` | la app compilada en un navegador real | Playwright (`npm run e2e`) |
+| Carpeta        | Qué prueba                                                        | Entorno                                      |
+| -------------- | ----------------------------------------------------------------- | -------------------------------------------- |
+| `core/`        | dominio puro                                                      | node                                         |
+| `integration/` | servicios de `application/` con fakes                             | node                                         |
+| `adapters/`    | micrófono, MIDI, almacenamiento con fakes de la API del navegador | node                                         |
+| `ui/`          | pantallas React con Testing Library                               | primera línea `// @vitest-environment jsdom` |
+| `e2e/`         | la app compilada en un navegador real                             | Playwright (`npm run e2e`)                   |
 
 - `fakes/` (reloj, entradas, preferencias, micrófono…) y `support/` (`synth.ts` guitarra/piano sintéticos,
   `strum.ts`, `pipeline.ts`) son lo reutilizable: úsalos antes de escribir otro doble.

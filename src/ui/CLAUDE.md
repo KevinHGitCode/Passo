@@ -5,14 +5,14 @@ props desde `src/compose.ts` / `src/main.tsx`. Los servicios se leen con `useSyn
 
 ## Antes de crear algo, mira si ya existe
 
-| Necesidad | Usa | Dónde |
-|---|---|---|
-| Título + explicación + acciones de una pantalla | `PageHeader` | `shell/PageHeader.tsx` |
-| «Activar micrófono» y sus estados (permiso, bloqueado, sin dispositivo) | `MicGate` | `listen/MicGate.tsx` |
-| Aviso breve («Guardado», «Deshacer») | `showToast(...)` (el `Toaster` ya está montado) | `toast/toast.ts` |
-| Sección de ajustes (tarjeta, fila, interruptor) | `SettingsCard`, `SettingRow`, `SwitchRow` | `settings/parts.tsx` |
-| Botones 3D del juego, iconos | `GameButton`, `Icon` | `game/` |
-| Ventana de confirmación | patrón de `ExitDialog` (`use-dialog-keys`, `role="dialog"`, foco en lo seguro) | `screens/` |
+| Necesidad                                                               | Usa                                                                            | Dónde                  |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------- |
+| Título + explicación + acciones de una pantalla                         | `PageHeader`                                                                   | `shell/PageHeader.tsx` |
+| «Activar micrófono» y sus estados (permiso, bloqueado, sin dispositivo) | `MicGate`                                                                      | `listen/MicGate.tsx`   |
+| Aviso breve («Guardado», «Deshacer»)                                    | `showToast(...)` (el `Toaster` ya está montado)                                | `toast/toast.ts`       |
+| Sección de ajustes (tarjeta, fila, interruptor)                         | `SettingsCard`, `SettingRow`, `SwitchRow`                                      | `settings/parts.tsx`   |
+| Botones 3D del juego, iconos                                            | `GameButton`, `Icon`                                                           | `game/`                |
+| Ventana de confirmación                                                 | patrón de `ExitDialog` (`use-dialog-keys`, `role="dialog"`, foco en lo seguro) | `screens/`             |
 
 ## Estilos
 

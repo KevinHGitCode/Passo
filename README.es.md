@@ -174,22 +174,22 @@ de instrumento y la ventana de la lección como hoja que sube desde abajo.
 
 ## Qué puedes hacer hoy
 
-| | |
-|---|---|
-| **Camino de piano** | 6 unidades y 32 lecciones: mano derecha (Do a Sol), mano izquierda, mover la mano, notas de acorde, las dos manos y, opcional, terceras y acordes |
-| **Camino de guitarra** | 3 unidades y 14 lecciones: cuerdas al aire, primeras notas y todas las cuerdas hasta el traste 3 (17 notas naturales, de Mi2 a Sol4) |
-| **Lecciones** | Nueva, repaso y prueba; hasta 3 estrellas; «saltar con prueba» (≥ 2 estrellas abre la unidad entera) |
-| **Repaso de puntos débiles** | «Practicar 3 min» arma una lección al momento con las notas que más te cuestan |
-| **Juego** | Experiencia, niveles, racha de días (con un día de descanso por semana) y meta diaria de 5 minutos |
-| **Progreso** | Mapa de calor del teclado, curva de precisión, notas que más cuestan por instrumento |
-| **Afinador de guitarra** | Automático (detecta la cuerda que tocas y dice si apretar o aflojar; la aguja no desaparece al callarse), clavijero con el estado de las seis cuerdas, medidor (Grave / Aguda / Casi / Afinada, cents y Hz), nota de referencia, modo guiado «Afinar las 6» y La₄ ajustable |
-| **Ajustes del piano** (antes «Mi piano») | Cuántas teclas tiene tu piano (5 octavas = 61), cómo llama al Do central (Do4 o Do3, el de Yamaha) y una prueba del micrófono que detecta si lee alguna nota una octava lejos y la corrige |
-| **Acordes de guitarra** | Reconoce el acorde que tocas, de un rasgueo completo (con cada golpe y su dirección) o cuerda por cuerda, y marca la cuerda desafinada |
-| **Canciones de piano** | «Golden Brown» con las notas cayendo sobre el teclado: esperando a que toques o a tempo (con ✓ y ✕ al pasar cada nota). La partitura vendrá después |
-| **Canciones de guitarra** | Cumpleaños feliz, Mi corazón encantado (Dragon Ball GT), Estrellita y un rasgueo (De colores): te muestran la nota o el acorde de cada paso y dicen si vas a tiempo, lento o rápido, también en el cambio de acorde; con «Escuchar la canción» la oyes entera antes de tocarla, y una vista de **partitura (pentagrama, compases y figuras) con tablatura** para ir aprendiendo a leer música |
-| **Práctica libre** | La pantalla de siempre: notas, terceras o acordes, a tu nivel y con la ayuda que elijas |
-| **Ajustes** | Entrada (micrófono, MIDI o teclado del PC), ejercicio y nivel, notación Do Re Mi o C D E, ayuda y tema. Se recuerdan |
-| **Accesibilidad** | Contraste AA comprobado por pruebas, nada depende solo del color, navegación con teclado, anuncios para lector de pantalla y respeto de «reducir movimiento» |
+|                                          |                                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Camino de piano**                      | 6 unidades y 32 lecciones: mano derecha (Do a Sol), mano izquierda, mover la mano, notas de acorde, las dos manos y, opcional, terceras y acordes                                                                                                                                                                                                                                             |
+| **Camino de guitarra**                   | 3 unidades y 14 lecciones: cuerdas al aire, primeras notas y todas las cuerdas hasta el traste 3 (17 notas naturales, de Mi2 a Sol4)                                                                                                                                                                                                                                                          |
+| **Lecciones**                            | Nueva, repaso y prueba; hasta 3 estrellas; «saltar con prueba» (≥ 2 estrellas abre la unidad entera)                                                                                                                                                                                                                                                                                          |
+| **Repaso de puntos débiles**             | «Practicar 3 min» arma una lección al momento con las notas que más te cuestan                                                                                                                                                                                                                                                                                                                |
+| **Juego**                                | Experiencia, niveles, racha de días (con un día de descanso por semana) y meta diaria de 5 minutos                                                                                                                                                                                                                                                                                            |
+| **Progreso**                             | Mapa de calor del teclado, curva de precisión, notas que más cuestan por instrumento                                                                                                                                                                                                                                                                                                          |
+| **Afinador de guitarra**                 | Automático (detecta la cuerda que tocas y dice si apretar o aflojar; la aguja no desaparece al callarse), clavijero con el estado de las seis cuerdas, medidor (Grave / Aguda / Casi / Afinada, cents y Hz), nota de referencia, modo guiado «Afinar las 6» y La₄ ajustable                                                                                                                   |
+| **Ajustes del piano** (antes «Mi piano») | Cuántas teclas tiene tu piano (5 octavas = 61), cómo llama al Do central (Do4 o Do3, el de Yamaha) y una prueba del micrófono que detecta si lee alguna nota una octava lejos y la corrige                                                                                                                                                                                                    |
+| **Acordes de guitarra**                  | Reconoce el acorde que tocas, de un rasgueo completo (con cada golpe y su dirección) o cuerda por cuerda, y marca la cuerda desafinada                                                                                                                                                                                                                                                        |
+| **Canciones de piano**                   | «Golden Brown» con las notas cayendo sobre el teclado: esperando a que toques o a tempo (con ✓ y ✕ al pasar cada nota). La partitura vendrá después                                                                                                                                                                                                                                           |
+| **Canciones de guitarra**                | Cumpleaños feliz, Mi corazón encantado (Dragon Ball GT), Estrellita y un rasgueo (De colores): te muestran la nota o el acorde de cada paso y dicen si vas a tiempo, lento o rápido, también en el cambio de acorde; con «Escuchar la canción» la oyes entera antes de tocarla, y una vista de **partitura (pentagrama, compases y figuras) con tablatura** para ir aprendiendo a leer música |
+| **Práctica libre**                       | La pantalla de siempre: notas, terceras o acordes, a tu nivel y con la ayuda que elijas                                                                                                                                                                                                                                                                                                       |
+| **Ajustes**                              | Entrada (micrófono, MIDI o teclado del PC), ejercicio y nivel, notación Do Re Mi o C D E, ayuda y tema. Se recuerdan                                                                                                                                                                                                                                                                          |
+| **Accesibilidad**                        | Contraste AA comprobado por pruebas, nada depende solo del color, navegación con teclado, anuncios para lector de pantalla y respeto de «reducir movimiento»                                                                                                                                                                                                                                  |
 
 ## Empezar
 
@@ -218,11 +218,11 @@ las teclas `A S D F G H J K L ;` (mano derecha, de Do4 a Mi5) o `Z X C V B N M` 
 
 ## Cómo tocas: micrófono, MIDI o teclado del PC
 
-| Entrada | Para qué | Notas |
-|---|---|---|
-| **Micrófono** | La principal: piano acústico, teclado sin USB y guitarra | Una nota a la vez. Terceras y acordes, solo con la beta «Oír varias notas a la vez» |
-| **Piano MIDI** | Si tu piano tiene USB-MIDI | Exacto, con velocidad y acordes completos. Web MIDI no existe en Safari |
-| **Teclado del PC** | Probar sin instrumento y desarrollar | Hace de piano; no hay guitarra con teclado |
+| Entrada            | Para qué                                                 | Notas                                                                               |
+| ------------------ | -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Micrófono**      | La principal: piano acústico, teclado sin USB y guitarra | Una nota a la vez. Terceras y acordes, solo con la beta «Oír varias notas a la vez» |
+| **Piano MIDI**     | Si tu piano tiene USB-MIDI                               | Exacto, con velocidad y acordes completos. Web MIDI no existe en Safari             |
+| **Teclado del PC** | Probar sin instrumento y desarrollar                     | Hace de piano; no hay guitarra con teclado                                          |
 
 El micrófono es una **escucha activa**: mide el ruido de la sala, detecta el ataque de cada nota, calcula
 su altura (detección McLeod propia), aprende cuánto se desvía tu instrumento y marca con qué seguridad
@@ -249,28 +249,28 @@ oyó. Una nota dudosa nunca cuenta como error. Los detalles y lo medido están e
 
 ## Direcciones y parámetros
 
-La navegación va por el *hash* de la dirección, y **el instrumento forma parte de ella**:
+La navegación va por el _hash_ de la dirección, y **el instrumento forma parte de ella**:
 
-| Dirección | Pantalla |
-|---|---|
-| `#/piano`, `#/guitarra` | El camino de ese instrumento (`#/` y la dirección vacía se completan solas) |
-| `#/piano/progreso`, `#/guitarra/progreso` | Lo que llevas en ese instrumento |
-| `#/leccion/<id>` | Una lección a pantalla completa (`u2-1` en piano, `g1-1` en guitarra, `repaso-debiles`) |
-| `#/practica` | Práctica libre (piano) |
-| `#/afinador` | El afinador (guitarra) |
-| `#/acordes` | Reconocer el acorde que tocas (guitarra) |
-| `#/piano/ajustes`, `#/guitarra/ajustes` | Los ajustes de cada instrumento (pestañas Piano y Guitarra); `#/ajustes` muestra los del elegido y `#/mi-piano` lleva a los del piano. Una página, no una ventana lateral; `Ctrl+,` la abre |
-| `#/canciones`, `#/cancion/<id>` | Las canciones (de piano o de guitarra según el instrumento): la lista y una canción |
+| Dirección                                 | Pantalla                                                                                                                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#/piano`, `#/guitarra`                   | El camino de ese instrumento (`#/` y la dirección vacía se completan solas)                                                                                                                 |
+| `#/piano/progreso`, `#/guitarra/progreso` | Lo que llevas en ese instrumento                                                                                                                                                            |
+| `#/leccion/<id>`                          | Una lección a pantalla completa (`u2-1` en piano, `g1-1` en guitarra, `repaso-debiles`)                                                                                                     |
+| `#/practica`                              | Práctica libre (piano)                                                                                                                                                                      |
+| `#/afinador`                              | El afinador (guitarra)                                                                                                                                                                      |
+| `#/acordes`                               | Reconocer el acorde que tocas (guitarra)                                                                                                                                                    |
+| `#/piano/ajustes`, `#/guitarra/ajustes`   | Los ajustes de cada instrumento (pestañas Piano y Guitarra); `#/ajustes` muestra los del elegido y `#/mi-piano` lleva a los del piano. Una página, no una ventana lateral; `Ctrl+,` la abre |
+| `#/canciones`, `#/cancion/<id>`           | Las canciones (de piano o de guitarra según el instrumento): la lista y una canción                                                                                                         |
 
 Parámetros de la dirección para desarrollo y pruebas (no se guardan):
 
-| Parámetro | Efecto |
-|---|---|
-| `?pc` · `?midi` · `?mic=off` | Modo de desarrollo: solo las entradas pedidas (`?pc` teclado del PC como piano, `?midi` piano MIDI) y `?mic=off` quita el micrófono |
-| `?seed=N` | Notas reproducibles |
-| `?debug` | Latencia y mediciones de los acordes |
-| `?modo=notas\|terceras\|acordes&nivel=N` | Fija el ejercicio de esa visita (úsalo con `?pc` o `?midi`) |
-| `?instrumento=guitarra` | Fija el instrumento de esa visita |
+| Parámetro                                | Efecto                                                                                                                              |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `?pc` · `?midi` · `?mic=off`             | Modo de desarrollo: solo las entradas pedidas (`?pc` teclado del PC como piano, `?midi` piano MIDI) y `?mic=off` quita el micrófono |
+| `?seed=N`                                | Notas reproducibles                                                                                                                 |
+| `?debug`                                 | Latencia y mediciones de los acordes                                                                                                |
+| `?modo=notas\|terceras\|acordes&nivel=N` | Fija el ejercicio de esa visita (úsalo con `?pc` o `?midi`)                                                                         |
+| `?instrumento=guitarra`                  | Fija el instrumento de esa visita                                                                                                   |
 
 ## Cómo funciona por dentro
 
@@ -285,16 +285,16 @@ rechazan los imports que rompan las capas):
         LessonFlow ─▶ puntuar ─▶ ProgressService ─▶ almacenamiento (localStorage)
 ```
 
-| Capa | Qué hay | Regla |
-|---|---|---|
-| **Dominio** (`src/core/domain`) | Notas, objetivos, instrumento, lecciones y catálogos, evaluación de un intento, puntuación y estrellas, racha, repaso, rastreador de notas, detección de tono, verificador de acordes, afinador | TypeScript puro: sin DOM, sin reloj, sin azar propio |
-| **Aplicación** (`src/core/application`) | `PracticeSession`, `LessonFlow`, `ProgressService`, `TunerService`, sincronía con las preferencias | Orquesta dominio y puertos |
-| **Puertos** (`src/core/ports`) | `NoteInput`, `AudioOutput`, `Clock`, `ProgressStore`, `PitchMonitor`… | Solo interfaces |
-| **Adaptadores** (`src/adapters`) | `MicrophoneInput`, `MidiInput`, `ComputerKeyboardInput`, `WebAudioOutput`, `localStorage` | Intercambiables; en pruebas se usan falsos |
-| **Interfaz** (`src/ui`) | React: camino, lección, progreso, afinador, teclado, mástil, ajustes | Solo presenta y delega |
+| Capa                                    | Qué hay                                                                                                                                                                                         | Regla                                                |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| **Dominio** (`src/core/domain`)         | Notas, objetivos, instrumento, lecciones y catálogos, evaluación de un intento, puntuación y estrellas, racha, repaso, rastreador de notas, detección de tono, verificador de acordes, afinador | TypeScript puro: sin DOM, sin reloj, sin azar propio |
+| **Aplicación** (`src/core/application`) | `PracticeSession`, `LessonFlow`, `ProgressService`, `TunerService`, sincronía con las preferencias                                                                                              | Orquesta dominio y puertos                           |
+| **Puertos** (`src/core/ports`)          | `NoteInput`, `AudioOutput`, `Clock`, `ProgressStore`, `PitchMonitor`…                                                                                                                           | Solo interfaces                                      |
+| **Adaptadores** (`src/adapters`)        | `MicrophoneInput`, `MidiInput`, `ComputerKeyboardInput`, `WebAudioOutput`, `localStorage`                                                                                                       | Intercambiables; en pruebas se usan falsos           |
+| **Interfaz** (`src/ui`)                 | React: camino, lección, progreso, afinador, teclado, mástil, ajustes                                                                                                                            | Solo presenta y delega                               |
 
-El micrófono recorre esta tubería: *captura → análisis de fotograma (energía y ataque) → detección de
-tono McLeod → rastreador de notas (confirmación, octava, afinación aprendida) → evento de nota*. Con
+El micrófono recorre esta tubería: _captura → análisis de fotograma (energía y ataque) → detección de
+tono McLeod → rastreador de notas (confirmación, octava, afinación aprendida) → evento de nota_. Con
 guitarra cambia de **perfil de escucha** en caliente (otro rango, otro tiempo de rebote) sin recalibrar.
 
 Decisiones que conviene conocer:
@@ -325,14 +325,14 @@ evidencias/    videos y capturas de cada fase cerrada, con su informe
 
 ## Calidad y pruebas
 
-| Comando | Qué hace |
-|---|---|
-| `npm run dev` | Servidor de desarrollo |
-| `npm run check` | **Todo junto:** lint, reglas de capas, formato, pruebas y compilación |
-| `npm test` · `npm run test:watch` | Vitest (unitarias, de integración y de interfaz) |
-| `npm run e2e` | Pruebas funcionales en **Edge** con video y capturas (ver [docs/metodo.md](docs/metodo.md) para el `ffmpeg` del video) |
-| `E2E_VIDEO=off npm run e2e` | Lo mismo sin grabar video |
-| `npm run build` · `npm run preview` | Compilación de producción y vista previa |
+| Comando                             | Qué hace                                                                                                               |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                       | Servidor de desarrollo                                                                                                 |
+| `npm run check`                     | **Todo junto:** lint, reglas de capas, formato, pruebas y compilación                                                  |
+| `npm test` · `npm run test:watch`   | Vitest (unitarias, de integración y de interfaz)                                                                       |
+| `npm run e2e`                       | Pruebas funcionales en **Edge** con video y capturas (ver [docs/metodo.md](docs/metodo.md) para el `ffmpeg` del video) |
+| `E2E_VIDEO=off npm run e2e`         | Lo mismo sin grabar video                                                                                              |
+| `npm run build` · `npm run preview` | Compilación de producción y vista previa                                                                               |
 
 `npm run check` pasa con **1715 pruebas** en 96 archivos y la suite e2e tiene **85 pruebas en Edge**.
 Cada fase cerrada deja su informe, su video y sus capturas en [`evidencias/`](evidencias/).
@@ -355,23 +355,23 @@ interfaz y experiencia, arquitectura e infraestructura), construcción con commi
 verificación con pruebas y evidencias, revisión final y cierre ([método](docs/metodo.md)). El repositorio
 es **solo local**.
 
-| Fase | Entrega | Estado |
-|---|---|---|
-| 0 | Prototipo: teclado en pantalla, MIDI y «toca esta nota» | Hecha |
-| 1 | **Escucha activa** por micrófono | Hecha (falta validar con el piano real) |
-| 2 | Ajustes, terceras y acordes, manos y dedos, notas que caen | Hecha |
-| 3 | **Passo como juego:** camino, estrellas, experiencia, racha y progreso guardado | Hecha (falta validar con el piano real) |
-| G1 | **Guitarra, etapa 1:** instrumento, mástil, afinador y tres unidades de notas | Hecha (falta validar con la guitarra real) |
-| A | **Afinador pro** de guitarra: clavijero, medidor, nota de referencia, modo guiado y La₄ (Auto queda aparte) | Hecha (falta validar con la guitarra real) |
-| C | **Canciones de guitarra** con indicaciones de tiempo (melodías y un rasgueo) | Hecha (falta validar con la guitarra real; ver [docs/fases/canciones.md](docs/fases/canciones.md)) |
-| G2 | Guitarra: arpegios y acordes abiertos | En diseño (plan en [docs/fases/guitarra-2.md](docs/fases/guitarra-2.md)) |
-| G3 · G4 | Guitarra: tablatura · canciones compás a compás («Mi corazón encantado») | Pendiente |
-| 4 | Modos espera y estricto, niveles con negras | Pendiente |
-| 5 | Entrenamiento por oído: nota e intervalos por oído | Pendiente |
-| 6 | Ritmo: metrónomo y calificación del tiempo | Pendiente |
-| 7 | Canciones: MusicXML y MIDI, partitura | Pendiente |
-| 8 | **Motor adaptativo:** práctica por tramos, unión progresiva y subida de tempo | Pendiente |
-| 9 | Pulido: logros, tema sobrio intercambiable, cuentas y nube | Pendiente |
+| Fase    | Entrega                                                                                                     | Estado                                                                                             |
+| ------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 0       | Prototipo: teclado en pantalla, MIDI y «toca esta nota»                                                     | Hecha                                                                                              |
+| 1       | **Escucha activa** por micrófono                                                                            | Hecha (falta validar con el piano real)                                                            |
+| 2       | Ajustes, terceras y acordes, manos y dedos, notas que caen                                                  | Hecha                                                                                              |
+| 3       | **Passo como juego:** camino, estrellas, experiencia, racha y progreso guardado                             | Hecha (falta validar con el piano real)                                                            |
+| G1      | **Guitarra, etapa 1:** instrumento, mástil, afinador y tres unidades de notas                               | Hecha (falta validar con la guitarra real)                                                         |
+| A       | **Afinador pro** de guitarra: clavijero, medidor, nota de referencia, modo guiado y La₄ (Auto queda aparte) | Hecha (falta validar con la guitarra real)                                                         |
+| C       | **Canciones de guitarra** con indicaciones de tiempo (melodías y un rasgueo)                                | Hecha (falta validar con la guitarra real; ver [docs/fases/canciones.md](docs/fases/canciones.md)) |
+| G2      | Guitarra: arpegios y acordes abiertos                                                                       | En diseño (plan en [docs/fases/guitarra-2.md](docs/fases/guitarra-2.md))                           |
+| G3 · G4 | Guitarra: tablatura · canciones compás a compás («Mi corazón encantado»)                                    | Pendiente                                                                                          |
+| 4       | Modos espera y estricto, niveles con negras                                                                 | Pendiente                                                                                          |
+| 5       | Entrenamiento por oído: nota e intervalos por oído                                                          | Pendiente                                                                                          |
+| 6       | Ritmo: metrónomo y calificación del tiempo                                                                  | Pendiente                                                                                          |
+| 7       | Canciones: MusicXML y MIDI, partitura                                                                       | Pendiente                                                                                          |
+| 8       | **Motor adaptativo:** práctica por tramos, unión progresiva y subida de tempo                               | Pendiente                                                                                          |
+| 9       | Pulido: logros, tema sobrio intercambiable, cuentas y nube                                                  | Pendiente                                                                                          |
 
 La idea de fondo del producto —practicar **solo lo que no sale bien** y unir los tramos poco a poco—
 está en [docs/vision.md](docs/vision.md). Lo archivado a propósito (teclado completo en móvil, selector
@@ -379,16 +379,16 @@ de micrófono…) está en [docs/archivado.md](docs/archivado.md).
 
 ## Documentación
 
-| Documento | Contenido |
-|---|---|
-| [docs/case-study.md](docs/case-study.md) | Estudio de caso: problema, decisiones técnicas, resultado y lo que falta |
-| [docs/vision.md](docs/vision.md) | Problema, idea central, modos de práctica y diseño visual |
-| [docs/metodo.md](docs/metodo.md) | Cómo se trabaja: fases, expertos, pruebas y evidencias |
-| [docs/convenciones.md](docs/convenciones.md) | Reglas del dominio: notas, intentos, micrófono, lecciones, instrumentos y rutas |
-| [docs/fases/](docs/fases/) | Plan, decisiones, resultados y deuda de cada fase |
-| [docs/validacion-microfono.md](docs/validacion-microfono.md) | Pasos para validar con tu piano y tu guitarra reales |
-| [docs/validacion-piano.md](docs/validacion-piano.md) | Validación con un piano MIDI |
-| [docs/archivado.md](docs/archivado.md) | Lo pausado a propósito y cómo retomarlo |
+| Documento                                                    | Contenido                                                                       |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| [docs/case-study.md](docs/case-study.md)                     | Estudio de caso: problema, decisiones técnicas, resultado y lo que falta        |
+| [docs/vision.md](docs/vision.md)                             | Problema, idea central, modos de práctica y diseño visual                       |
+| [docs/metodo.md](docs/metodo.md)                             | Cómo se trabaja: fases, expertos, pruebas y evidencias                          |
+| [docs/convenciones.md](docs/convenciones.md)                 | Reglas del dominio: notas, intentos, micrófono, lecciones, instrumentos y rutas |
+| [docs/fases/](docs/fases/)                                   | Plan, decisiones, resultados y deuda de cada fase                               |
+| [docs/validacion-microfono.md](docs/validacion-microfono.md) | Pasos para validar con tu piano y tu guitarra reales                            |
+| [docs/validacion-piano.md](docs/validacion-piano.md)         | Validación con un piano MIDI                                                    |
+| [docs/archivado.md](docs/archivado.md)                       | Lo pausado a propósito y cómo retomarlo                                         |
 
 ---
 

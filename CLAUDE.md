@@ -34,13 +34,13 @@ React 19 + TypeScript estricto + Vite, Clean Architecture. Todo en español (có
 
 ## Mapa
 
-| Carpeta | Qué es | Instrucciones propias |
-|---|---|---|
-| `src/core` | dominio puro, servicios y puertos | `src/core/CLAUDE.md` |
-| `src/adapters` | micrófono/DSP, MIDI, audio, teclado, almacenamiento | `src/adapters/CLAUDE.md` |
-| `src/ui` | pantallas React, estilos, rutas | `src/ui/CLAUDE.md` |
-| `tests` | unitarias, integración, UI (jsdom), e2e (Playwright en Edge) | `tests/CLAUDE.md` |
-| `docs` | método, convenciones musicales, planes por fase, guía de validación con instrumento real | — |
+| Carpeta        | Qué es                                                                                   | Instrucciones propias    |
+| -------------- | ---------------------------------------------------------------------------------------- | ------------------------ |
+| `src/core`     | dominio puro, servicios y puertos                                                        | `src/core/CLAUDE.md`     |
+| `src/adapters` | micrófono/DSP, MIDI, audio, teclado, almacenamiento                                      | `src/adapters/CLAUDE.md` |
+| `src/ui`       | pantallas React, estilos, rutas                                                          | `src/ui/CLAUDE.md`       |
+| `tests`        | unitarias, integración, UI (jsdom), e2e (Playwright en Edge)                             | `tests/CLAUDE.md`        |
+| `docs`         | método, convenciones musicales, planes por fase, guía de validación con instrumento real | —                        |
 
 Lecturas útiles según el trabajo: `docs/convenciones.md` (notas, intentos, entrada), `docs/metodo.md` (el método de
 fases es el de antes; ahora Kevin pide ciclos cortos y prueba él mismo), `docs/validacion-microfono.md` (pasos para

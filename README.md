@@ -1,9 +1,11 @@
+🇬🇧 English · 🇪🇸 [Español](README.es.md)
+
 <h1 align="center">Passo</h1>
 
 <p align="center">
-  <strong>Aprende piano y guitarra con corrección al instante.</strong><br />
-  Toca, Passo te escucha por el micrófono y te dice al momento qué salió bien y qué no.<br />
-  <em>Paso a paso: no avanzas hasta que lo dominas.</em>
+  <strong>Learn piano and guitar with instant feedback.</strong><br />
+  Play, and Passo listens through your microphone and tells you right away what went well and what didn't.<br />
+  <em>Step by step: you don't move on until you've mastered it.</em>
 </p>
 
 <p align="center">
@@ -11,331 +13,331 @@
 </p>
 
 <p align="center">
-  <img src="docs/img/camino.png" alt="El camino de aprendizaje de piano: unidades con lecciones, estrellas, racha, meta del día y puntos débiles" width="880" />
+  <img src="docs/img/camino.png" alt="The piano learning path: units with lessons, stars, streak, daily goal and weak spots" width="880" />
 </p>
 
 <p align="center">
   React 19 · TypeScript · Vite · Clean Architecture · Vitest · Playwright<br />
-  Sin cuentas, sin nube, sin anuncios: todo corre y se guarda en tu navegador.
+  No accounts, no cloud, no ads: everything runs and is stored in your browser.
 </p>
 
 ---
 
-## Contenido
+## Contents
 
-- [Qué es](#qué-es)
-- [Recorrido con capturas](#recorrido-con-capturas)
-- [Qué puedes hacer hoy](#qué-puedes-hacer-hoy)
-- [Empezar](#empezar)
-- [Cómo tocas: micrófono, MIDI o teclado del PC](#cómo-tocas-micrófono-midi-o-teclado-del-pc)
-- [Guitarra](#guitarra)
-- [Direcciones y parámetros](#direcciones-y-parámetros)
-- [Cómo funciona por dentro](#cómo-funciona-por-dentro)
-- [Estructura del proyecto](#estructura-del-proyecto)
-- [Calidad y pruebas](#calidad-y-pruebas)
-- [Estado y hoja de ruta](#estado-y-hoja-de-ruta)
-- [Documentación](#documentación)
+- [What it is](#what-it-is)
+- [Tour with screenshots](#tour-with-screenshots)
+- [What you can do today](#what-you-can-do-today)
+- [Getting started](#getting-started)
+- [How you play: microphone, MIDI or PC keyboard](#how-you-play-microphone-midi-or-pc-keyboard)
+- [Guitar](#guitar)
+- [URLs and parameters](#urls-and-parameters)
+- [How it works inside](#how-it-works-inside)
+- [Project structure](#project-structure)
+- [Quality and testing](#quality-and-testing)
+- [Status and roadmap](#status-and-roadmap)
+- [Documentation](#documentation)
 
-## Qué es
+## What it is
 
-Quien aprende con videos y cursos termina tocando lo que ya sabe, y nadie le corrige en el momento.
-Passo hace lo contrario: **te muestra qué tocar, te escucha y te corrige al instante**, y te lleva
-a practicar justo lo que más te cuesta.
+People who learn from videos and courses end up playing what they already know, and nobody corrects them in the moment.
+Passo does the opposite: **it shows you what to play, listens, and corrects you instantly**, and takes you
+to practice exactly what you find hardest.
 
-- **Corrección inmediata.** Cada nota se evalúa al sonar: acierto, error (con «era Sol, tocaste Fa,
-  una tecla a la izquierda») o duda del micrófono, que no cuenta como error.
-- **Funciona con el instrumento que ya tienes.** El micrófono del portátil es la entrada principal:
-  no hace falta un piano con USB-MIDI. El audio se analiza en tu equipo; **no se graba ni se envía**.
-- **Un juego, no un examen.** Camino de unidades y lecciones cortas (2–4 minutos), estrellas,
-  experiencia, racha de días y una meta diaria.
-- **Dos instrumentos en una sola app.** Piano y guitarra comparten racha y experiencia, pero cada uno
-  tiene su camino, sus estrellas y sus notas más flojas.
+- **Instant feedback.** Each note is evaluated as it sounds: a hit, a miss (with "it was Sol, you played Fa,
+  one key to the left"), or a microphone doubt, which doesn't count as a mistake.
+- **Works with the instrument you already have.** The laptop microphone is the main input:
+  you don't need a piano with USB-MIDI. Audio is analyzed on your device; **it is never recorded or sent anywhere**.
+- **A game, not an exam.** A path of units and short lessons (2–4 minutes), stars,
+  experience points, a daily streak and a daily goal.
+- **Two instruments in one app.** Piano and guitar share streak and experience, but each
+  has its own path, its own stars and its own weakest notes.
 
-## Recorrido con capturas
+## Tour with screenshots
 
-### El camino y la ventana de la lección
+### The path and the lesson window
 
-El camino se abre centrado en tu lección. Al tocar un nodo sale una ventana con lo que vas a tocar,
-cuánto hay que acertar y las estrellas que llevas; no entras de golpe.
-
-<table>
-  <tr>
-    <td width="50%"><img src="docs/img/camino-claro.png" alt="El camino con el tema claro" /></td>
-    <td width="50%"><img src="docs/img/ventana-leccion.png" alt="La ventana que sale al tocar una lección: tipo, título, estrellas, meta y el botón Empezar" /></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Tema claro, oscuro o el del sistema.</sub></td>
-    <td align="center"><sub>«Empezar» o «Ahora no»; Esc también la cierra.</sub></td>
-  </tr>
-</table>
-
-### La lección: corrección al instante
-
-Cada objetivo muestra **la nota, la mano y el dedo**, las dos notas siguientes **cayendo** sobre el
-teclado y la **mano fantasma** debajo. Si te equivocas, Passo te dice cuál era y hacia dónde te
-desviaste; la tecla correcta queda marcada.
+The path opens centered on your current lesson. Tapping a node opens a window showing what you'll play,
+how much you need to get right and the stars you have so far; you don't get thrown straight in.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/img/leccion.png" alt="Una lección con teclado del PC: nota objetivo, cascada de las siguientes notas y mano fantasma con los dedos" /></td>
-    <td width="50%"><img src="docs/img/leccion-error.png" alt="Un error: la tecla tocada se marca con una cruz y un mensaje dice «Era Sol3, tocaste Fa3 · una tecla a la izquierda»" /></td>
+    <td width="50%"><img src="docs/img/camino-claro.png" alt="The path in the light theme" /></td>
+    <td width="50%"><img src="docs/img/ventana-leccion.png" alt="The window that opens when you tap a lesson: type, title, stars, goal and the Start button" /></td>
   </tr>
   <tr>
-    <td align="center"><sub>Nota, mano, dedo, cascada y ritmo en vivo.</sub></td>
-    <td align="center"><sub>«Era Sol3, tocaste Fa3 · una tecla a la izquierda».</sub></td>
+    <td align="center"><sub>Light, dark or system theme.</sub></td>
+    <td align="center"><sub>"Start" or "Not now"; Esc also closes it.</sub></td>
   </tr>
 </table>
 
-### Escucha por micrófono
+### The lesson: instant feedback
 
-Passo oye tu piano o tu guitarra, mide el ruido de la sala, sigue la nota que suena y la compara con la
-pedida. La barra muestra el nivel y lo que oye («Oigo: Re4»).
+Each target shows **the note, the hand and the finger**, the next two notes **falling** onto the
+keyboard and the **ghost hand** below. If you miss, Passo tells you which note it was and which way you
+drifted; the correct key stays highlighted.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/img/leccion.png" alt="A lesson with the PC keyboard: target note, a waterfall of the next notes and a ghost hand with fingers" /></td>
+    <td width="50%"><img src="docs/img/leccion-error.png" alt="A mistake: the key played is marked with a cross and a message says «It was Sol3, you played Fa3 · one key to the left»" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Note, hand, finger, waterfall and live rhythm.</sub></td>
+    <td align="center"><sub>"It was Sol3, you played Fa3 · one key to the left".</sub></td>
+  </tr>
+</table>
+
+### Listening through the microphone
+
+Passo hears your piano or guitar, measures the room noise, follows the note that is sounding and compares it
+with the one requested. The bar shows the level and what it hears ("I hear: Re4").
 
 <p align="center">
-  <img src="docs/img/leccion-microfono.png" alt="Una lección por micrófono: barra de escucha con «Oigo: Re4» y el mensaje ¡Correcto!" width="760" />
+  <img src="docs/img/leccion-microfono.png" alt="A microphone lesson: listening bar with «I hear: Re4» and the message Correct!" width="760" />
 </p>
 
-### Resultado, estrellas y progreso
+### Result, stars and progress
 
-Cada lección da hasta **3 estrellas**. Con ≥ 70 % de precisión se pasa; la tercera pide como máximo un
-fallo y el ritmo marcado. Al final ves qué fue lo que más costó. En **Progreso** tienes tu nivel, medias,
-la curva de precisión y el **mapa de tu teclado**: qué teclas aciertas a la primera y cuáles no.
+Each lesson awards up to **3 stars**. With ≥ 70 % accuracy you pass; the third star requires at most one
+mistake and the marked rhythm. At the end you see what gave you the most trouble. **Progress** shows your level, averages,
+the accuracy curve and your **keyboard map**: which keys you hit first time and which you don't.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/img/resultado.png" alt="Resultado de una lección: tres estrellas, precisión, ritmo, tiempo, experiencia y lo que más costó" /></td>
-    <td width="50%"><img src="docs/img/progreso.png" alt="Progreso: nivel, precisión media, mapa de calor del teclado y curva de precisión por lección" /></td>
+    <td width="50%"><img src="docs/img/resultado.png" alt="Lesson result: three stars, accuracy, rhythm, time, experience and what was hardest" /></td>
+    <td width="50%"><img src="docs/img/progreso.png" alt="Progress: level, average accuracy, keyboard heat map and accuracy curve per lesson" /></td>
   </tr>
 </table>
 
-### Terceras y acordes
+### Thirds and chords
 
-Más allá de las notas sueltas hay terceras y acordes de tres notas, con la mano y los dedos 1-3-5 en
-cada uno. Con micrófono necesitan la **beta «Oír varias notas a la vez»**; con piano MIDI o teclado del
-PC funcionan siempre.
+Beyond single notes there are thirds and three-note chords, with the hand and fingers 1-3-5 shown on
+each one. With a microphone they need the **beta "Hear several notes at once"**; with a MIDI piano or the PC
+keyboard they always work.
 
 <p align="center">
-  <img src="docs/img/acordes.png" alt="Práctica de acordes: Sol mayor con la mano derecha, dedos 1-3-5 y la cascada de los siguientes acordes" width="760" />
+  <img src="docs/img/acordes.png" alt="Chord practice: G major with the right hand, fingers 1-3-5 and the waterfall of the next chords" width="760" />
 </p>
 
-### Guitarra
+### Guitar
 
-El chip **«Estás aprendiendo»** abre la lista **Mis instrumentos** (pensada para que quepan más). La
-guitarra tiene su propio camino, un **mástil** que dice cuerda, traste y dedo, y un **afinador** completo.
-El acento de color pasa a violeta para que siempre sepas en qué instrumento estás.
-
-<table>
-  <tr>
-    <td width="50%"><img src="docs/img/guitarra-camino.png" alt="El camino de guitarra con acento violeta y la tarjeta «Afina antes de empezar»" /></td>
-    <td width="50%"><img src="docs/img/instrumentos.png" alt="La lista «Mis instrumentos» con piano y guitarra y su avance" /></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/img/guitarra-leccion.png" alt="Una lección de guitarra: el mástil con la nota de ahora (cuerda 1, traste 3, dedo 3) y la siguiente" /></td>
-    <td width="50%"><img src="docs/img/afinador.png" alt="El afinador: el clavijero con la cuerda 6 grave y el medidor con la nota Mi, −17 cents y la indicación «Aprieta un poco la clavija»" /></td>
-  </tr>
-</table>
-
-#### El afinador
-
-Pensado como el de las apps profesionales: un **clavijero** (el esquema de la cabeza de la guitarra con sus
-seis clavijas) que **recuerda cuáles ya están afinadas**, un **medidor** con zona verde (±5 cents) y zona
-«casi» (±15), la **nota de referencia** para oír lo que buscas, el modo guiado **«Afinar las 6»** (de la 6 a la
-1, pasa sola de una cuerda a la siguiente) y el **La₄** ajustable (430 a 450 Hz).
+The **"You're learning"** chip opens the **My instruments** list (designed so more can fit). The
+guitar has its own path, a **fretboard** that shows string, fret and finger, and a full **tuner**.
+The accent color switches to violet so you always know which instrument you're on.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/img/afinador-guia.png" alt="El modo guiado: paso 2 de 6 con la cuerda La en la zona «casi» (−11 cents), la 6 ya con su ✓ y la 4 marcada como la siguiente" /></td>
-    <td width="50%" align="center"><img src="docs/img/movil-afinador.png" alt="El afinador en el móvil: clavijero compacto y el medidor de la cuerda 4" width="250" /></td>
+    <td width="50%"><img src="docs/img/guitarra-camino.png" alt="The guitar path with a violet accent and the «Tune before you start» card" /></td>
+    <td width="50%"><img src="docs/img/instrumentos.png" alt="The «My instruments» list with piano and guitar and their progress" /></td>
   </tr>
   <tr>
-    <td align="center"><sub>Modo guiado: avanza solo cuando la cuerda queda afinada.</sub></td>
-    <td align="center"><sub>En el móvil, el medidor se ve sin bajar mucho.</sub></td>
+    <td width="50%"><img src="docs/img/guitarra-leccion.png" alt="A guitar lesson: the fretboard with the current note (string 1, fret 3, finger 3) and the next one" /></td>
+    <td width="50%"><img src="docs/img/afinador.png" alt="The tuner: the headstock with the low string 6 and the meter showing the note Mi, −17 cents and the hint «Tighten the peg a little»" /></td>
   </tr>
 </table>
 
-### En el móvil
+#### The tuner
 
-Cabe en una pantalla de 320 px sin desplazamiento horizontal: barra inferior, cabecera con el selector
-de instrumento y la ventana de la lección como hoja que sube desde abajo.
+Designed like the ones in professional apps: a **headstock diagram** (the outline of the guitar head with its
+six tuning pegs) that **remembers which strings are already in tune**, a **meter** with a green zone (±5 cents) and
+an "almost" zone (±15), the **reference note** so you can hear what you're aiming for, the guided **"Tune all 6"** mode (from 6 to
+1, it moves from one string to the next on its own) and an adjustable **A₄** (430 to 450 Hz).
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/movil-camino.png" alt="Camino de piano en el móvil" width="190" /></td>
-    <td align="center"><img src="docs/img/movil-ventana.png" alt="Ventana de la lección como hoja inferior en el móvil" width="190" /></td>
-    <td align="center"><img src="docs/img/movil-leccion.png" alt="Una lección por micrófono en el móvil" width="190" /></td>
-    <td align="center"><img src="docs/img/movil-guitarra.png" alt="Camino de guitarra en el móvil" width="190" /></td>
+    <td width="50%"><img src="docs/img/afinador-guia.png" alt="Guided mode: step 2 of 6 with the A string in the «almost» zone (−11 cents), string 6 already checked ✓ and string 4 marked as next" /></td>
+    <td width="50%" align="center"><img src="docs/img/movil-afinador.png" alt="The tuner on mobile: compact headstock and the meter for string 4" width="250" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Guided mode: it advances on its own once the string is in tune.</sub></td>
+    <td align="center"><sub>On mobile, the meter is visible without scrolling far.</sub></td>
   </tr>
 </table>
 
-> Las capturas son de la propia aplicación y salen de una prueba (`tests/e2e/readme.spec.ts`) con un
-> micrófono **simulado**: se regeneran con un comando, ver [Calidad y pruebas](#calidad-y-pruebas).
+### On mobile
 
-## Qué puedes hacer hoy
+It fits a 320 px screen with no horizontal scrolling: a bottom bar, a header with the instrument selector
+and the lesson window as a sheet that slides up from the bottom.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/img/movil-camino.png" alt="Piano path on mobile" width="190" /></td>
+    <td align="center"><img src="docs/img/movil-ventana.png" alt="Lesson window as a bottom sheet on mobile" width="190" /></td>
+    <td align="center"><img src="docs/img/movil-leccion.png" alt="A microphone lesson on mobile" width="190" /></td>
+    <td align="center"><img src="docs/img/movil-guitarra.png" alt="Guitar path on mobile" width="190" /></td>
+  </tr>
+</table>
+
+> The screenshots come from the app itself and are produced by a test (`tests/e2e/readme.spec.ts`) with a
+> **simulated** microphone: they can be regenerated with one command, see [Quality and testing](#quality-and-testing).
+
+## What you can do today
 
 | | |
 |---|---|
-| **Camino de piano** | 6 unidades y 32 lecciones: mano derecha (Do a Sol), mano izquierda, mover la mano, notas de acorde, las dos manos y, opcional, terceras y acordes |
-| **Camino de guitarra** | 3 unidades y 14 lecciones: cuerdas al aire, primeras notas y todas las cuerdas hasta el traste 3 (17 notas naturales, de Mi2 a Sol4) |
-| **Lecciones** | Nueva, repaso y prueba; hasta 3 estrellas; «saltar con prueba» (≥ 2 estrellas abre la unidad entera) |
-| **Repaso de puntos débiles** | «Practicar 3 min» arma una lección al momento con las notas que más te cuestan |
-| **Juego** | Experiencia, niveles, racha de días (con un día de descanso por semana) y meta diaria de 5 minutos |
-| **Progreso** | Mapa de calor del teclado, curva de precisión, notas que más cuestan por instrumento |
-| **Afinador de guitarra** | Automático (detecta la cuerda que tocas y dice si apretar o aflojar; la aguja no desaparece al callarse), clavijero con el estado de las seis cuerdas, medidor (Grave / Aguda / Casi / Afinada, cents y Hz), nota de referencia, modo guiado «Afinar las 6» y La₄ ajustable |
-| **Ajustes del piano** (antes «Mi piano») | Cuántas teclas tiene tu piano (5 octavas = 61), cómo llama al Do central (Do4 o Do3, el de Yamaha) y una prueba del micrófono que detecta si lee alguna nota una octava lejos y la corrige |
-| **Acordes de guitarra** | Reconoce el acorde que tocas, de un rasgueo completo (con cada golpe y su dirección) o cuerda por cuerda, y marca la cuerda desafinada |
-| **Canciones de piano** | «Golden Brown» con las notas cayendo sobre el teclado: esperando a que toques o a tempo (con ✓ y ✕ al pasar cada nota). La partitura vendrá después |
-| **Canciones de guitarra** | Cumpleaños feliz, Mi corazón encantado (Dragon Ball GT), Estrellita y un rasgueo (De colores): te muestran la nota o el acorde de cada paso y dicen si vas a tiempo, lento o rápido, también en el cambio de acorde; con «Escuchar la canción» la oyes entera antes de tocarla, y una vista de **partitura (pentagrama, compases y figuras) con tablatura** para ir aprendiendo a leer música |
-| **Práctica libre** | La pantalla de siempre: notas, terceras o acordes, a tu nivel y con la ayuda que elijas |
-| **Ajustes** | Entrada (micrófono, MIDI o teclado del PC), ejercicio y nivel, notación Do Re Mi o C D E, ayuda y tema. Se recuerdan |
-| **Accesibilidad** | Contraste AA comprobado por pruebas, nada depende solo del color, navegación con teclado, anuncios para lector de pantalla y respeto de «reducir movimiento» |
+| **Piano path** | 6 units and 32 lessons: right hand (Do to Sol), left hand, moving the hand, chord notes, both hands and, optionally, thirds and chords |
+| **Guitar path** | 3 units and 14 lessons: open strings, first notes and all strings up to fret 3 (17 natural notes, from Mi2 to Sol4) |
+| **Lessons** | New, review and test; up to 3 stars; "skip with a test" (≥ 2 stars unlocks the whole unit) |
+| **Weak-spot review** | "Practice 3 min" builds a lesson on the spot with the notes you struggle with most |
+| **Game** | Experience, levels, a daily streak (with one rest day per week) and a 5-minute daily goal |
+| **Progress** | Keyboard heat map, accuracy curve, the notes that give you the most trouble per instrument |
+| **Guitar tuner** | Automatic (detects the string you play and tells you whether to tighten or loosen; the needle doesn't vanish when you stop playing), headstock diagram with the state of all six strings, meter (Low / High / Almost / In tune, cents and Hz), reference note, guided "Tune all 6" mode and adjustable A₄ |
+| **Piano settings** (formerly "My piano") | How many keys your piano has (5 octaves = 61), what it calls middle C (Do4 or Do3, as Yamaha does) and a microphone test that detects whether it reads any note an octave off and corrects it |
+| **Guitar chords** | Recognizes the chord you play, from a full strum (with each stroke and its direction) or string by string, and flags the out-of-tune string |
+| **Piano songs** | "Golden Brown" with the notes falling onto the keyboard: waiting for you to play or in tempo (with ✓ and ✕ as each note passes). Sheet music will come later |
+| **Guitar songs** | Happy Birthday, Mi corazón encantado (Dragon Ball GT), Estrellita and a strumming pattern (De colores): they show you the note or chord of each step and tell you whether you're on time, slow or fast, also on the chord change; with "Listen to the song" you hear it in full before playing it, plus a **sheet music view (staff, bars and note values) with tablature** to help you learn to read music |
+| **Free practice** | The classic screen: notes, thirds or chords, at your level and with the help you choose |
+| **Settings** | Input (microphone, MIDI or PC keyboard), exercise and level, Do Re Mi or C D E notation, help and theme. They are remembered |
+| **Accessibility** | AA contrast verified by tests, nothing depends on color alone, keyboard navigation, screen reader announcements and respect for "reduce motion" |
 
-## Empezar
+## Getting started
 
-Necesitas **Node ≥ 22.13** y un navegador moderno (Edge o Chrome; el micrófono pide `localhost` o HTTPS).
+You need **Node ≥ 22.13** and a modern browser (Edge or Chrome; the microphone requires `localhost` or HTTPS).
 
 ```bash
 npm install
 npm run dev
 ```
 
-Abre la dirección que muestre la terminal (normalmente <http://localhost:5173>). La primera vez:
+Open the address the terminal shows (normally <http://localhost:5173>). The first time:
 
-1. Elige cómo vas a tocar en **Ajustes → Cómo toco** (por defecto, micrófono).
-2. Toca una lección del camino y pulsa **Empezar**.
-3. Con micrófono, pulsa **Activar micrófono**: el navegador pide permiso, Passo mide el ruido de la
-   sala y, cuando dice que escucha, empiezas. El micrófono **nunca se enciende solo** y se apaga al salir.
+1. Choose how you'll play in **Settings → How I play** (the default is the microphone).
+2. Tap a lesson on the path and press **Start**.
+3. With a microphone, press **Enable microphone**: the browser asks for permission, Passo measures the room
+   noise and, once it says it's listening, you can begin. The microphone **never turns on by itself** and turns off when you leave.
 
-**Con un icono en el escritorio (Windows):** ejecuta una vez
-`powershell -ExecutionPolicy Bypass -File scripts\crear_icono_escritorio.ps1` y aparece **Passo**
-junto a tus otros accesos. Un clic arranca el servidor si hace falta (queda en una ventana minimizada:
-cerrarla lo detiene) y abre la aplicación en <http://localhost:5173>. El icono sale de
+**With a desktop icon (Windows):** run once
+`powershell -ExecutionPolicy Bypass -File scripts\crear_icono_escritorio.ps1` and **Passo** appears
+next to your other shortcuts. One click starts the server if needed (it stays in a minimized window:
+closing it stops the server) and opens the app at <http://localhost:5173>. The icon is generated by
 `scripts/generar_icono.py`.
 
-Sin piano a mano, prueba con el teclado del PC: abre <http://localhost:5173/?pc#/practica> y toca con
-las teclas `A S D F G H J K L ;` (mano derecha, de Do4 a Mi5) o `Z X C V B N M` (mano izquierda, de Do3 a Si3).
+With no piano at hand, try the PC keyboard: open <http://localhost:5173/?pc#/practica> and play with
+the keys `A S D F G H J K L ;` (right hand, Do4 to Mi5) or `Z X C V B N M` (left hand, Do3 to Si3).
 
-## Cómo tocas: micrófono, MIDI o teclado del PC
+## How you play: microphone, MIDI or PC keyboard
 
-| Entrada | Para qué | Notas |
+| Input | What it's for | Notes |
 |---|---|---|
-| **Micrófono** | La principal: piano acústico, teclado sin USB y guitarra | Una nota a la vez. Terceras y acordes, solo con la beta «Oír varias notas a la vez» |
-| **Piano MIDI** | Si tu piano tiene USB-MIDI | Exacto, con velocidad y acordes completos. Web MIDI no existe en Safari |
-| **Teclado del PC** | Probar sin instrumento y desarrollar | Hace de piano; no hay guitarra con teclado |
+| **Microphone** | The main one: acoustic piano, keyboards without USB and guitar | One note at a time. Thirds and chords only with the beta "Hear several notes at once" |
+| **MIDI piano** | If your piano has USB-MIDI | Exact, with velocity and full chords. Web MIDI does not exist in Safari |
+| **PC keyboard** | Trying it out without an instrument and for development | Acts as a piano; there is no keyboard guitar |
 
-El micrófono es una **escucha activa**: mide el ruido de la sala, detecta el ataque de cada nota, calcula
-su altura (detección McLeod propia), aprende cuánto se desvía tu instrumento y marca con qué seguridad
-oyó. Una nota dudosa nunca cuenta como error. Los detalles y lo medido están en
-[docs/fases/fase-1.md](docs/fases/fase-1.md) y [docs/convenciones.md](docs/convenciones.md).
+The microphone is **active listening**: it measures the room noise, detects the attack of each note, computes
+its pitch (own McLeod detection), learns how far your instrument drifts and reports how confident it
+was in what it heard. A doubtful note never counts as a mistake. The details and what was measured are in
+[docs/fases/fase-1.md](docs/fases/fase-1.md) and [docs/convenciones.md](docs/convenciones.md).
 
-## Guitarra
+## Guitar
 
-- **Se juzga el nombre de la nota, no la octava.** La guitarra se escribe una octava por encima de como
-  suena y el micrófono suele leer mal las cuerdas graves; así que el Mi de la cuerda 6 y el de la 1 cuentan
-  igual. El mástil te dice dónde tocarlo (cuerda, traste y dedo).
-- **Afina primero.** Con una cuerda floja todas las notas saldrían como error; el camino te lo recuerda y
-  el afinador está a un toque. Eliges la cuerda en el clavijero (o dejas que la guía vaya de la 6 a la 1) y da
-  «Afinada» con ±5 cents sostenidos 600 ms. Todavía no detecta solo qué cuerda tocas (modo Auto): es lo más
-  arriesgado con un micrófono de portátil y queda para cuando se valide con una guitarra real.
-- **Solo con micrófono**, en afinación estándar y notas naturales hasta el traste 3.
-- **Pronto:** arpegios y acordes, tablatura y la canción «Mi corazón encantado» compás a compás (ver la
-  [hoja de ruta](#estado-y-hoja-de-ruta)).
+- **The note name is judged, not the octave.** Guitar is written an octave higher than it sounds and the
+  microphone often misreads the low strings; so the Mi on string 6 and the one on string 1 count
+  the same. The fretboard tells you where to play it (string, fret and finger).
+- **Tune first.** With a slack string every note would come out as a mistake; the path reminds you and
+  the tuner is one tap away. You pick the string on the headstock diagram (or let the guide go from 6 to 1) and it says
+  "In tune" at ±5 cents held for 600 ms. It doesn't yet detect which string you play on its own (Auto mode): that is the
+  riskiest part with a laptop microphone and is left until it can be validated with a real guitar.
+- **Microphone only**, in standard tuning and natural notes up to fret 3.
+- **Coming soon:** arpeggios and chords, tablature and the song "Mi corazón encantado" bar by bar (see the
+  [roadmap](#status-and-roadmap)).
 
-> **Honestidad sobre lo probado:** todo el audio de las pruebas es **sintético** (una guitarra
-> Karplus-Strong y tonos de piano por osciladores). Los umbrales del afinador y de las cuerdas graves
-> salen de simulaciones y quedan por confirmar con una guitarra y un piano reales:
+> **Honesty about what has been tested:** all the audio in the tests is **synthetic** (a Karplus-Strong
+> guitar and piano tones from oscillators). The thresholds for the tuner and the low strings
+> come from simulations and still need to be confirmed with a real guitar and piano:
 > [docs/validacion-microfono.md](docs/validacion-microfono.md).
 
-## Direcciones y parámetros
+## URLs and parameters
 
-La navegación va por el *hash* de la dirección, y **el instrumento forma parte de ella**:
+Navigation goes through the URL *hash*, and **the instrument is part of it**:
 
-| Dirección | Pantalla |
+| URL | Screen |
 |---|---|
-| `#/piano`, `#/guitarra` | El camino de ese instrumento (`#/` y la dirección vacía se completan solas) |
-| `#/piano/progreso`, `#/guitarra/progreso` | Lo que llevas en ese instrumento |
-| `#/leccion/<id>` | Una lección a pantalla completa (`u2-1` en piano, `g1-1` en guitarra, `repaso-debiles`) |
-| `#/practica` | Práctica libre (piano) |
-| `#/afinador` | El afinador (guitarra) |
-| `#/acordes` | Reconocer el acorde que tocas (guitarra) |
-| `#/piano/ajustes`, `#/guitarra/ajustes` | Los ajustes de cada instrumento (pestañas Piano y Guitarra); `#/ajustes` muestra los del elegido y `#/mi-piano` lleva a los del piano. Una página, no una ventana lateral; `Ctrl+,` la abre |
-| `#/canciones`, `#/cancion/<id>` | Las canciones (de piano o de guitarra según el instrumento): la lista y una canción |
+| `#/piano`, `#/guitarra` | The path for that instrument (`#/` and the empty address complete themselves) |
+| `#/piano/progreso`, `#/guitarra/progreso` | Your progress on that instrument |
+| `#/leccion/<id>` | A full-screen lesson (`u2-1` on piano, `g1-1` on guitar, `repaso-debiles`) |
+| `#/practica` | Free practice (piano) |
+| `#/afinador` | The tuner (guitar) |
+| `#/acordes` | Recognize the chord you play (guitar) |
+| `#/piano/ajustes`, `#/guitarra/ajustes` | The settings for each instrument (Piano and Guitar tabs); `#/ajustes` shows those of the selected one and `#/mi-piano` takes you to the piano's. A page, not a side panel; `Ctrl+,` opens it |
+| `#/canciones`, `#/cancion/<id>` | The songs (piano or guitar depending on the instrument): the list and a single song |
 
-Parámetros de la dirección para desarrollo y pruebas (no se guardan):
+URL parameters for development and testing (they are not saved):
 
-| Parámetro | Efecto |
+| Parameter | Effect |
 |---|---|
-| `?pc` · `?midi` · `?mic=off` | Modo de desarrollo: solo las entradas pedidas (`?pc` teclado del PC como piano, `?midi` piano MIDI) y `?mic=off` quita el micrófono |
-| `?seed=N` | Notas reproducibles |
-| `?debug` | Latencia y mediciones de los acordes |
-| `?modo=notas\|terceras\|acordes&nivel=N` | Fija el ejercicio de esa visita (úsalo con `?pc` o `?midi`) |
-| `?instrumento=guitarra` | Fija el instrumento de esa visita |
+| `?pc` · `?midi` · `?mic=off` | Development mode: only the requested inputs (`?pc` PC keyboard as piano, `?midi` MIDI piano) and `?mic=off` removes the microphone |
+| `?seed=N` | Reproducible notes |
+| `?debug` | Latency and chord measurements |
+| `?modo=notas\|terceras\|acordes&nivel=N` | Fixes the exercise for that visit (use it with `?pc` or `?midi`) |
+| `?instrumento=guitarra` | Fixes the instrument for that visit |
 
-## Cómo funciona por dentro
+## How it works inside
 
-Passo sigue **Clean Architecture** y la comprueba con herramientas (`dependency-cruiser` y ESLint
-rechazan los imports que rompan las capas):
+Passo follows **Clean Architecture** and enforces it with tools (`dependency-cruiser` and ESLint
+reject imports that break the layers):
 
 ```
- Micrófono ─┐
- Piano MIDI ─┼─▶ NoteInput ─▶ PracticeSession ─▶ evaluate() ─▶ pantallas React
- Teclado PC ─┘   (puerto)      (caso de uso)     (dominio, puro)
+ Microphone ─┐
+ MIDI piano ─┼─▶ NoteInput ─▶ PracticeSession ─▶ evaluate() ─▶ React screens
+ PC keyboard ┘   (port)        (use case)        (domain, pure)
                                    │
-        LessonFlow ─▶ puntuar ─▶ ProgressService ─▶ almacenamiento (localStorage)
+        LessonFlow ─▶ score ─▶ ProgressService ─▶ storage (localStorage)
 ```
 
-| Capa | Qué hay | Regla |
+| Layer | What's in it | Rule |
 |---|---|---|
-| **Dominio** (`src/core/domain`) | Notas, objetivos, instrumento, lecciones y catálogos, evaluación de un intento, puntuación y estrellas, racha, repaso, rastreador de notas, detección de tono, verificador de acordes, afinador | TypeScript puro: sin DOM, sin reloj, sin azar propio |
-| **Aplicación** (`src/core/application`) | `PracticeSession`, `LessonFlow`, `ProgressService`, `TunerService`, sincronía con las preferencias | Orquesta dominio y puertos |
-| **Puertos** (`src/core/ports`) | `NoteInput`, `AudioOutput`, `Clock`, `ProgressStore`, `PitchMonitor`… | Solo interfaces |
-| **Adaptadores** (`src/adapters`) | `MicrophoneInput`, `MidiInput`, `ComputerKeyboardInput`, `WebAudioOutput`, `localStorage` | Intercambiables; en pruebas se usan falsos |
-| **Interfaz** (`src/ui`) | React: camino, lección, progreso, afinador, teclado, mástil, ajustes | Solo presenta y delega |
+| **Domain** (`src/core/domain`) | Notes, targets, instrument, lessons and catalogs, attempt evaluation, scoring and stars, streak, review, note tracker, pitch detection, chord checker, tuner | Pure TypeScript: no DOM, no clock, no randomness of its own |
+| **Application** (`src/core/application`) | `PracticeSession`, `LessonFlow`, `ProgressService`, `TunerService`, sync with preferences | Orchestrates the domain and the ports |
+| **Ports** (`src/core/ports`) | `NoteInput`, `AudioOutput`, `Clock`, `ProgressStore`, `PitchMonitor`… | Interfaces only |
+| **Adapters** (`src/adapters`) | `MicrophoneInput`, `MidiInput`, `ComputerKeyboardInput`, `WebAudioOutput`, `localStorage` | Interchangeable; fakes are used in tests |
+| **UI** (`src/ui`) | React: path, lesson, progress, tuner, keyboard, fretboard, settings | Only presents and delegates |
 
-El micrófono recorre esta tubería: *captura → análisis de fotograma (energía y ataque) → detección de
-tono McLeod → rastreador de notas (confirmación, octava, afinación aprendida) → evento de nota*. Con
-guitarra cambia de **perfil de escucha** en caliente (otro rango, otro tiempo de rebote) sin recalibrar.
+The microphone goes through this pipeline: *capture → frame analysis (energy and attack) → McLeod pitch
+detection → note tracker (confirmation, octave, learned tuning) → note event*. With the
+guitar it switches **listening profile** on the fly (a different range, a different debounce time) without recalibrating.
 
-Decisiones que conviene conocer:
+Decisions worth knowing about:
 
-- **La nota es lo que se juzga.** Lo demás (mano, dedo, cuerda, traste) es guía para la pantalla.
-- **El progreso se deriva.** Qué lecciones están abiertas sale de las estrellas; no se guarda.
-- **Datos locales y versionados.** `passo.progreso` y `passo.preferencias` en `localStorage`; lo dañado
-  o de una versión nueva nunca rompe la app ni se sobrescribe.
-- **Sin dependencias de ejecución** salvo React y la tipografía Nunito (autoalojada).
+- **The note is what gets judged.** The rest (hand, finger, string, fret) is on-screen guidance.
+- **Progress is derived.** Which lessons are unlocked comes from the stars; it isn't stored.
+- **Local, versioned data.** `passo.progreso` and `passo.preferencias` in `localStorage`; damaged data
+  or data from a newer version never breaks the app and is never overwritten.
+- **No runtime dependencies** except React and the Nunito typeface (self-hosted).
 
-## Estructura del proyecto
+## Project structure
 
 ```
 src/
-  core/        dominio, aplicación y puertos (sin DOM)
-  adapters/    micrófono, MIDI, teclado del PC, audio, almacenamiento
-  ui/          pantallas React (camino, lección, progreso, afinador, ajustes…)
-  compose.ts   ensambla todo (y lee los parámetros de la dirección)
+  core/        domain, application and ports (no DOM)
+  adapters/    microphone, MIDI, PC keyboard, audio, storage
+  ui/          React screens (path, lesson, progress, tuner, settings…)
+  compose.ts   wires everything together (and reads the URL parameters)
 tests/
   core/ adapters/ integration/ ui/   Vitest (+ jsdom)
-  e2e/                               Playwright en Edge, con video y capturas
-  support/ fakes/                    micrófono sintético, guitarra Karplus-Strong, falsos
+  e2e/                               Playwright in Edge, with video and screenshots
+  support/ fakes/                    synthetic microphone, Karplus-Strong guitar, fakes
 docs/
-  fases/       plan, decisiones y resultados de cada fase
-  img/         capturas de este README
-evidencias/    videos y capturas de cada fase cerrada, con su informe
+  fases/       plan, decisions and results of each phase
+  img/         screenshots for this README
+evidencias/    videos and screenshots of each closed phase, with its report
 ```
 
-## Calidad y pruebas
+## Quality and testing
 
-| Comando | Qué hace |
+| Command | What it does |
 |---|---|
-| `npm run dev` | Servidor de desarrollo |
-| `npm run check` | **Todo junto:** lint, reglas de capas, formato, pruebas y compilación |
-| `npm test` · `npm run test:watch` | Vitest (unitarias, de integración y de interfaz) |
-| `npm run e2e` | Pruebas funcionales en **Edge** con video y capturas (ver [docs/metodo.md](docs/metodo.md) para el `ffmpeg` del video) |
-| `E2E_VIDEO=off npm run e2e` | Lo mismo sin grabar video |
-| `npm run build` · `npm run preview` | Compilación de producción y vista previa |
+| `npm run dev` | Development server |
+| `npm run check` | **Everything together:** lint, layer rules, formatting, tests and build |
+| `npm test` · `npm run test:watch` | Vitest (unit, integration and UI tests) |
+| `npm run e2e` | Functional tests in **Edge** with video and screenshots (see [docs/metodo.md](docs/metodo.md) for the video's `ffmpeg`) |
+| `E2E_VIDEO=off npm run e2e` | The same without recording video |
+| `npm run build` · `npm run preview` | Production build and preview |
 
-`npm run check` pasa con **1715 pruebas** en 96 archivos y la suite e2e tiene **85 pruebas en Edge**.
-Cada fase cerrada deja su informe, su video y sus capturas en [`evidencias/`](evidencias/).
+`npm run check` passes with **1715 tests** in 96 files and the e2e suite has **85 tests in Edge**.
+Each closed phase leaves its report, video and screenshots in [`evidencias/`](evidencias/).
 
-Para volver a generar las capturas de este README (usan un micrófono simulado y no corren con
+To regenerate this README's screenshots (they use a simulated microphone and don't run with
 `npm run e2e`):
 
 ```bash
@@ -346,48 +348,48 @@ README_SHOTS=1 npx playwright test tests/e2e/readme.spec.ts
 $env:README_SHOTS=1; npx playwright test tests/e2e/readme.spec.ts
 ```
 
-## Estado y hoja de ruta
+## Status and roadmap
 
-El proyecto se construye **una fase a la vez**: plan, revisión de tres expertos (música y acústica,
-interfaz y experiencia, arquitectura e infraestructura), construcción con commits pequeños,
-verificación con pruebas y evidencias, revisión final y cierre ([método](docs/metodo.md)). El repositorio
-es **solo local**.
+The project is built **one phase at a time**: plan, review by three experts (music and acoustics,
+interface and experience, architecture and infrastructure), construction with small commits,
+verification with tests and evidence, final review and closure ([method](docs/metodo.md)). The repository
+is **local only**.
 
-| Fase | Entrega | Estado |
+| Phase | Deliverable | Status |
 |---|---|---|
-| 0 | Prototipo: teclado en pantalla, MIDI y «toca esta nota» | Hecha |
-| 1 | **Escucha activa** por micrófono | Hecha (falta validar con el piano real) |
-| 2 | Ajustes, terceras y acordes, manos y dedos, notas que caen | Hecha |
-| 3 | **Passo como juego:** camino, estrellas, experiencia, racha y progreso guardado | Hecha (falta validar con el piano real) |
-| G1 | **Guitarra, etapa 1:** instrumento, mástil, afinador y tres unidades de notas | Hecha (falta validar con la guitarra real) |
-| A | **Afinador pro** de guitarra: clavijero, medidor, nota de referencia, modo guiado y La₄ (Auto queda aparte) | Hecha (falta validar con la guitarra real) |
-| C | **Canciones de guitarra** con indicaciones de tiempo (melodías y un rasgueo) | Hecha (falta validar con la guitarra real; ver [docs/fases/canciones.md](docs/fases/canciones.md)) |
-| G2 | Guitarra: arpegios y acordes abiertos | En diseño (plan en [docs/fases/guitarra-2.md](docs/fases/guitarra-2.md)) |
-| G3 · G4 | Guitarra: tablatura · canciones compás a compás («Mi corazón encantado») | Pendiente |
-| 4 | Modos espera y estricto, niveles con negras | Pendiente |
-| 5 | Entrenamiento por oído: nota e intervalos por oído | Pendiente |
-| 6 | Ritmo: metrónomo y calificación del tiempo | Pendiente |
-| 7 | Canciones: MusicXML y MIDI, partitura | Pendiente |
-| 8 | **Motor adaptativo:** práctica por tramos, unión progresiva y subida de tempo | Pendiente |
-| 9 | Pulido: logros, tema sobrio intercambiable, cuentas y nube | Pendiente |
+| 0 | Prototype: on-screen keyboard, MIDI and "play this note" | Done |
+| 1 | **Active listening** through the microphone | Done (still to validate with a real piano) |
+| 2 | Settings, thirds and chords, hands and fingers, falling notes | Done |
+| 3 | **Passo as a game:** path, stars, experience, streak and saved progress | Done (still to validate with a real piano) |
+| G1 | **Guitar, stage 1:** instrument, fretboard, tuner and three units of notes | Done (still to validate with a real guitar) |
+| A | **Pro guitar tuner:** headstock diagram, meter, reference note, guided mode and A₄ (Auto is kept separate) | Done (still to validate with a real guitar) |
+| C | **Guitar songs** with timing cues (melodies and a strumming pattern) | Done (still to validate with a real guitar; see [docs/fases/canciones.md](docs/fases/canciones.md)) |
+| G2 | Guitar: arpeggios and open chords | In design (plan in [docs/fases/guitarra-2.md](docs/fases/guitarra-2.md)) |
+| G3 · G4 | Guitar: tablature · songs bar by bar ("Mi corazón encantado") | Pending |
+| 4 | Wait and strict modes, levels with quarter notes | Pending |
+| 5 | Ear training: note and interval recognition by ear | Pending |
+| 6 | Rhythm: metronome and timing scoring | Pending |
+| 7 | Songs: MusicXML and MIDI, sheet music | Pending |
+| 8 | **Adaptive engine:** practice by sections, progressive joining and tempo increase | Pending |
+| 9 | Polish: achievements, swappable sober theme, accounts and cloud | Pending |
 
-La idea de fondo del producto —practicar **solo lo que no sale bien** y unir los tramos poco a poco—
-está en [docs/vision.md](docs/vision.md). Lo archivado a propósito (teclado completo en móvil, selector
-de micrófono…) está en [docs/archivado.md](docs/archivado.md).
+The core idea of the product —practicing **only what doesn't go well** and joining the sections little by little—
+is in [docs/vision.md](docs/vision.md). What was shelved on purpose (full keyboard on mobile, microphone
+selector…) is in [docs/archivado.md](docs/archivado.md).
 
-## Documentación
+## Documentation
 
-| Documento | Contenido |
+| Document | Contents |
 |---|---|
-| [docs/case-study.md](docs/case-study.md) | Estudio de caso: problema, decisiones técnicas, resultado y lo que falta |
-| [docs/vision.md](docs/vision.md) | Problema, idea central, modos de práctica y diseño visual |
-| [docs/metodo.md](docs/metodo.md) | Cómo se trabaja: fases, expertos, pruebas y evidencias |
-| [docs/convenciones.md](docs/convenciones.md) | Reglas del dominio: notas, intentos, micrófono, lecciones, instrumentos y rutas |
-| [docs/fases/](docs/fases/) | Plan, decisiones, resultados y deuda de cada fase |
-| [docs/validacion-microfono.md](docs/validacion-microfono.md) | Pasos para validar con tu piano y tu guitarra reales |
-| [docs/validacion-piano.md](docs/validacion-piano.md) | Validación con un piano MIDI |
-| [docs/archivado.md](docs/archivado.md) | Lo pausado a propósito y cómo retomarlo |
+| [docs/case-study.md](docs/case-study.md) | Case study: problem, technical decisions, outcome and what's missing |
+| [docs/vision.md](docs/vision.md) | Problem, core idea, practice modes and visual design |
+| [docs/metodo.md](docs/metodo.md) | How the work is done: phases, experts, tests and evidence |
+| [docs/convenciones.md](docs/convenciones.md) | Domain rules: notes, attempts, microphone, lessons, instruments and routes |
+| [docs/fases/](docs/fases/) | Plan, decisions, results and debt of each phase |
+| [docs/validacion-microfono.md](docs/validacion-microfono.md) | Steps to validate with your real piano and guitar |
+| [docs/validacion-piano.md](docs/validacion-piano.md) | Validation with a MIDI piano |
+| [docs/archivado.md](docs/archivado.md) | What was paused on purpose and how to resume it |
 
 ---
 
-<p align="center"><sub>Proyecto personal de Kevin Díaz. © 2026, todos los derechos reservados: el código se publica para verlo, no para reutilizarlo ni comercializarlo (ver <a href="LICENSE">LICENSE</a>).</sub></p>
+<p align="center"><sub>A personal project by Kevin Díaz. © 2026, all rights reserved: the code is published to be viewed, not to be reused or commercialized (see <a href="LICENSE">LICENSE</a>).</sub></p>
